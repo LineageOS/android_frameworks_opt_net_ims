@@ -16,6 +16,8 @@
 
 package com.android.ims;
 
+import com.android.internal.R;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1014,7 +1016,10 @@ public class ImsCall implements ICall {
                         ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
             }
 
-            if (mHold) {
+            // if skipHoldBeforeMerge = true, IMS service implementation will
+            // merge without explicitly holding the call.
+            if (mHold || (mContext.getResources().getBoolean(
+                    com.android.internal.R.bool.skipHoldBeforeMerge))) {
                 mSession.merge();
                 mUpdateRequest = UPDATE_MERGE;
             } else {
