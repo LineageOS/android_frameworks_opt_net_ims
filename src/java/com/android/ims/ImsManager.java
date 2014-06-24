@@ -33,6 +33,8 @@ import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
+import com.android.ims.internal.IImsConfig;
+
 
 /**
  * Provides APIs for IMS services, such as initiating IMS calls, and provides access to
@@ -114,6 +116,8 @@ public class ImsManager {
     private ImsServiceDeathRecipient mDeathRecipient = new ImsServiceDeathRecipient();
     // Ut interface for the supplementary service configuration
     private ImsUt mUt = null;
+    // Interface to get/set ims config items
+    private ImsConfig mConfig = null;
 
     /**
      * Gets a manager instance.
@@ -206,6 +210,7 @@ public class ImsManager {
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         } finally {
             mUt = null;
+            mConfig = null;
         }
     }
 
@@ -410,6 +415,33 @@ public class ImsManager {
     }
 
     /**
+     * Gets the config interface to get/set service/capability parameters.
+     *
+     * @return the ImsConfig instance.
+     * @throws ImsException if getting the setting interface results in an error.
+     */
+    public ImsConfig getConfigInterface() throws ImsException {
+
+        if (mConfig == null) {
+            checkAndThrowExceptionIfServiceUnavailable();
+
+            try {
+                IImsConfig config = mImsService.getConfigInterface();
+                if (config == null) {
+                    throw new ImsException("getConfigInterface()",
+                            ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+                }
+                mConfig = new ImsConfig(config);
+            } catch (RemoteException e) {
+                throw new ImsException("getConfigInterface()", e,
+                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+            }
+        }
+        if (DBG) log("getConfigInterface(), mConfig= " + mConfig);
+        return mConfig;
+    }
+
+    /**
      * Gets the call ID from the specified incoming call broadcast intent.
      *
      * @param incomingCallIntent the incoming call broadcast intent
@@ -520,6 +552,7 @@ public class ImsManager {
         public void binderDied() {
             mImsService = null;
             mUt = null;
+            mConfig = null;
 
             if (mContext != null) {
                 mContext.sendBroadcast(new Intent(ACTION_IMS_SERVICE_DOWN));
