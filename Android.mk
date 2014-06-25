@@ -18,13 +18,6 @@ include $(CLEAR_VARS)
 
 LOCAL_AIDL_INCLUDES := $(LOCAL_PATH)/src/java
 LOCAL_SRC_FILES := \
-    src/java/com/android/ims/internal/IImsRegistrationListener.aidl \
-    src/java/com/android/ims/internal/IImsStreamMediaSession.aidl \
-    src/java/com/android/ims/internal/IImsCallSession.aidl \
-    src/java/com/android/ims/internal/IImsCallSessionListener.aidl \
-    src/java/com/android/ims/internal/IImsService.aidl \
-    src/java/com/android/ims/internal/IImsUt.aidl \
-    src/java/com/android/ims/internal/IImsUtListener.aidl \
     $(call all-java-files-under, src/java)
 
 #LOCAL_JAVA_LIBRARIES := telephony-common
