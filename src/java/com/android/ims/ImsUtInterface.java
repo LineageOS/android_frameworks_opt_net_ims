@@ -114,6 +114,26 @@ public interface ImsUtInterface {
     public void queryCallWaiting(Message result);
 
     /**
+     * Retrieves the default CLIR setting.
+     */
+    public void queryCLIR(Message result);
+
+    /**
+     * Retrieves the CLIP call setting.
+     */
+    public void queryCLIP(Message result);
+
+    /**
+     * Retrieves the COLR call setting.
+     */
+    public void queryCOLR(Message result);
+
+    /**
+     * Retrieves the COLP call setting.
+     */
+    public void queryCOLP(Message result);
+
+    /**
      * Modifies the configuration of the call barring.
      */
     public void updateCallBarring(int cbType, boolean enable, Message result);
@@ -128,4 +148,24 @@ public interface ImsUtInterface {
      * Modifies the configuration of the call waiting.
      */
     public void updateCallWaiting(boolean enable, Message result);
+
+    /**
+     * Updates the configuration of the CLIR supplementary service.
+     */
+    public void updateCLIR(int clirMode, Message result);
+
+    /**
+     * Updates the configuration of the CLIP supplementary service.
+     */
+    public void updateCLIP(boolean enable, Message result);
+
+    /**
+     * Updates the configuration of the COLR supplementary service.
+     */
+    public void updateCOLR(int presentation, Message result);
+
+    /**
+     * Updates the configuration of the COLP supplementary service.
+     */
+    public void updateCOLP(boolean enable, Message result);
 }

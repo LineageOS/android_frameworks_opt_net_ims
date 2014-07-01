@@ -196,6 +196,107 @@ public class ImsUt implements ImsUtInterface {
     }
 
     /**
+     * Retrieves the default CLIR setting.
+     */
+    @Override
+    public void queryCLIR(Message result) {
+        if (DBG) {
+            log("queryCLIR :: Ut=" + miUt);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.queryCLIR();
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Retrieves the CLIP call setting.
+     */
+    public void queryCLIP(Message result) {
+        if (DBG) {
+            log("queryCLIP :: Ut=" + miUt);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.queryCLIP();
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Retrieves the COLR call setting.
+     */
+    public void queryCOLR(Message result) {
+        if (DBG) {
+            log("queryCOLR :: Ut=" + miUt);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.queryCOLR();
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Retrieves the COLP call setting.
+     */
+    public void queryCOLP(Message result) {
+        if (DBG) {
+            log("queryCOLP :: Ut=" + miUt);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.queryCOLP();
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
      * Modifies the configuration of the call barring.
      */
     @Override
@@ -263,6 +364,110 @@ public class ImsUt implements ImsUtInterface {
         synchronized(mLockObj) {
             try {
                 int id = miUt.updateCallWaiting(enable);
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Updates the configuration of the CLIR supplementary service.
+     */
+    @Override
+    public void updateCLIR(int clirMode, Message result) {
+        if (DBG) {
+            log("updateCLIR :: Ut=" + miUt + ", clirMode=" + clirMode);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.updateCLIR(clirMode);
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Updates the configuration of the CLIP supplementary service.
+     */
+    @Override
+    public void updateCLIP(boolean enable, Message result) {
+        if (DBG) {
+            log("updateCLIP :: Ut=" + miUt + ", enable=" + enable);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.updateCLIP(enable);
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Updates the configuration of the COLR supplementary service.
+     */
+    @Override
+    public void updateCOLR(int presentation, Message result) {
+        if (DBG) {
+            log("updateCOLR :: Ut=" + miUt + ", presentation=" + presentation);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.updateCOLR(presentation);
+
+                if (id < 0) {
+                    id *= (-1);
+                    sendFailureReport(result, id);
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+            }
+        }
+    }
+
+    /**
+     * Updates the configuration of the COLP supplementary service.
+     */
+    @Override
+    public void updateCOLP(boolean enable, Message result) {
+        if (DBG) {
+            log("updateCallWaiting :: Ut=" + miUt + ", enable=" + enable);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.updateCOLP(enable);
 
                 if (id < 0) {
                     id *= (-1);
