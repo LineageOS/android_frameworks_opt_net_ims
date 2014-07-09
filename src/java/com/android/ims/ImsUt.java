@@ -98,7 +98,7 @@ public class ImsUt implements ImsUtInterface {
 
                 for (Map.Entry<Integer, Message> entry : entries) {
                     sendFailureReport(entry.getValue(),
-                            ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                 }
 
                 mPendingCmds.clear();
@@ -128,14 +128,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCallBarring(cbType);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -156,14 +157,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCallForward(condition, number);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -183,14 +185,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCallWaiting();
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -209,14 +212,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCLIR();
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -234,14 +238,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCLIP();
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -259,14 +264,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCOLR();
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -284,14 +290,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.queryCOLP();
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -300,25 +307,36 @@ public class ImsUt implements ImsUtInterface {
      * Modifies the configuration of the call barring.
      */
     @Override
-    public void updateCallBarring(int cbType, boolean enable, Message result) {
+    public void updateCallBarring(int cbType, boolean enable, Message result, String[] barrList) {
         if (DBG) {
-            log("updateCallBarring :: Ut=" + miUt + ", cbType=" + cbType
-                    + ", enable=" + enable);
+            if (barrList != null) {
+                String bList = new String();
+                for (int i = 0; i < barrList.length; i++) {
+                    bList.concat(barrList[i] + " ");
+                }
+                log("updateCallBarring :: Ut=" + miUt + ", cbType=" + cbType
+                        + ", enable=" + enable + ", barrList=" + bList);
+            }
+            else {
+                log("updateCallBarring :: Ut=" + miUt + ", cbType=" + cbType
+                        + ", enable=" + enable);
+            }
         }
 
         synchronized(mLockObj) {
             try {
-                int id = miUt.updateCallBarring(cbType, enable);
+                int id = miUt.updateCallBarring(cbType, enable, barrList);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -340,14 +358,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.updateCallForward(action, condition, number, timeSeconds);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -366,14 +385,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.updateCallWaiting(enable);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -392,14 +412,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.updateCLIR(clirMode);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -418,14 +439,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.updateCLIP(enable);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -444,14 +466,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.updateCOLR(presentation);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -470,14 +493,15 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.updateCOLP(enable);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
@@ -492,24 +516,34 @@ public class ImsUt implements ImsUtInterface {
                 int id = miUt.transact(ssInfo);
 
                 if (id < 0) {
-                    id *= (-1);
-                    sendFailureReport(result, id);
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
                     return;
                 }
 
                 mPendingCmds.put(Integer.valueOf(id), result);
             } catch (RemoteException e) {
-                sendFailureReport(result, ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE);
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
             }
         }
     }
 
-    private void sendFailureReport(Message result, int errorCode) {
-        if (result == null) {
+    private void sendFailureReport(Message result, ImsReasonInfo error) {
+        if (result == null || error == null) {
             return;
         }
 
-        AsyncResult.forMessage(result, null, new ImsException("Ut Exception", errorCode));
+        String errorString;
+        // If ImsReasonInfo object does not have a String error code, use a
+        // default error string.
+        if (error.mExtraMessage == null) {
+            errorString = new String("IMS UT exception");
+        }
+        else {
+            errorString = new String(error.mExtraMessage);
+        }
+        AsyncResult.forMessage(result, null, new ImsException(errorString, error.mCode));
         result.sendToTarget();
     }
 
@@ -561,11 +595,11 @@ public class ImsUt implements ImsUtInterface {
         }
 
         @Override
-        public void utConfigurationUpdateFailed(IImsUt ut, int id, int errorCode) {
+        public void utConfigurationUpdateFailed(IImsUt ut, int id, ImsReasonInfo error) {
             Integer key = Integer.valueOf(id);
 
             synchronized(mLockObj) {
-                sendFailureReport(mPendingCmds.get(key), errorCode);
+                sendFailureReport(mPendingCmds.get(key), error);
                 mPendingCmds.remove(key);
             }
         }
@@ -584,11 +618,11 @@ public class ImsUt implements ImsUtInterface {
         }
 
         @Override
-        public void utConfigurationQueryFailed(IImsUt ut, int id, int errorCode) {
+        public void utConfigurationQueryFailed(IImsUt ut, int id, ImsReasonInfo error) {
             Integer key = Integer.valueOf(id);
 
             synchronized(mLockObj) {
-                sendFailureReport(mPendingCmds.get(key), errorCode);
+                sendFailureReport(mPendingCmds.get(key), error);
                 mPendingCmds.remove(key);
             }
         }

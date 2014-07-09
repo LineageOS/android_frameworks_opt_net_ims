@@ -82,7 +82,14 @@ public interface ImsUtInterface {
     public static final int CB_BIC_WR = 5;
     // Barring of Anonymous Communication Rejection (ACR) - a particular case of ICB service
     public static final int CB_BIC_ACR = 6;
-
+    // Barring of All Calls
+    public static final int CB_BA_ALL = 7;
+    // Barring of Outgoing Services (Service Code 333 - 3GPP TS 22.030 Table B-1)
+    public static final int CB_BA_MO = 8;
+    // Barring of Incoming Services (Service Code 353 - 3GPP TS 22.030 Table B-1)
+    public static final int CB_BA_MT = 9;
+    // Barring of Specific Incoming calls
+    public static final int CB_BS_MT = 10;
 
     /**
      * Invalid result value.
@@ -136,7 +143,8 @@ public interface ImsUtInterface {
     /**
      * Modifies the configuration of the call barring.
      */
-    public void updateCallBarring(int cbType, boolean enable, Message result);
+    public void updateCallBarring(int cbType, boolean enable,
+            Message result, String[] barrList);
 
     /**
      * Modifies the configuration of the call forward.
