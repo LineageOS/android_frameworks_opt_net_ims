@@ -36,6 +36,8 @@ import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.IImsConfig;
 
 
+import java.util.HashMap;
+
 /**
  * Provides APIs for IMS services, such as initiating IMS calls, and provides access to
  * the operator's IMS network. This class is the starting point for any IMS actions.
@@ -50,7 +52,7 @@ public class ImsManager {
      * Internal use only.
      * @hide
      */
-    public static final String IMS_SERVICE = "ims";
+    private static final String IMS_SERVICE = "ims";
 
     /**
      * The result code to be sent back with the incoming call {@link PendingIntent}.
@@ -79,6 +81,14 @@ public class ImsManager {
      */
     public static final String ACTION_IMS_SERVICE_DOWN =
             "com.android.ims.IMS_SERVICE_DOWN";
+
+    /**
+     * Part of the ACTION_IMS_SERVICE_UP or _DOWN intents.
+     * A long value; the subId corresponding to the IMS service coming up or down.
+     * Internal use only.
+     * @hide
+     */
+    public static final String EXTRA_SUBID = "android:subid";
 
     /**
      * Action for the incoming call intent for the Phone app.
@@ -110,8 +120,11 @@ public class ImsManager {
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
 
-    private static ImsManager mImsManager = null;
+    private static HashMap<Long, ImsManager> sImsManagerInstances =
+            new HashMap<Long, ImsManager>();
+
     private Context mContext;
+    private long mSubId;
     private IImsService mImsService = null;
     private ImsServiceDeathRecipient mDeathRecipient = new ImsServiceDeathRecipient();
     // Ut interface for the supplementary service configuration
@@ -123,18 +136,24 @@ public class ImsManager {
      * Gets a manager instance.
      *
      * @param context application context for creating the manager object
-     * @return the manager instance
+     * @param subId the subscription ID for the IMS Service
+     * @return the manager instance corresponding to the subId
      */
-    public static ImsManager getInstance(Context context) {
-        if (mImsManager == null) {
-            mImsManager = new ImsManager(context);
-        }
+    public static ImsManager getInstance(Context context, long subId) {
+        synchronized (sImsManagerInstances) {
+            if (sImsManagerInstances.containsKey(subId))
+                return sImsManagerInstances.get(subId);
 
-        return mImsManager;
+            ImsManager mgr = new ImsManager(context, subId);
+            sImsManagerInstances.put(subId, mgr);
+
+            return mgr;
+        }
     }
 
-    private ImsManager(Context context) {
+    private ImsManager(Context context, long subId) {
         mContext = context;
+        mSubId = subId;
         createImsService(true);
     }
 
@@ -484,19 +503,25 @@ public class ImsManager {
         }
     }
 
+    private static String getImsServiceName(long subId) {
+        // TODO: MSIM implementation needs to decide on service name as a function of subId
+        // or value derived from subId (slot ID?)
+        return IMS_SERVICE;
+    }
+
     /**
      * Binds the IMS service to make/receive the call.
      */
     private void createImsService(boolean checkService) {
         if (checkService) {
-            IBinder binder = ServiceManager.checkService(IMS_SERVICE);
+            IBinder binder = ServiceManager.checkService(getImsServiceName(mSubId));
 
             if (binder == null) {
                 return;
             }
         }
 
-        IBinder b = ServiceManager.getService(IMS_SERVICE);
+        IBinder b = ServiceManager.getService(getImsServiceName(mSubId));
 
         if (b != null) {
             try {
@@ -555,7 +580,9 @@ public class ImsManager {
             mConfig = null;
 
             if (mContext != null) {
-                mContext.sendBroadcast(new Intent(ACTION_IMS_SERVICE_DOWN));
+                Intent intent = new Intent(ACTION_IMS_SERVICE_DOWN);
+                intent.putExtra(EXTRA_SUBID, mSubId);
+                mContext.sendBroadcast(new Intent(intent));
             }
         }
     }
