@@ -570,6 +570,29 @@ public class ImsManager {
     }
 
     /**
+     * Used for turning on IMS.if its off already
+     */
+    public void turnOnIms() throws ImsException {
+        try {
+            mImsService.turnOnIms();
+        } catch (RemoteException e) {
+            throw new ImsException("turnOnIms() ", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
+     * Used for turning off IMS completely in order to make the device CSFB'ed.
+     * Once turned off, all calls will be over CS.
+     */
+    public void turnOffIms() throws ImsException {
+        try {
+            mImsService.turnOffIms();
+        } catch (RemoteException e) {
+            throw new ImsException("turnOffIms() ", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
      * Death recipient class for monitoring IMS service.
      */
     private class ImsServiceDeathRecipient implements IBinder.DeathRecipient {
@@ -657,5 +680,13 @@ public class ImsManager {
                 mListener.onImsConnected();
             }
         }
+
+        @Override
+        public void registrationFeatureCapabilityChanged(int serviceClass,
+                int[] enabledFeatures, int[] disabledFeatures) {
+            log("registrationFeatureCapabilityChanged :: serviceClass=" +
+                    serviceClass);
+        }
+
     }
 }

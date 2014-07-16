@@ -42,20 +42,28 @@ public class ImsConfig {
         public static final int FEATURE_TYPE_UNKNOWN = -1;
 
         /**
-         * FEATURE_TYPE_VOLTE supports the features defined in 3GPP & GSMA IR.92
+         * FEATURE_TYPE_VOLTE supports features defined in 3GPP and
+         * GSMA IR.92 over LTE.
          */
-        public static final int FEATURE_TYPE_VOLTE = 0;
+        public static final int FEATURE_TYPE_VOICE_OVER_LTE = 0;
 
         /**
-         *FEATURE_TYPE_VT supports the features defined in 3GPP & GSMA IR.94
+         * FEATURE_TYPE_LVC supports features defined in 3GPP and
+         * GSMA IR.94 over LTE.
          */
-        public static final int FEATURE_TYPE_VT = 1;
+        public static final int FEATURE_TYPE_VIDEO_OVER_LTE = 1;
 
         /**
-         * FEATURE_TYPE_UT supports the UT features defined in 3GPP & GSMA IR.92,
-         * IR.94
+         * FEATURE_TYPE_VOICE_OVER_WIFI supports features defined in 3GPP and
+         * GSMA IR.92 over WiFi.
          */
-        public static final int FEATURE_TYPE_UT = 2;
+        public static final int FEATURE_TYPE_VOICE_OVER_WIFI = 2;
+
+        /**
+         * FEATURE_TYPE_VIDEO_OVER_WIFI supports features defined in 3GPP and
+         * GSMA IR.94 over WiFi.
+         */
+        public static final int FEATURE_TYPE_VIDEO_OVER_WIFI = 3;
     }
 
     /**
