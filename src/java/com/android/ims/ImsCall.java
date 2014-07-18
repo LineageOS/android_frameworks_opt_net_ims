@@ -810,14 +810,16 @@ public class ImsCall implements ICall {
      * Accepts a call.
      *
      * @see Listener#onCallStarted
+     *
+     * @param callType The call type the user agreed to for accepting the call.
      * @throws ImsException if the IMS service fails to accept the call
      */
-    public void accept() throws ImsException {
+    public void accept(int callType) throws ImsException {
         if (DBG) {
             log("accept :: session=" + mSession);
         }
 
-        accept(ImsCallProfile.CALL_TYPE_VOICE, new ImsStreamMediaProfile());
+        accept(callType, new ImsStreamMediaProfile());
     }
 
     /**
