@@ -182,6 +182,8 @@ public class ImsManager {
      */
     public int open(int serviceClass, PendingIntent incomingCallPendingIntent,
             ImsConnectionStateListener listener) throws ImsException {
+        // TODO: check global IMS-enabled property and do not open if disabled
+
         checkAndThrowExceptionIfServiceUnavailable();
 
         if (incomingCallPendingIntent == null) {
@@ -573,6 +575,8 @@ public class ImsManager {
      * Used for turning on IMS.if its off already
      */
     public void turnOnIms() throws ImsException {
+        checkAndThrowExceptionIfServiceUnavailable();
+
         try {
             mImsService.turnOnIms();
         } catch (RemoteException e) {
@@ -585,6 +589,8 @@ public class ImsManager {
      * Once turned off, all calls will be over CS.
      */
     public void turnOffIms() throws ImsException {
+        checkAndThrowExceptionIfServiceUnavailable();
+
         try {
             mImsService.turnOffIms();
         } catch (RemoteException e) {
