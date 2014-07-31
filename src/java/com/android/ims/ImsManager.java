@@ -29,6 +29,8 @@ import android.os.ServiceManager;
 import android.telephony.Rlog;
 
 import com.android.ims.internal.IImsCallSession;
+import com.android.ims.internal.IImsEcbm;
+import com.android.ims.internal.IImsEcbmListener;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
@@ -132,6 +134,9 @@ public class ImsManager {
     // Interface to get/set ims config items
     private ImsConfig mConfig = null;
 
+    // ECBM interface
+    private ImsEcbm mEcbm = null;
+
     /**
      * Gets a manager instance.
      *
@@ -232,6 +237,7 @@ public class ImsManager {
         } finally {
             mUt = null;
             mConfig = null;
+            mEcbm = null;
         }
     }
 
@@ -607,6 +613,7 @@ public class ImsManager {
             mImsService = null;
             mUt = null;
             mConfig = null;
+            mEcbm = null;
 
             if (mContext != null) {
                 Intent intent = new Intent(ACTION_IMS_SERVICE_DOWN);
@@ -694,5 +701,31 @@ public class ImsManager {
                     serviceClass);
         }
 
+    }
+    /**
+     * Gets the ECBM interface to request ECBM exit.
+     *
+     * @param serviceId a service id which is obtained from {@link ImsManager#open}
+     * @return the ECBM interface instance
+     * @throws ImsException if getting the ECBM interface results in an error
+     */
+    public ImsEcbm getEcbmInterface(int serviceId) throws ImsException {
+        if (mEcbm == null) {
+            checkAndThrowExceptionIfServiceUnavailable();
+
+            try {
+                IImsEcbm iEcbm = mImsService.getEcbmInterface(serviceId);
+
+                if (iEcbm == null) {
+                    throw new ImsException("getEcbmInterface()",
+                            ImsReasonInfo.CODE_ECBM_NOT_SUPPORTED);
+                }
+                mEcbm = new ImsEcbm(iEcbm);
+            } catch (RemoteException e) {
+                throw new ImsException("getEcbmInterface()", e,
+                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+            }
+        }
+        return mEcbm;
     }
 }
