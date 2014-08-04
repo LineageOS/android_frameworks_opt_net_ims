@@ -328,6 +328,34 @@ public class ImsCallSession {
                 int mode, String ussdMessage) {
             // no-op
         }
+
+        /**
+         * Called when session access technology changes
+         *
+         * @param session IMS session object
+         * @param srcAccessTech original access technology
+         * @param targetAccessTech new access technology
+         * @param reasonInfo
+         */
+        public void callSessionHandover(ImsCallSession session,
+                                 int srcAccessTech, int targetAccessTech,
+                                 ImsReasonInfo reasonInfo) {
+            // no-op
+        }
+
+        /**
+         * Called when session access technology change fails
+         *
+         * @param session IMS session object
+         * @param srcAccessTech original access technology
+         * @param targetAccessTech new access technology
+         * @param reasonInfo handover failure reason
+         */
+        public void callSessionHandoverFailed(ImsCallSession session,
+                                       int srcAccessTech, int targetAccessTech,
+                                       ImsReasonInfo reasonInfo) {
+            // no-op
+        }
     }
 
     private final IImsCallSession miSession;
@@ -982,6 +1010,29 @@ public class ImsCallSession {
                 int mode, String ussdMessage) {
             if (mListener != null) {
                 mListener.callSessionUssdMessageReceived(ImsCallSession.this, mode, ussdMessage);
+            }
+        }
+
+        /**
+         * Notifies of handover information for this call
+         */
+        @Override
+        public void callSessionHandover(IImsCallSession session,
+                                 int srcAccessTech, int targetAccessTech,
+                                 ImsReasonInfo reasonInfo) {
+            if (mListener != null) {
+                mListener.callSessionHandover(ImsCallSession.this, srcAccessTech,
+                        targetAccessTech, reasonInfo);
+            }
+        }
+
+        @Override
+        public void callSessionHandoverFailed(IImsCallSession session,
+                                       int srcAccessTech, int targetAccessTech,
+                                       ImsReasonInfo reasonInfo) {
+            if (mListener != null) {
+                mListener.callSessionHandoverFailed(ImsCallSession.this, srcAccessTech,
+                        targetAccessTech, reasonInfo);
             }
         }
     }
