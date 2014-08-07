@@ -487,7 +487,7 @@ public class ImsManager {
                     throw new ImsException("getConfigInterface()",
                             ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
                 }
-                mConfig = new ImsConfig(config);
+                mConfig = new ImsConfig(config, mContext);
             } catch (RemoteException e) {
                 throw new ImsException("getConfigInterface()", e,
                         ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
