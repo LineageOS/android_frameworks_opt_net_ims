@@ -19,7 +19,6 @@ package com.android.ims;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
 import android.os.Message;
@@ -27,6 +26,7 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.telephony.Rlog;
+import android.telephony.TelephonyManager;
 
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsEcbm;
@@ -36,7 +36,6 @@ import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.IImsConfig;
-
 
 import java.util.HashMap;
 
@@ -187,8 +186,6 @@ public class ImsManager {
      */
     public int open(int serviceClass, PendingIntent incomingCallPendingIntent,
             ImsConnectionStateListener listener) throws ImsException {
-        // TODO: check global IMS-enabled property and do not open if disabled
-
         checkAndThrowExceptionIfServiceUnavailable();
 
         if (incomingCallPendingIntent == null) {
@@ -587,6 +584,26 @@ public class ImsManager {
             mImsService.turnOnIms();
         } catch (RemoteException e) {
             throw new ImsException("turnOnIms() ", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    public void setAdvanced4GMode(boolean turnOn) throws ImsException {
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        ImsConfig config = getConfigInterface();
+        if (config != null) {
+            config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
+                    TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+            config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                    TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+        }
+
+        if (turnOn) {
+            turnOnIms();
+        } else if (mContext.getResources().getBoolean(
+                com.android.internal.R.bool.imsServiceAllowTurnOff)) {
+            log("setAdvanced4GMode() : imsServiceAllowTurnOff -> turnOffIms");
+            turnOffIms();
         }
     }
 
