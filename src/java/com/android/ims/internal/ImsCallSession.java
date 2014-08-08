@@ -17,7 +17,6 @@
 package com.android.ims.internal;
 
 import android.os.RemoteException;
-import android.telephony.Rlog;
 
 import com.android.ims.ImsCallProfile;
 import com.android.ims.ImsConferenceState;
@@ -441,6 +440,23 @@ public class ImsCallSession {
 
         try {
             return miSession.getLocalCallProfile();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Gets the video call provider for the session.
+     *
+     * @return The video call provider.
+     */
+    public IImsVideoCallProvider getVideoCallProvider() {
+        if (mClosed) {
+            return null;
+        }
+
+        try {
+            return miSession.getVideoCallProvider();
         } catch (RemoteException e) {
             return null;
         }
