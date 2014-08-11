@@ -48,6 +48,12 @@ import java.util.HashMap;
  * @hide
  */
 public class ImsManager {
+    /*
+     * Shared preference constants storing the "Enhanced 4G LTE Mode" configuration
+     */
+    public static final String IMS_SHARED_PREFERENCES = "IMS_PREFERENCES";
+    public static final String KEY_IMS_ON = "IMS";
+
     /**
      * For accessing the IMS related service.
      * Internal use only.
