@@ -21,17 +21,15 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
-import android.telecomm.CallCameraCapabilities;
-import android.telecomm.ConnectionService;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.CameraCapabilities;
+import android.telecomm.Connection;
+import android.telecomm.VideoProfile;
 import android.view.Surface;
 
 import com.android.internal.os.SomeArgs;
 
-import java.lang.RuntimeException;
-
 /**
- * Subclass implementation of {@link ConnectionService.VideoCallProvider}. This intermediates and
+ * Subclass implementation of {@link Connection.VideoProvider}. This intermediates and
  * communicates with the actual implementation of the video call provider in the IMS service; it is
  * in essence, a wrapper around the IMS's video call provider implementation.
  *
@@ -41,7 +39,7 @@ import java.lang.RuntimeException;
  *
  * @hide
  */
-public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProvider {
+public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     private static final int MSG_RECEIVE_SESSION_MODIFY_REQUEST = 1;
     private static final int MSG_RECEIVE_SESSION_MODIFY_RESPONSE = 2;
     private static final int MSG_HANDLE_CALL_SESSION_EVENT = 3;
@@ -64,14 +62,14 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
      */
     private final class ImsVideoCallCallback extends IImsVideoCallCallback.Stub {
         @Override
-        public void receiveSessionModifyRequest(VideoCallProfile videoCallProfile) {
+        public void receiveSessionModifyRequest(VideoProfile VideoProfile) {
             mHandler.obtainMessage(MSG_RECEIVE_SESSION_MODIFY_REQUEST,
-                    videoCallProfile).sendToTarget();
+                    VideoProfile).sendToTarget();
         }
 
         @Override
         public void receiveSessionModifyResponse(
-                int status, VideoCallProfile requestProfile, VideoCallProfile responseProfile) {
+                int status, VideoProfile requestProfile, VideoProfile responseProfile) {
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = status;
             args.arg2 = requestProfile;
@@ -98,7 +96,7 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
         }
 
         @Override
-        public void changeCameraCapabilities(CallCameraCapabilities cameraCapabilities) {
+        public void changeCameraCapabilities(CameraCapabilities cameraCapabilities) {
             mHandler.obtainMessage(MSG_CHANGE_CAMERA_CAPABILITIES,
                     cameraCapabilities).sendToTarget();
         }
@@ -111,14 +109,14 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
             SomeArgs args;
             switch (msg.what) {
                 case MSG_RECEIVE_SESSION_MODIFY_REQUEST:
-                    receiveSessionModifyRequest((VideoCallProfile) msg.obj);
+                    receiveSessionModifyRequest((VideoProfile) msg.obj);
                     break;
                 case MSG_RECEIVE_SESSION_MODIFY_RESPONSE:
                     args = (SomeArgs) msg.obj;
                     try {
                         int status = (int) args.arg1;
-                        VideoCallProfile requestProfile = (VideoCallProfile) args.arg2;
-                        VideoCallProfile responseProfile = (VideoCallProfile) args.arg3;
+                        VideoProfile requestProfile = (VideoProfile) args.arg2;
+                        VideoProfile responseProfile = (VideoProfile) args.arg3;
 
                         receiveSessionModifyResponse(status, requestProfile, responseProfile);
                     } finally {
@@ -142,7 +140,7 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
                     changeCallDataUsage(msg.arg1);
                     break;
                 case MSG_CHANGE_CAMERA_CAPABILITIES:
-                    changeCameraCapabilities((CallCameraCapabilities) msg.obj);
+                    changeCameraCapabilities((CameraCapabilities) msg.obj);
                     break;
                 default:
                     break;
@@ -154,11 +152,11 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
      * Instantiates an instance of the ImsVideoCallProvider, taking in the binder for IMS's video
      * call provider implementation.
      *
-     * @param videoCallProvider
+     * @param VideoProvider
      */
-    public ImsVideoCallProviderWrapper(IImsVideoCallProvider videoCallProvider)
+    public ImsVideoCallProviderWrapper(IImsVideoCallProvider VideoProvider)
             throws RemoteException {
-        mVideoCallProvider = videoCallProvider;
+        mVideoCallProvider = VideoProvider;
         mVideoCallProvider.asBinder().linkToDeath(mDeathRecipient, 0);
 
         mBinder = new ImsVideoCallCallback();
@@ -206,7 +204,7 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
     }
 
     /** @inheritDoc */
-    public void onSendSessionModifyRequest(VideoCallProfile requestProfile) {
+    public void onSendSessionModifyRequest(VideoProfile requestProfile) {
         try {
             mVideoCallProvider.sendSessionModifyRequest(requestProfile);
         } catch (RemoteException e) {
@@ -214,7 +212,7 @@ public class ImsVideoCallProviderWrapper extends ConnectionService.VideoCallProv
     }
 
     /** @inheritDoc */
-    public void onSendSessionModifyResponse(VideoCallProfile responseProfile) {
+    public void onSendSessionModifyResponse(VideoProfile responseProfile) {
         try {
             mVideoCallProvider.sendSessionModifyResponse(responseProfile);
         } catch (RemoteException e) {

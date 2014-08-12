@@ -17,12 +17,12 @@
 package com.android.ims.internal;
 
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
-import android.telecomm.CallCameraCapabilities;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.CameraCapabilities;
+import android.telecomm.Connection;
+import android.telecomm.VideoProfile;
 import android.view.Surface;
 
 public abstract class ImsVideoCallProvider {
@@ -68,10 +68,10 @@ public abstract class ImsVideoCallProvider {
                     onSetZoom((Float) msg.obj);
                     break;
                 case MSG_SEND_SESSION_MODIFY_REQUEST:
-                    onSendSessionModifyRequest((VideoCallProfile) msg.obj);
+                    onSendSessionModifyRequest((VideoProfile) msg.obj);
                     break;
                 case MSG_SEND_SESSION_MODIFY_RESPONSE:
-                    onSendSessionModifyResponse((VideoCallProfile) msg.obj);
+                    onSendSessionModifyResponse((VideoProfile) msg.obj);
                     break;
                 case MSG_REQUEST_CAMERA_CAPABILITIES:
                     onRequestCameraCapabilities();
@@ -116,12 +116,12 @@ public abstract class ImsVideoCallProvider {
             mProviderHandler.obtainMessage(MSG_SET_ZOOM, value).sendToTarget();
         }
 
-        public void sendSessionModifyRequest(VideoCallProfile requestProfile) {
+        public void sendSessionModifyRequest(VideoProfile requestProfile) {
             mProviderHandler.obtainMessage(
                     MSG_SEND_SESSION_MODIFY_REQUEST, requestProfile).sendToTarget();
         }
 
-        public void sendSessionModifyResponse(VideoCallProfile responseProfile) {
+        public void sendSessionModifyResponse(VideoProfile responseProfile) {
             mProviderHandler.obtainMessage(
                     MSG_SEND_SESSION_MODIFY_RESPONSE, responseProfile).sendToTarget();
         }
@@ -150,49 +150,49 @@ public abstract class ImsVideoCallProvider {
         return mBinder;
     }
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSetCamera */
+    /** @see Connection.VideoProvider#onSetCamera */
     public abstract void onSetCamera(String cameraId);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSetPreviewSurface */
+    /** @see Connection.VideoProvider#onSetPreviewSurface */
     public abstract void onSetPreviewSurface(Surface surface);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSetDisplaySurface */
+    /** @see Connection.VideoProvider#onSetDisplaySurface */
     public abstract void onSetDisplaySurface(Surface surface);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSetDeviceOrientation */
+    /** @see Connection.VideoProvider#onSetDeviceOrientation */
     public abstract void onSetDeviceOrientation(int rotation);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSetZoom */
+    /** @see Connection.VideoProvider#onSetZoom */
     public abstract void onSetZoom(float value);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSendSessionModifyRequest */
-    public abstract void onSendSessionModifyRequest(VideoCallProfile requestProfile);
+    /** @see Connection.VideoProvider#onSendSessionModifyRequest */
+    public abstract void onSendSessionModifyRequest(VideoProfile requestProfile);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSendSessionModifyResponse */
-    public abstract void onSendSessionModifyResponse(VideoCallProfile responseProfile);
+    /** @see Connection.VideoProvider#onSendSessionModifyResponse */
+    public abstract void onSendSessionModifyResponse(VideoProfile responseProfile);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onRequestCameraCapabilities */
+    /** @see Connection.VideoProvider#onRequestCameraCapabilities */
     public abstract void onRequestCameraCapabilities();
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onRequestCallDataUsage */
+    /** @see Connection.VideoProvider#onRequestCallDataUsage */
     public abstract void onRequestCallDataUsage();
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#onSetPauseImage */
+    /** @see Connection.VideoProvider#onSetPauseImage */
     public abstract void onSetPauseImage(String uri);
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#receiveSessionModifyRequest */
-    public void receiveSessionModifyRequest(VideoCallProfile videoCallProfile) {
+    /** @see Connection.VideoProvider#receiveSessionModifyRequest */
+    public void receiveSessionModifyRequest(VideoProfile VideoProfile) {
         if (mCallback != null) {
             try {
-                mCallback.receiveSessionModifyRequest(videoCallProfile);
+                mCallback.receiveSessionModifyRequest(VideoProfile);
             } catch (RemoteException ignored) {
             }
         }
     }
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#receiveSessionModifyResponse */
+    /** @see Connection.VideoProvider#receiveSessionModifyResponse */
     public void receiveSessionModifyResponse(
-            int status, VideoCallProfile requestedProfile, VideoCallProfile responseProfile) {
+            int status, VideoProfile requestedProfile, VideoProfile responseProfile) {
         if (mCallback != null) {
             try {
                 mCallback.receiveSessionModifyResponse(status, requestedProfile, responseProfile);
@@ -201,7 +201,7 @@ public abstract class ImsVideoCallProvider {
         }
     }
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#handleCallSessionEvent */
+    /** @see Connection.VideoProvider#handleCallSessionEvent */
     public void handleCallSessionEvent(int event) {
         if (mCallback != null) {
             try {
@@ -211,7 +211,7 @@ public abstract class ImsVideoCallProvider {
         }
     }
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#changePeerDimensions */
+    /** @see Connection.VideoProvider#changePeerDimensions */
     public void changePeerDimensions(int width, int height) {
         if (mCallback != null) {
             try {
@@ -221,7 +221,7 @@ public abstract class ImsVideoCallProvider {
         }
     }
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#changeCallDataUsage */
+    /** @see Connection.VideoProvider#changeCallDataUsage */
     public void changeCallDataUsage(int dataUsage) {
         if (mCallback != null) {
             try {
@@ -231,11 +231,11 @@ public abstract class ImsVideoCallProvider {
         }
     }
 
-    /** @see android.telecomm.ConnectionService.VideoCallProvider#changeCameraCapabilities */
-    public void changeCameraCapabilities(CallCameraCapabilities callCameraCapabilities) {
+    /** @see Connection.VideoProvider#changeCameraCapabilities */
+    public void changeCameraCapabilities(CameraCapabilities CameraCapabilities) {
         if (mCallback != null) {
             try {
-                mCallback.changeCameraCapabilities(callCameraCapabilities);
+                mCallback.changeCameraCapabilities(CameraCapabilities);
             } catch (RemoteException ignored) {
             }
         }
