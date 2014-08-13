@@ -199,7 +199,7 @@ public class ImsConfig {
             throw new ImsException("getValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
-        if (DBG) Rlog.d(TAG, "getMasterValue(): item =" + item +", ret =" + ret);
+        if (DBG) Rlog.d(TAG, "getMasterValue(): item = " + item + ", ret =" + ret);
 
         return ret;
     }
@@ -222,7 +222,7 @@ public class ImsConfig {
             throw new ImsException("getStringValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
-        if (DBG) Rlog.d(TAG, "getMasterStringValue(): item =" + item +", ret =" + ret);
+        if (DBG) Rlog.d(TAG, "getMasterStringValue(): item = " + item + ", ret =" + ret);
 
         return ret;
     }
@@ -292,13 +292,13 @@ public class ImsConfig {
     public void getFeatureValue(int feature, int network,
             ImsConfigListener listener) throws ImsException {
         if (DBG) {
-            Rlog.d(TAG, "setFeatureOff: feature = " + feature + ", network =" + network +
+            Rlog.d(TAG, "getFeatureValue: feature = " + feature + ", network =" + network +
                     ", listener =" + listener);
         }
         try {
             miConfig.getFeatureValue(feature, network, listener);
         } catch (RemoteException e) {
-            throw new ImsException("setFeatureOff()", e,
+            throw new ImsException("getFeatureValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
     }
@@ -318,7 +318,7 @@ public class ImsConfig {
             ImsConfigListener listener) throws ImsException {
         // TODO: ADD PERMISSION CHECK (should there be permission, same as provisioning?)
         if (DBG) {
-            Rlog.d(TAG, "setFeatureOn: feature = " + feature + ", network =" + network +
+            Rlog.d(TAG, "setFeatureValue: feature = " + feature + ", network =" + network +
                     ", value =" + value + ", listener =" + listener);
         }
         try {
