@@ -502,6 +502,19 @@ public class ImsManager {
         return mConfig;
     }
 
+    public void setUiTTYMode(int serviceId, int uiTtyMode, Message onComplete)
+            throws ImsException {
+
+       checkAndThrowExceptionIfServiceUnavailable();
+
+       try {
+           mImsService.setUiTTYMode(serviceId, uiTtyMode, onComplete);
+       } catch (RemoteException e) {
+           throw new ImsException("setTTYMode()", e,
+                   ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+       }
+    }
+
     /**
      * Gets the call ID from the specified incoming call broadcast intent.
      *
