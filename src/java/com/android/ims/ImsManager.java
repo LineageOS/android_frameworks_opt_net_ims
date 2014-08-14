@@ -53,6 +53,7 @@ public class ImsManager {
      */
     public static final String IMS_SHARED_PREFERENCES = "IMS_PREFERENCES";
     public static final String KEY_IMS_ON = "IMS";
+    public static final boolean IMS_DEFAULT_SETTING = false;
 
     /**
      * For accessing the IMS related service.
