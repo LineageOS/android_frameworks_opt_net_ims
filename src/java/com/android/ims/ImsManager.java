@@ -738,6 +738,10 @@ public class ImsManager {
                 int[] enabledFeatures, int[] disabledFeatures) {
             log("registrationFeatureCapabilityChanged :: serviceClass=" +
                     serviceClass);
+            if (mListener != null) {
+                mListener.onFeatureCapabilityChanged(serviceClass,
+                        enabledFeatures, disabledFeatures);
+            }
         }
 
     }

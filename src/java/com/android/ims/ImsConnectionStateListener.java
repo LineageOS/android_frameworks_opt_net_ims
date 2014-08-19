@@ -52,4 +52,12 @@ public class ImsConnectionStateListener {
     public void onImsSuspended() {
         // no-op
     }
+
+    /**
+     * Called when its current IMS connection feature capability changes.
+     */
+    public void onFeatureCapabilityChanged(int serviceClass,
+                int[] enabledFeatures, int[] disabledFeatures) {
+        // no-op
+    }
 }
