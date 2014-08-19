@@ -53,7 +53,7 @@ public class ImsManager {
      */
     public static final String IMS_SHARED_PREFERENCES = "IMS_PREFERENCES";
     public static final String KEY_IMS_ON = "IMS";
-    public static final boolean IMS_DEFAULT_SETTING = false;
+    public static final boolean IMS_DEFAULT_SETTING = true;
 
     /**
      * For accessing the IMS related service.
@@ -123,8 +123,6 @@ public class ImsManager {
      */
     public static final String EXTRA_USSD = "android:ussd";
 
-
-
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
 
@@ -160,6 +158,23 @@ public class ImsManager {
 
             return mgr;
         }
+    }
+
+    /**
+     * Returns the user configuration of Enhanced 4G LTE Mode setting
+     */
+    public static boolean isEnhanced4gLteModeSettingEnabledByUser(Context context) {
+        return context.getSharedPreferences(IMS_SHARED_PREFERENCES,
+                Context.MODE_WORLD_READABLE).getBoolean(KEY_IMS_ON,
+                IMS_DEFAULT_SETTING);
+    }
+
+    /**
+     * Returns a platform configuration which may override the user setting.
+     */
+    public static boolean isEnhanced4gLteModeSettingEnabledByPlatform(Context context) {
+        return context.getResources().getBoolean(
+                com.android.internal.R.bool.config_mobile_allow_volte_vt);
     }
 
     private ImsManager(Context context, long subId) {
