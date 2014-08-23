@@ -1177,10 +1177,10 @@ public class ImsCall implements ICall {
      * event 0 ~ 9 maps to decimal value 0 ~ 9, '*' to 10, '#' to 11, event 'A' ~ 'D' to 12 ~ 15,
      * and event flash to 16. Currently, event flash is not supported.
      *
-     * @param code the DTMF to send. Value 0 to 15 (inclusive) are valid inputs.
+     * @param char that represents the DTMF digit to send.
      */
-    public void sendDtmf(int code) {
-        sendDtmf(code, null);
+    public void sendDtmf(char c) {
+        sendDtmf(c, null);
     }
 
     /**
@@ -1188,17 +1188,17 @@ public class ImsCall implements ICall {
      * event 0 ~ 9 maps to decimal value 0 ~ 9, '*' to 10, '#' to 11, event 'A' ~ 'D' to 12 ~ 15,
      * and event flash to 16. Currently, event flash is not supported.
      *
-     * @param code the DTMF to send. Value 0 to 15 (inclusive) are valid inputs.
-     * @param result the result message to send when done
+     * @param c that represents the DTMF to send. '0' ~ '9', 'A' ~ 'D', '*', '#' are valid inputs.
+     * @param result the result message to send when done.
      */
-    public void sendDtmf(int code, Message result) {
+    public void sendDtmf(char c, Message result) {
         if (DBG) {
-            log("sendDtmf :: session=" + mSession + ", code=" + code);
+            log("sendDtmf :: session=" + mSession + ", code=" + c);
         }
 
         synchronized(mLockObj) {
             if (mSession != null) {
-                mSession.sendDtmf(code);
+                mSession.sendDtmf(c);
             }
         }
 
