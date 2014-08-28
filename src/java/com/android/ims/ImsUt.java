@@ -372,6 +372,38 @@ public class ImsUt implements ImsUtInterface {
     }
 
     /**
+     * Modifies the configuration of the call forward Timer.
+     */
+    @Override
+    public void updateCallForwardUncondTimer(int startHour, int startMinute, int endHour,
+            int endMinute, int action, int condition, String number, Message result) {
+        if (DBG) {
+            log("updateCallForwardUncondTimer :: Ut=" + miUt + ", action=" + action
+                    + ", condition=" + condition + ", number=" + number
+                    + ", startHour=" + startHour + ", startMinute=" + startMinute
+                    + ", endHour=" + endHour + ", endMinute=" + endMinute);
+        }
+
+        synchronized(mLockObj) {
+            try {
+                int id = miUt.updateCallForwardUncondTimer(startHour, startMinute, endHour,
+                        endMinute, action, condition, number);
+
+                if (id < 0) {
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
+            }
+        }
+    }
+
+    /**
      * Modifies the configuration of the call waiting.
      */
     @Override

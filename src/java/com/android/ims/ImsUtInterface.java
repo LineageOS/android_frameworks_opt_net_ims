@@ -153,6 +153,13 @@ public interface ImsUtInterface {
             int timeSeconds, Message result);
 
     /**
+     * Modifies the configuration of the call forward Timer
+     */
+    public void updateCallForwardUncondTimer(int starthour, int startminute,
+            int endhour, int endminute, int action, int condition,
+            String number, Message result);
+
+    /**
      * Modifies the configuration of the call waiting.
      */
     public void updateCallWaiting(boolean enable, Message result);
