@@ -911,12 +911,22 @@ public class ImsCall implements ICall {
         synchronized(mLockObj) {
             mHold = false;
             mInCall = false;
+            CallGroup callGroup = getCallGroup();
 
             if (mSession != null) {
+                if (callGroup != null && !callGroup.isOwner(ImsCall.this)) {
+                    log("terminate owner of the call group");
+                    ImsCall owner = (ImsCall) callGroup.getOwner();
+                    if (owner != null) {
+                        owner.terminate(reason);
+                        return;
+                    }
+                }
                 mSession.terminate(reason);
             }
         }
     }
+
 
     /**
      * Puts a call on hold. When succeeds, {@link Listener#onCallHeld} is called.
@@ -1266,8 +1276,6 @@ public class ImsCall implements ICall {
 
         ImsCall neutralReferrer = (ImsCall)mCallGroup.getNeutralReferrer();
 
-        mCallGroup.setNeutralReferrer(null);
-
         if (owner == null) {
             // Maintain the call group if the current call has been merged in the past.
             if (!mCallGroup.hasReferrer()) {
@@ -1278,7 +1286,7 @@ public class ImsCall implements ICall {
             mCallGroup.addReferrer(this);
 
             if (neutralReferrer != null) {
-                if (neutralReferrer.isInCall() && (neutralReferrer.getCallGroup() == null)) {
+                if (neutralReferrer.getCallGroup() == null) {
                     neutralReferrer.setCallGroup(mCallGroup);
                     mCallGroup.addReferrer(neutralReferrer);
                 }
@@ -1427,25 +1435,23 @@ public class ImsCall implements ICall {
         ImsCall.Listener listener;
 
         if (mCallGroup.isOwner(ImsCall.this)) {
-            ArrayList<ICall> referrers = mCallGroup.getReferrers();
+            loge("Group Owner! Size of referrers list = " + mCallGroup.getReferrers().size());
+            while (mCallGroup.hasReferrer()) {
+                ImsCall call = (ImsCall) mCallGroup.getReferrers().get(0);
+                loge("onCallTerminated to be called for the call:: " + call);
 
-            if (referrers != null) {
-                for (int i = 0; i < referrers.size(); ++i) {
-                    ImsCall call = (ImsCall)referrers.get(i);
+                if (call == null) {
+                    continue;
+                }
 
-                    if (call == null) {
-                        continue;
-                    }
+                listener = call.mListener;
+                call.clear(reasonInfo);
 
-                    listener = call.mListener;
-                    call.clear(reasonInfo);
-
-                    if (listener != null) {
-                        try {
-                            listener.onCallTerminated(call, reasonInfo);
-                        } catch (Throwable t) {
-                            loge("notifyConferenceSessionTerminated :: ", t);
-                        }
+                if (listener != null) {
+                    try {
+                        listener.onCallTerminated(call, reasonInfo);
+                    } catch (Throwable t) {
+                        loge("notifyConferenceSessionTerminated :: ", t);
                     }
                 }
             }
@@ -1828,6 +1834,8 @@ public class ImsCall implements ICall {
             synchronized(ImsCall.this) {
                 listener = mListener;
                 updateCallGroup(newCall);
+                newCall.setListener(mListener);
+                newCall.setCallGroup(mCallGroup);
                 mUpdateRequest = UPDATE_NONE;
             }
 
