@@ -25,6 +25,7 @@ import android.os.Message;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
 
@@ -54,6 +55,12 @@ public class ImsManager {
     public static final String IMS_SHARED_PREFERENCES = "IMS_PREFERENCES";
     public static final String KEY_IMS_ON = "IMS";
     public static final boolean IMS_DEFAULT_SETTING = true;
+
+    /*
+     * Debug flag to override configuration flag
+     */
+    public static final String PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE = "persist.dbg.volte_avail_ovr";
+    public static final int PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE_DEFAULT = 0;
 
     /**
      * For accessing the IMS related service.
@@ -173,8 +180,16 @@ public class ImsManager {
      * Returns a platform configuration which may override the user setting.
      */
     public static boolean isEnhanced4gLteModeSettingEnabledByPlatform(Context context) {
-        return context.getResources().getBoolean(
-                com.android.internal.R.bool.config_mobile_allow_volte_vt);
+        if (SystemProperties.getInt(PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE,
+                PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE_DEFAULT) == 1) {
+            return true;
+        }
+
+        return
+                context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_device_volte_vt_available) &&
+                context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_carrier_volte_vt_available);
     }
 
     private ImsManager(Context context, long subId) {
