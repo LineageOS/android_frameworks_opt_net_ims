@@ -20,9 +20,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
-import android.telecomm.CameraCapabilities;
-import android.telecomm.Connection;
-import android.telecomm.VideoProfile;
+import android.telecom.CameraCapabilities;
+import android.telecom.Connection;
+import android.telecom.VideoProfile;
 import android.view.Surface;
 
 public abstract class ImsVideoCallProvider {
