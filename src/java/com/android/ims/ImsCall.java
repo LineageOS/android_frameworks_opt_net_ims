@@ -939,6 +939,20 @@ public class ImsCall implements ICall {
             log("hold :: session=" + mSession);
         }
 
+        // perform operation on owner before doing any local checks: local
+        // call may not have its status updated
+        synchronized (mLockObj) {
+            CallGroup callGroup = mCallGroup;
+            if (callGroup != null && !callGroup.isOwner(ImsCall.this)) {
+                log("hold owner of the call group");
+                ImsCall owner = (ImsCall) callGroup.getOwner();
+                if (owner != null) {
+                    owner.hold();
+                    return;
+                }
+            }
+        }
+
         if (isOnHold()) {
             if (DBG) {
                 log("hold :: call is already on hold");
@@ -975,6 +989,20 @@ public class ImsCall implements ICall {
     public void resume() throws ImsException {
         if (DBG) {
             log("resume :: session=" + mSession);
+        }
+
+        // perform operation on owner before doing any local checks: local
+        // call may not have its status updated
+        synchronized (mLockObj) {
+            CallGroup callGroup = mCallGroup;
+            if (callGroup != null && !callGroup.isOwner(ImsCall.this)) {
+                log("resume owner of the call group");
+                ImsCall owner = (ImsCall) callGroup.getOwner();
+                if (owner != null) {
+                    owner.resume();
+                    return;
+                }
+            }
         }
 
         if (!isOnHold()) {
@@ -1435,10 +1463,10 @@ public class ImsCall implements ICall {
         ImsCall.Listener listener;
 
         if (mCallGroup.isOwner(ImsCall.this)) {
-            loge("Group Owner! Size of referrers list = " + mCallGroup.getReferrers().size());
+            log("Group Owner! Size of referrers list = " + mCallGroup.getReferrers().size());
             while (mCallGroup.hasReferrer()) {
                 ImsCall call = (ImsCall) mCallGroup.getReferrers().get(0);
-                loge("onCallTerminated to be called for the call:: " + call);
+                log("onCallTerminated to be called for the call:: " + call);
 
                 if (call == null) {
                     continue;
@@ -1467,6 +1495,42 @@ public class ImsCall implements ICall {
                 listener.onCallTerminated(this, reasonInfo);
             } catch (Throwable t) {
                 loge("notifyConferenceSessionTerminated :: ", t);
+            }
+        }
+    }
+
+    private void notifyConferenceStateUpdatedThroughGroupOwner(int update) {
+        ImsCall.Listener listener;
+
+        if (mCallGroup.isOwner(ImsCall.this)) {
+            log("Group Owner! Size of referrers list = " + mCallGroup.getReferrers().size());
+            for (ICall icall : mCallGroup.getReferrers()) {
+                ImsCall call = (ImsCall) icall;
+                log("notifyConferenceStateUpdatedThroughGroupOwner to be called for the call:: " + call);
+
+                if (call == null) {
+                    continue;
+                }
+
+                listener = call.mListener;
+
+                if (listener != null) {
+                    try {
+                        switch (update) {
+                            case UPDATE_HOLD:
+                                listener.onCallHeld(call);
+                                break;
+                            case UPDATE_RESUME:
+                                listener.onCallResumed(call);
+                                break;
+                            default:
+                                loge("notifyConferenceStateUpdatedThroughGroupOwner :: not handled update "
+                                        + update);
+                        }
+                    } catch (Throwable t) {
+                        loge("notifyConferenceStateUpdatedThroughGroupOwner :: ", t);
+                    }
+                }
             }
         }
     }
@@ -1683,6 +1747,10 @@ public class ImsCall implements ICall {
                     loge("callSessionHeld :: ", t);
                 }
             }
+
+            if (mCallGroup != null) {
+                notifyConferenceStateUpdatedThroughGroupOwner(UPDATE_HOLD);
+            }
         }
 
         @Override
@@ -1763,6 +1831,10 @@ public class ImsCall implements ICall {
                 } catch (Throwable t) {
                     loge("callSessionResumed :: ", t);
                 }
+            }
+
+            if (mCallGroup != null) {
+                notifyConferenceStateUpdatedThroughGroupOwner(UPDATE_RESUME);
             }
         }
 
