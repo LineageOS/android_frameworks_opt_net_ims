@@ -1051,5 +1051,17 @@ public class ImsCallSession {
                         targetAccessTech, reasonInfo);
             }
         }
+
+        /**
+         * Notifies the TTY mode received from remote party.
+         */
+        @Override
+        public void callSessionTtyModeReceived(IImsCallSession session,
+                int mode) {
+            if (mListener != null) {
+                //TODO: UI specific implementation.
+                //Vendor UI can listen to this callback to take action on received TTY mode.
+            }
+        }
     }
 }
