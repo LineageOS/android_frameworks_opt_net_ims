@@ -775,6 +775,15 @@ public class ImsManager {
             }
         }
 
+        @Override
+        public void voiceMessageCountUpdate(int count) {
+            log("voiceMessageCountUpdate :: count=" + count);
+
+            if (mListener != null) {
+                mListener.onVoiceMessageCountChanged(count);
+            }
+        }
+
     }
     /**
      * Gets the ECBM interface to request ECBM exit.
