@@ -109,7 +109,7 @@ public abstract class ImsVideoCallProvider {
         }
 
         public void setDeviceOrientation(int rotation) {
-            mProviderHandler.obtainMessage(MSG_SET_DEVICE_ORIENTATION, rotation).sendToTarget();
+            mProviderHandler.obtainMessage(MSG_SET_DEVICE_ORIENTATION, rotation, 0).sendToTarget();
         }
 
         public void setZoom(float value) {
