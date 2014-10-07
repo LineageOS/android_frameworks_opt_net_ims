@@ -108,6 +108,14 @@ public class ImsManager {
     public static final String EXTRA_SUBID = "android:subid";
 
     /**
+     * Part of the ACTION_IMS_SERVICE_UP or _DOWN intents.
+     * A int value; the phoneId corresponding to the IMS service coming up or down.
+     * Internal use only.
+     * @hide
+     */
+    public static final String EXTRA_PHONEID = "android:phoneid";
+
+    /**
      * Action for the incoming call intent for the Phone app.
      * Internal use only.
      * @hide
