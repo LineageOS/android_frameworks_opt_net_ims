@@ -52,12 +52,6 @@ import java.util.HashMap;
  * @hide
  */
 public class ImsManager {
-    /*
-     * Shared preference constants storing the "Enhanced 4G LTE Mode" configuration
-     */
-    public static final String IMS_SHARED_PREFERENCES = "IMS_PREFERENCES";
-    public static final String KEY_IMS_ON = "IMS";
-    public static final boolean IMS_DEFAULT_SETTING = true;
 
     /*
      * Debug flag to override configuration flag
@@ -245,13 +239,10 @@ public class ImsManager {
      * Returns the user configuration of Enhanced 4G LTE Mode setting
      */
     public static boolean isEnhanced4gLteModeSettingEnabledByUser(Context context) {
-        boolean imsEnabled = IMS_DEFAULT_SETTING;
-        try {
-            imsEnabled = (Settings.System.getInt(context.getContentResolver(),
-                    KEY_IMS_ON)) == 1 ? true : false;
-        } catch(Exception e) {
-        }
-        return imsEnabled;
+        int enabled = android.provider.Settings.Global.getInt(
+                    context.getContentResolver(),
+                    android.provider.Settings.Global.VOLTE_VT_ENABLED, ImsConfig.FeatureValueConstants.ON);
+        return (enabled == 1)? true:false;
     }
 
     /**
