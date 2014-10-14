@@ -456,6 +456,23 @@ public class ImsCallSession {
     }
 
     /**
+     * Gets the remote call profile that this session is associated with
+     *
+     * @return the remote call profile that this session is associated with
+     */
+    public ImsCallProfile getRemoteCallProfile() {
+        if (mClosed) {
+            return null;
+        }
+
+        try {
+            return miSession.getRemoteCallProfile();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
      * Gets the video call provider for the session.
      *
      * @return The video call provider.
