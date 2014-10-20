@@ -168,6 +168,18 @@ public class ImsConfig {
         public static final int UNSUPPORTED_CAUSE_DISABLED = 4;
     }
 
+    /**
+     * Defines IMS get operation values.
+     */
+    public static class OperationValuesConstants {
+        /**
+         * Values related to Video Quality
+         */
+        public static final int VIDEO_QUALITY_UNKNOWN = -1;
+        public static final int VIDEO_QUALITY_LOW = 0;
+        public static final int VIDEO_QUALITY_HIGH = 1;
+    }
+
    /**
     * Defines IMS feature value.
     */
@@ -328,4 +340,39 @@ public class ImsConfig {
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
     }
+
+    /**
+     * Gets the value for IMS feature item for video call quality.
+     *
+     * @param listener, provided if caller needs to be notified for set result.
+     * @return void
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public void getVideoQuality(ImsConfigListener listener) throws ImsException {
+        try {
+            miConfig.getVideoQuality(listener);
+        } catch (RemoteException e) {
+            throw new ImsException("getVideoQuality()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * Sets the value for IMS feature item video quality.
+     *
+     * @param quality, defines the value of video quality.
+     * @param listener, provided if caller needs to be notified for set result.
+     * @return void
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+     public void setVideoQuality(int quality, ImsConfigListener listener) throws ImsException {
+        try {
+            miConfig.setVideoQuality(quality, listener);
+        } catch (RemoteException e) {
+            throw new ImsException("setVideoQuality()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+     }
 }
