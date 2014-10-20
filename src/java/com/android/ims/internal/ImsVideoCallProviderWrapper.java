@@ -46,6 +46,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     private static final int MSG_CHANGE_PEER_DIMENSIONS = 4;
     private static final int MSG_CHANGE_CALL_DATA_USAGE = 5;
     private static final int MSG_CHANGE_CAMERA_CAPABILITIES = 6;
+    private static final int MSG_CHANGE_VIDEO_QUALITY = 7;
 
     private final IImsVideoCallProvider mVideoCallProvider;
     private final ImsVideoCallCallback mBinder;
@@ -88,6 +89,11 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
             args.arg1 = width;
             args.arg2 = height;
             mHandler.obtainMessage(MSG_CHANGE_PEER_DIMENSIONS, args).sendToTarget();
+        }
+
+        @Override
+        public void changeVideoQuality(int videoQuality) {
+            mHandler.obtainMessage(MSG_CHANGE_VIDEO_QUALITY, videoQuality, 0).sendToTarget();
         }
 
         @Override
@@ -141,6 +147,9 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                     break;
                 case MSG_CHANGE_CAMERA_CAPABILITIES:
                     changeCameraCapabilities((CameraCapabilities) msg.obj);
+                    break;
+                case MSG_CHANGE_VIDEO_QUALITY:
+                    changeVideoQuality(msg.arg1);
                     break;
                 default:
                     break;

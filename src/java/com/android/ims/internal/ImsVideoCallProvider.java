@@ -240,4 +240,14 @@ public abstract class ImsVideoCallProvider {
             }
         }
     }
+
+    /** @see Connection.VideoProvider#changeVideoQuality */
+    public void changeVideoQuality(int videoQuality) {
+        if (mCallback != null) {
+            try {
+                mCallback.changeVideoQuality(videoQuality);
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
 }
