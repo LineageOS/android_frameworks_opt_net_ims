@@ -1347,7 +1347,7 @@ public class ImsCall implements ICall {
         mCallGroup = null;
     }
 
-    private CallGroup getCallGroup() {
+    public CallGroup getCallGroup() {
         synchronized(mLockObj) {
             return mCallGroup;
         }
