@@ -644,6 +644,15 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Determines if the call is a multiparty call.
+     *
+     * @return {@code True} if the call is a multiparty call.
+     */
+    public boolean isMultiparty() {
+        return mSession.isMultiparty();
+    }
+
+    /**
      * Sets the listener to listen to the IMS call events.
      * The method calls {@link #setListener setListener(listener, false)}.
      *
