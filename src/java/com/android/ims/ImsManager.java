@@ -53,8 +53,8 @@ public class ImsManager {
     /*
      * Debug flag to override configuration flag
      */
-    public static final String PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE = "persist.dbg.volte_avail_ovr";
-    public static final int PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE_DEFAULT = 0;
+    public static final String PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE = "persist.dbg.volte_avail_ovr";
+    public static final int PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE_DEFAULT = 0;
 
     /**
      * For accessing the IMS related service.
@@ -167,7 +167,7 @@ public class ImsManager {
     public static boolean isEnhanced4gLteModeSettingEnabledByUser(Context context) {
         int enabled = android.provider.Settings.Global.getInt(
                     context.getContentResolver(),
-                    android.provider.Settings.Global.VOLTE_VT_ENABLED, ImsConfig.FeatureValueConstants.ON);
+                    android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED, ImsConfig.FeatureValueConstants.ON);
         return (enabled == 1)? true:false;
     }
 
@@ -175,16 +175,24 @@ public class ImsManager {
      * Returns a platform configuration which may override the user setting.
      */
     public static boolean isEnhanced4gLteModeSettingEnabledByPlatform(Context context) {
-        if (SystemProperties.getInt(PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE,
-                PROPERTY_DBG_VOLTE_VT_AVAIL_OVERRIDE_DEFAULT) == 1) {
+        if (SystemProperties.getInt(PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE,
+                PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE_DEFAULT) == 1) {
             return true;
         }
 
         return
                 context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_device_volte_vt_available) &&
+                        com.android.internal.R.bool.config_device_volte_available) &&
                 context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_volte_vt_available);
+                        com.android.internal.R.bool.config_carrier_volte_available);
+    }
+
+    public static boolean isVtEnabledByPlatform(Context context) {
+        return
+                context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_device_vt_available) &&
+                context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_carrier_vt_available);
     }
 
     private ImsManager(Context context, long subId) {
@@ -639,8 +647,12 @@ public class ImsManager {
         if (config != null) {
             config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                     TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
-            config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
-                    TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+            if (isVtEnabledByPlatform(mContext)) {
+                // TODO: once VT is available on platform replace the '1' with the current
+                // user configuration of VT.
+                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                        TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+            }
         }
 
         if (turnOn) {
