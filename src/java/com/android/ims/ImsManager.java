@@ -201,11 +201,11 @@ public class ImsManager {
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
 
-    private static HashMap<Long, ImsManager> sImsManagerInstances =
-            new HashMap<Long, ImsManager>();
+    private static HashMap<Integer, ImsManager> sImsManagerInstances =
+            new HashMap<Integer, ImsManager>();
 
     private Context mContext;
-    private long mSubId;
+    private int mSubId;
     private IImsService mImsService = null;
     private ImsServiceDeathRecipient mDeathRecipient = new ImsServiceDeathRecipient();
     // Ut interface for the supplementary service configuration
@@ -223,7 +223,7 @@ public class ImsManager {
      * @param subId the subscription ID for the IMS Service
      * @return the manager instance corresponding to the subId
      */
-    public static ImsManager getInstance(Context context, long subId) {
+    public static ImsManager getInstance(Context context, int subId) {
         synchronized (sImsManagerInstances) {
             if (sImsManagerInstances.containsKey(subId))
                 return sImsManagerInstances.get(subId);
@@ -269,7 +269,7 @@ public class ImsManager {
                         com.android.internal.R.bool.config_carrier_vt_available);
     }
 
-    private ImsManager(Context context, long subId) {
+    private ImsManager(Context context, int subId) {
         mContext = context;
         mSubId = subId;
         createImsService(true);
@@ -636,7 +636,7 @@ public class ImsManager {
         }
     }
 
-    private static String getImsServiceName(long subId) {
+    private static String getImsServiceName(int subId) {
         // TODO: MSIM implementation needs to decide on service name as a function of subId
         // or value derived from subId (slot ID?)
         return IMS_SERVICE;
