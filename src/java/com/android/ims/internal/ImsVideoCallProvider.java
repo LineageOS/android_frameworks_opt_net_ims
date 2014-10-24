@@ -222,7 +222,7 @@ public abstract class ImsVideoCallProvider {
     }
 
     /** @see Connection.VideoProvider#changeCallDataUsage */
-    public void changeCallDataUsage(int dataUsage) {
+    public void changeCallDataUsage(long dataUsage) {
         if (mCallback != null) {
             try {
                 mCallback.changeCallDataUsage(dataUsage);

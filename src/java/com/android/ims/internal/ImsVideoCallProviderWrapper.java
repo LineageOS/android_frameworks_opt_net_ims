@@ -97,7 +97,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         }
 
         @Override
-        public void changeCallDataUsage(int dataUsage) {
+        public void changeCallDataUsage(long dataUsage) {
             mHandler.obtainMessage(MSG_CHANGE_CALL_DATA_USAGE, dataUsage).sendToTarget();
         }
 
@@ -143,7 +143,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                     }
                     break;
                 case MSG_CHANGE_CALL_DATA_USAGE:
-                    changeCallDataUsage(msg.arg1);
+                    changeCallDataUsage((long) msg.obj);
                     break;
                 case MSG_CHANGE_CAMERA_CAPABILITIES:
                     changeCameraCapabilities((CameraCapabilities) msg.obj);
