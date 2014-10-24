@@ -470,7 +470,7 @@ public class ImsCall implements ICall {
         }
 
         if (call instanceof ImsCall) {
-            return this.equals((ImsCall)call);
+            return this.equals(call);
         }
 
         return false;
@@ -650,7 +650,13 @@ public class ImsCall implements ICall {
      * @return {@code True} if the call is a multiparty call.
      */
     public boolean isMultiparty() {
-        return mSession.isMultiparty();
+        synchronized(mLockObj) {
+            if (mSession == null) {
+                return false;
+            }
+
+            return mSession.isMultiparty();
+        }
     }
 
     /**
