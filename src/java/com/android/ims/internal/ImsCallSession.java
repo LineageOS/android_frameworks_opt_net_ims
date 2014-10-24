@@ -186,17 +186,27 @@ public class ImsCallSession {
         }
 
         /**
-         * Called when the session merge is done.
+         * Called when the session merge has been started.  At this point, the {@code newSession}
+         * represents the session which has been initiated to the IMS conference server for the
+         * new merged conference.
          *
          * @param session the session object that carries out the IMS session
          * @param newSession the session object that is merged with an active & hold session
          */
-        public void callSessionMerged(ImsCallSession session,
+        public void callSessionMergeStarted(ImsCallSession session,
                 ImsCallSession newSession, ImsCallProfile profile) {
         }
 
         /**
-         * Called when the session merge is failed.
+         * Called when the session merge is successful and the merged session is active.
+         *
+         * @param session the session object that carries out the IMS session
+         */
+        public void callSessionMergeComplete(ImsCallSession session) {
+        }
+
+        /**
+         * Called when the session merge has failed.
          *
          * @param session the session object that carries out the IMS session
          * @param reasonInfo detailed reason of the call merge failure
@@ -681,9 +691,9 @@ public class ImsCallSession {
 
     /**
      * Merges the active & hold call. When it succeeds,
-     * {@link Listener#callSessionMerged} is called.
+     * {@link Listener#callSessionMergeStarted} is called.
      *
-     * @see Listener#callSessionMerged, Listener#callSessionMergeFailed
+     * @see Listener#callSessionMergeStarted , Listener#callSessionMergeFailed
      */
     public void merge() {
         if (mClosed) {
@@ -913,17 +923,39 @@ public class ImsCallSession {
         }
 
         /**
-         * Notifiies the result of call merge operation.
+         * Notifies the start of a call merge operation.
+         *
+         * @param session The call session.
+         * @param newSession The merged call session.
+         * @param profile The call profile.
          */
         @Override
-        public void callSessionMerged(IImsCallSession session,
+        public void callSessionMergeStarted(IImsCallSession session,
                 IImsCallSession newSession, ImsCallProfile profile) {
             if (mListener != null) {
-                mListener.callSessionMerged(ImsCallSession.this,
+                mListener.callSessionMergeStarted(ImsCallSession.this,
                         new ImsCallSession(newSession), profile);
             }
         }
 
+        /**
+         * Notifies the successful completion of a call merge operation.
+         *
+         * @param session The call session.
+         */
+        @Override
+        public void callSessionMergeComplete(IImsCallSession session) {
+            if (mListener != null) {
+                mListener.callSessionMergeComplete(ImsCallSession.this);
+            }
+        }
+
+        /**
+         * Notifies of a failure to perform a call merge operation.
+         *
+         * @param session The call session.
+         * @param reasonInfo The merge failure reason.
+         */
         @Override
         public void callSessionMergeFailed(IImsCallSession session,
                 ImsReasonInfo reasonInfo) {

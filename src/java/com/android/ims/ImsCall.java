@@ -1896,10 +1896,10 @@ public class ImsCall implements ICall {
         }
 
         @Override
-        public void callSessionMerged(ImsCallSession session,
+        public void callSessionMergeStarted(ImsCallSession session,
                 ImsCallSession newSession, ImsCallProfile profile) {
             if (DBG) {
-                log("callSessionMerged :: session=" + session
+                log("callSessionMergeStarted :: session=" + session
                         + ", newSession=" + newSession + ", profile=" + profile);
             }
 
@@ -1924,9 +1924,18 @@ public class ImsCall implements ICall {
                 try {
                     listener.onCallMerged(ImsCall.this, newCall);
                 } catch (Throwable t) {
-                    loge("callSessionMerged :: ", t);
+                    loge("callSessionMergeStarted :: ", t);
                 }
             }
+        }
+
+        @Override
+        public void callSessionMergeComplete(ImsCallSession session) {
+            if (DBG) {
+                log("callSessionMergeComplete :: session=" + session);
+            }
+
+            // TODO handle successful completion of call session merge.
         }
 
         @Override
