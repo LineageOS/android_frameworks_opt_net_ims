@@ -955,18 +955,21 @@ public class ImsManager {
     private void setAdvanced4GMode(boolean turnOn) throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
-        ImsConfig config = getConfigInterface();
-        if (config != null) {
-            config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
-                    TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
-            if (isVtEnabledByPlatform(mContext)) {
-                // TODO: once VT is available on platform replace the '1' with the current
-                // user configuration of VT.
-                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+        try {
+            ImsConfig config = getConfigInterface();
+            if (config != null) {
+                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                         TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+                if (isVtEnabledByPlatform(mContext)) {
+                    // TODO: once VT is available on platform replace the '1' with the current
+                    // user configuration of VT.
+                    config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                            TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+                }
             }
+        } catch (ImsException e) {
+            log("setAdvanced4GMode() : " + e);
         }
-
         if (turnOn) {
             turnOnIms();
         } else if (mContext.getResources().getBoolean(
