@@ -58,6 +58,8 @@ public class ImsManager {
      */
     public static final String PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE = "persist.dbg.volte_avail_ovr";
     public static final int PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE_DEFAULT = 0;
+    public static final String PROPERTY_DBG_VT_AVAIL_OVERRIDE = "persist.dbg.vt_avail_ovr";
+    public static final int PROPERTY_DBG_VT_AVAIL_OVERRIDE_DEFAULT = 0;
 
     /**
      * For accessing the IMS related service.
@@ -246,9 +248,9 @@ public class ImsManager {
     }
 
     /**
-     * Returns a platform configuration which may override the user setting.
+     * Returns a platform configuration for VoLTE which may override the user setting.
      */
-    public static boolean isEnhanced4gLteModeSettingEnabledByPlatform(Context context) {
+    public static boolean isVolteEnabledByPlatform(Context context) {
         if (SystemProperties.getInt(PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE,
                 PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE_DEFAULT) == 1) {
             return true;
@@ -261,7 +263,18 @@ public class ImsManager {
                         com.android.internal.R.bool.config_carrier_volte_available);
     }
 
+    /**
+     * Returns a platform configuration for VT which may override the user setting.
+     *
+     * Note: VT presumes that VoLTE is enabled (these are configuration settings
+     * which must be done correctly).
+     */
     public static boolean isVtEnabledByPlatform(Context context) {
+        if (SystemProperties.getInt(PROPERTY_DBG_VT_AVAIL_OVERRIDE,
+                PROPERTY_DBG_VT_AVAIL_OVERRIDE_DEFAULT) == 1) {
+            return true;
+        }
+
         return
                 context.getResources().getBoolean(
                         com.android.internal.R.bool.config_device_vt_available) &&
