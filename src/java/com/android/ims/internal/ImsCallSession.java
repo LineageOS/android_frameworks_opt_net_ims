@@ -803,6 +803,23 @@ public class ImsCallSession {
     }
 
     /**
+     * Determines if the session is multiparty.
+     *
+     * @return {@code True} if the session is multiparty.
+     */
+    public boolean isMultiparty() {
+        if (mClosed) {
+            return false;
+        }
+
+        try {
+            return miSession.isMultiparty();
+        } catch (RemoteException e) {
+            return false;
+        }
+    }
+
+    /**
      * A listener type for receiving notification on IMS call session events.
      * When an event is generated for an {@link IImsCallSession},
      * the application is notified by having one of the methods called on
