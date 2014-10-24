@@ -915,27 +915,36 @@ public class ImsManager {
         }
     }
 
+    private boolean isImsTurnOffAllowed() {
+        return getBooleanCarrierConfig(mContext,
+                CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
+                && (!isWfcEnabledByPlatform(mContext)
+                || !isWfcEnabledByUser(mContext));
+    }
+
     private void setAdvanced4GMode(boolean turnOn) throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
-        ImsConfig config = getConfigInterface();
-        if (config != null) {
-            config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
-                    TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
-            if (isVtEnabledByPlatform(mContext)) {
-                // TODO: once VT is available on platform replace the '1' with the current
-                // user configuration of VT.
-                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+        try {
+            ImsConfig config = getConfigInterface();
+            if (config != null && (turnOn || !isImsTurnOffAllowed())) {
+                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                         TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+                if (isVtEnabledByPlatform(mContext)) {
+                    // TODO: once VT is available on platform:
+                    // - replace the '1' with the current user configuration of VT.
+                    // - separate exception checks for setFeatureValue() failures for VoLTE and VT.
+                    //   I.e. if VoLTE fails still try to configure VT.
+                    config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                            TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+                }
             }
+        } catch (ImsException e) {
+            log("setAdvanced4GMode() : " + e);
         }
-
         if (turnOn) {
             turnOnIms();
-        } else if (getBooleanCarrierConfig(mContext,
-                CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
-                && (!isWfcEnabledByPlatform(mContext)
-                || !isWfcEnabledByUser(mContext))) {
+        } else if (isImsTurnOffAllowed()) {
             log("setAdvanced4GMode() : imsServiceAllowTurnOff -> turnOffIms");
             turnOffIms();
         }
