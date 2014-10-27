@@ -22,6 +22,7 @@ import com.android.ims.ImsCallProfile;
 import com.android.ims.ImsConferenceState;
 import com.android.ims.ImsReasonInfo;
 import com.android.ims.ImsStreamMediaProfile;
+import android.telecom.Connection;
 
 /**
  * Provides the call initiation/termination, and media exchange between two IMS endpoints.
@@ -476,6 +477,23 @@ public class ImsCallSession {
             return miSession.getVideoCallProvider();
         } catch (RemoteException e) {
             return null;
+        }
+    }
+
+    /**
+     * Gets the call substate for this session.
+     *
+     * @return the call substate for this session.
+     */
+    public int getCallSubstate() {
+        if (mClosed) {
+            return Connection.CALL_SUBSTATE_NONE;
+        }
+
+        try {
+            return miSession.getCallSubstate();
+        } catch (RemoteException e) {
+            return Connection.CALL_SUBSTATE_NONE;
         }
     }
 
