@@ -34,6 +34,7 @@ import com.android.ims.internal.CallGroupManager;
 import com.android.ims.internal.ICall;
 import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.ImsStreamMediaSession;
+import com.android.internal.annotations.VisibleForTesting;
 
 /**
  * Handles an IMS voice / video call over LTE. You can instantiate this class with
@@ -1569,7 +1570,8 @@ public class ImsCall implements ICall {
                         ", endpoint=" + endpoint);
             }
 
-            if ((mCallGroup != null) && (!mCallGroup.isOwner(ImsCall.this))) {
+            if (mCallGroup == null ||
+                    ((mCallGroup != null) && (!mCallGroup.isOwner(ImsCall.this)))) {
                 continue;
             }
 
@@ -2217,20 +2219,7 @@ public class ImsCall implements ICall {
                         + ", state=" + state);
             }
 
-            ImsCall.Listener listener;
-
-            synchronized(ImsCall.this) {
-                notifyConferenceStateUpdated(state);
-                listener = mListener;
-            }
-
-            if (listener != null) {
-                try {
-                    listener.onCallConferenceStateUpdated(ImsCall.this, state);
-                } catch (Throwable t) {
-                    loge("callSessionConferenceStateUpdated :: ", t);
-                }
-            }
+            conferenceStateUpdated(state);
         }
 
         @Override
@@ -2253,6 +2242,32 @@ public class ImsCall implements ICall {
                 } catch (Throwable t) {
                     loge("callSessionUssdMessageReceived :: ", t);
                 }
+            }
+        }
+    }
+
+    /**
+     * Report a new conference state to the current {@link ImsCall} and inform listeners of the
+     * change.  Marked as {@code VisibleForTesting} so that the
+     * {@code com.android.internal.telephony.TelephonyTester} class can inject a test conference
+     * event package into a regular ongoing IMS call.
+     *
+     * @param state The {@link ImsConferenceState}.
+     */
+    @VisibleForTesting
+    public void conferenceStateUpdated(ImsConferenceState state) {
+        Listener listener;
+
+        synchronized(this) {
+            notifyConferenceStateUpdated(state);
+            listener = mListener;
+        }
+
+        if (listener != null) {
+            try {
+                listener.onCallConferenceStateUpdated(this, state);
+            } catch (Throwable t) {
+                loge("callSessionConferenceStateUpdated :: ", t);
             }
         }
     }
