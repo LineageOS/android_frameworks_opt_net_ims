@@ -18,15 +18,15 @@ package com.android.ims;
 
 import com.android.internal.R;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
+import android.telecom.ConferenceParticipant;
 import android.telephony.Rlog;
 
 import com.android.ims.internal.CallGroup;
@@ -300,6 +300,17 @@ public class ImsCall implements ICall {
          * @param state state of the participant who is participated in the conference call
          */
         public void onCallConferenceStateUpdated(ImsCall call, ImsConferenceState state) {
+            // no-op
+        }
+
+        /**
+         * Called when the state of an IMS conference participant has changed.
+         *
+         * @param call the call object that carries out the IMS call.
+         * @param participant the participant and its new state information.
+         */
+        public void onConferenceParticipantStateChanged(ImsCall call,
+                ConferenceParticipant participant) {
             // no-op
         }
 
@@ -1567,23 +1578,44 @@ public class ImsCall implements ICall {
             Bundle confInfo = entry.getValue();
             String status = confInfo.getString(ImsConferenceState.STATUS);
             String user = confInfo.getString(ImsConferenceState.USER);
+            String displayName = confInfo.getString(ImsConferenceState.DISPLAY_TEXT);
             String endpoint = confInfo.getString(ImsConferenceState.ENDPOINT);
 
             if (DBG) {
                 log("notifyConferenceStateUpdated :: key=" + key +
                         ", status=" + status +
                         ", user=" + user +
+                        ", displayName= " + displayName +
                         ", endpoint=" + endpoint);
             }
 
-            if (mCallGroup == null ||
-                    ((mCallGroup != null) && (!mCallGroup.isOwner(ImsCall.this)))) {
+            if ((mCallGroup != null) && (!mCallGroup.isOwner(ImsCall.this))) {
                 continue;
             }
 
-            ImsCall referrer = (ImsCall)mCallGroup.getReferrer(endpoint);
+            // Attempt to find the participant in the call group if it exists.
+            ImsCall referrer = null;
+            if (mCallGroup != null) {
+                referrer = (ImsCall) mCallGroup.getReferrer(endpoint);
+            }
 
+            // Participant is not being represented by an ImsCall, so handle as generic participant.
+            // Notify the {@code ImsPhoneCallTracker} of the participant state change so that it
+            // can be passed up to the {@code TelephonyConferenceController}.
             if (referrer == null) {
+                Uri handle = Uri.parse(user);
+                Uri endpointUri = Uri.parse(endpoint);
+                int connectionState = ImsConferenceState.getConnectionStateForStatus(status);
+
+                ConferenceParticipant conferenceParticipant = new ConferenceParticipant(handle,
+                        displayName, endpointUri, connectionState);
+                if (mListener != null) {
+                    try {
+                        mListener.onConferenceParticipantStateChanged(this, conferenceParticipant);
+                    } catch (Throwable t) {
+                        loge("notifyConferenceStateUpdated :: ", t);
+                    }
+                }
                 continue;
             }
 
