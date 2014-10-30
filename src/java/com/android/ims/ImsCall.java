@@ -422,6 +422,13 @@ public class ImsCall implements ICall {
     // Media session to control media (audio/video) operations for an IMS call
     private ImsStreamMediaSession mMediaSession = null;
 
+    // Set to {@code true} if a conference event pacakge is received to ensure this call is treated
+    // as a multiparty call.
+    // TODO: Once b/18056632 has been addressed and testing is complete this will not be necessary.
+    // For now, it is handy to be able to inject conference event packages into a non-conference
+    // IMS call for testing purposes.
+    private boolean mIsMultiparty = false;
+
     /**
      * Create an IMS call object.
      *
@@ -666,7 +673,7 @@ public class ImsCall implements ICall {
                 return false;
             }
 
-            return mSession.isMultiparty();
+            return mIsMultiparty || mSession.isMultiparty();
         }
     }
 
@@ -1488,7 +1495,6 @@ public class ImsCall implements ICall {
 
     private void notifyConferenceSessionTerminated(ImsReasonInfo reasonInfo) {
         ImsCall.Listener listener;
-
         if (mCallGroup.isOwner(ImsCall.this)) {
             log("Group Owner! Size of referrers list = " + mCallGroup.getReferrers().size());
             while (mCallGroup.hasReferrer()) {
@@ -1611,6 +1617,7 @@ public class ImsCall implements ICall {
                         displayName, endpointUri, connectionState);
                 if (mListener != null) {
                     try {
+                        mIsMultiparty = true;
                         mListener.onConferenceParticipantStateChanged(this, conferenceParticipant);
                     } catch (Throwable t) {
                         loge("notifyConferenceStateUpdated :: ", t);
@@ -1942,7 +1949,6 @@ public class ImsCall implements ICall {
                 log("callSessionMergeStarted :: session=" + session
                         + ", newSession=" + newSession + ", profile=" + profile);
             }
-
             ImsCall newCall = createNewCall(newSession, profile);
 
             if (newCall == null) {
