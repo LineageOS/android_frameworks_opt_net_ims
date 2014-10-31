@@ -211,9 +211,14 @@ public class ImsConfig {
          * Value is in Integer format. Enable (1), Disable(0).
          */
         public static final int GZIP_FLAG = 23;
+        /**
+         * VOLTE Status for EAB/s status of Enabled (1), or Disabled (0).
+         * Value is in Integer format.
+         */
+        public static final int EAB_SETTING_ENABLED = 24;
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
-        public static final int PROVISIONED_CONFIG_END = GZIP_FLAG;
+        public static final int PROVISIONED_CONFIG_END = EAB_SETTING_ENABLED;
 
         // Expand the operator config items as needed here.
     }
@@ -245,7 +250,7 @@ public class ImsConfig {
     }
 
     /**
-     * Gets the value for IMS service/capabilities parameters used by IMS stack.
+     * Gets the provisioned value for IMS service/capabilities parameters used by IMS stack.
      * This function should not be called from the mainthread as it could block the
      * mainthread.
      *
@@ -254,21 +259,21 @@ public class ImsConfig {
      *
      * @throws ImsException if calling the IMS service results in an error.
      */
-    public int getMasterValue(int item) throws ImsException {
+    public int getProvisionedValue(int item) throws ImsException {
         int ret = 0;
         try {
-            ret = miConfig.getMasterValue(item);
+            ret = miConfig.getProvisionedValue(item);
         }  catch (RemoteException e) {
             throw new ImsException("getValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
-        if (DBG) Rlog.d(TAG, "getMasterValue(): item = " + item + ", ret =" + ret);
+        if (DBG) Rlog.d(TAG, "getProvisionedValue(): item = " + item + ", ret =" + ret);
 
         return ret;
     }
 
     /**
-     * Gets the value for IMS service/capabilities parameters used by IMS stack.
+     * Gets the provisioned value for IMS service/capabilities parameters used by IMS stack.
      * This function should not be called from the mainthread as it could block the
      * mainthread.
      *
@@ -277,15 +282,15 @@ public class ImsConfig {
      *
      * @throws ImsException if calling the IMS service results in an error.
      */
-    public String getMasterStringValue(int item) throws ImsException {
+    public String getProvisionedStringValue(int item) throws ImsException {
         String ret = "Unknown";
         try {
-            ret = miConfig.getMasterStringValue(item);
+            ret = miConfig.getProvisionedStringValue(item);
         }  catch (RemoteException e) {
-            throw new ImsException("getMasterStringValue()", e,
+            throw new ImsException("getProvisionedStringValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
-        if (DBG) Rlog.d(TAG, "getMasterStringValue(): item = " + item + ", ret =" + ret);
+        if (DBG) Rlog.d(TAG, "getProvisionedStringValue(): item = " + item + ", ret =" + ret);
 
         return ret;
     }
