@@ -18,7 +18,9 @@ package com.android.ims;
 
 import com.android.internal.R;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -304,13 +306,13 @@ public class ImsCall implements ICall {
         }
 
         /**
-         * Called when the state of an IMS conference participant has changed.
+         * Called when the state of IMS conference participant(s) has changed.
          *
          * @param call the call object that carries out the IMS call.
-         * @param participant the participant and its new state information.
+         * @param participants the participant(s) and their new state information.
          */
-        public void onConferenceParticipantStateChanged(ImsCall call,
-                ConferenceParticipant participant) {
+        public void onConferenceParticipantsStateChanged(ImsCall call,
+                List<ConferenceParticipant> participants) {
             // no-op
         }
 
@@ -1531,14 +1533,14 @@ public class ImsCall implements ICall {
     }
 
     private void notifyConferenceStateUpdated(ImsConferenceState state) {
-        Set<Entry<String, Bundle>> paticipants = state.mParticipants.entrySet();
+        Set<Entry<String, Bundle>> participants = state.mParticipants.entrySet();
 
-        if (paticipants == null) {
+        if (participants == null) {
             return;
         }
 
-        Iterator<Entry<String, Bundle>> iterator = paticipants.iterator();
-
+        Iterator<Entry<String, Bundle>> iterator = participants.iterator();
+        List<ConferenceParticipant> conferenceParticipants = new ArrayList<>(participants.size());
         while (iterator.hasNext()) {
             Entry<String, Bundle> entry = iterator.next();
 
@@ -1577,13 +1579,7 @@ public class ImsCall implements ICall {
 
                 ConferenceParticipant conferenceParticipant = new ConferenceParticipant(handle,
                         displayName, endpointUri, connectionState);
-                if (mListener != null) {
-                    try {
-                        mListener.onConferenceParticipantStateChanged(this, conferenceParticipant);
-                    } catch (Throwable t) {
-                        loge("notifyConferenceStateUpdated :: ", t);
-                    }
-                }
+                conferenceParticipants.add(conferenceParticipant);
                 continue;
             }
 
@@ -1608,6 +1604,14 @@ public class ImsCall implements ICall {
                     referrer.clear(new ImsReasonInfo());
                     referrer.mListener.onCallTerminated(referrer, referrer.mLastReasonInfo);
                 }
+            } catch (Throwable t) {
+                loge("notifyConferenceStateUpdated :: ", t);
+            }
+        }
+
+        if (!conferenceParticipants.isEmpty() && mListener != null) {
+            try {
+                mListener.onConferenceParticipantsStateChanged(this, conferenceParticipants);
             } catch (Throwable t) {
                 loge("notifyConferenceStateUpdated :: ", t);
             }
