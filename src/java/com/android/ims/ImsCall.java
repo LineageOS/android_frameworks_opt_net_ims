@@ -508,6 +508,27 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Gets the local call profile (local capabilities).
+     *
+     * @return a {@link ImsCallProfile} object that has the local call profile
+     */
+    public ImsCallProfile getRemoteCallProfile() throws ImsException {
+        synchronized(mLockObj) {
+            if (mSession == null) {
+                throw new ImsException("No call session",
+                        ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
+            }
+
+            try {
+                return mSession.getRemoteCallProfile();
+            } catch (Throwable t) {
+                loge("getLocalCallProfile :: ", t);
+                throw new ImsException("getRemoteCallProfile()", t, 0);
+            }
+        }
+    }
+
+    /**
      * Gets the call profile proposed by the local/remote user.
      *
      * @return a {@link ImsCallProfile} object that has the proposed call profile
