@@ -66,6 +66,18 @@ public class ImsConfig {
          * GSMA IR.94 over WiFi.
          */
         public static final int FEATURE_TYPE_VIDEO_OVER_WIFI = 3;
+
+        /**
+         * FEATURE_TYPE_UT supports features defined in 3GPP and
+         * GSMA IR.92 over LTE.
+         */
+        public static final int FEATURE_TYPE_UT_OVER_LTE = 4;
+
+       /**
+         * FEATURE_TYPE_UT_OVER_WIFI supports features defined in 3GPP and
+         * GSMA IR.92 over WiFi.
+         */
+        public static final int FEATURE_TYPE_UT_OVER_WIFI = 5;
     }
 
     /**
