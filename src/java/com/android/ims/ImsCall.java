@@ -34,6 +34,7 @@ import com.android.ims.internal.CallGroupManager;
 import com.android.ims.internal.ICall;
 import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.ImsStreamMediaSession;
+import android.telecom.Connection;
 
 /**
  * Handles an IMS voice / video call over LTE. You can instantiate this class with
@@ -605,6 +606,26 @@ public class ImsCall implements ICall {
             } catch (Throwable t) {
                 loge("getCallExtra :: ", t);
                 throw new ImsException("getCallExtra()", t, 0);
+            }
+        }
+    }
+
+    /**
+     * Gets the call substate.
+     *
+     * @return int callsubstate
+     */
+    public int getCallSubstate() throws ImsException {
+        synchronized(mLockObj) {
+            if (mSession == null) {
+                throw new ImsException("No call session",
+                    ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
+            }
+            try {
+                return mSession.getCallSubstate();
+            } catch (Throwable t) {
+                loge("getCallSubstate :: ", t);
+                throw new ImsException("getCallSubstate()", t, 0);
             }
         }
     }
