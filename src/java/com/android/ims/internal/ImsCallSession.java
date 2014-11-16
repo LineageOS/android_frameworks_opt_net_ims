@@ -365,6 +365,17 @@ public class ImsCallSession {
                                        ImsReasonInfo reasonInfo) {
             // no-op
         }
+
+        /**
+         * Called when TTY mode of remote party changed
+         *
+         * @param session IMS session object
+         * @param mode TTY mode of remote party
+         */
+        public void callSessionTtyModeReceived(ImsCallSession session,
+                                       int mode) {
+            // no-op
+        }
     }
 
     private final IImsCallSession miSession;
@@ -1125,8 +1136,7 @@ public class ImsCallSession {
         public void callSessionTtyModeReceived(IImsCallSession session,
                 int mode) {
             if (mListener != null) {
-                //TODO: UI specific implementation.
-                //Vendor UI can listen to this callback to take action on received TTY mode.
+                mListener.callSessionTtyModeReceived(ImsCallSession.this, mode);
             }
         }
     }

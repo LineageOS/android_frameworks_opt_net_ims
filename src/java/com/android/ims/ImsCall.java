@@ -28,8 +28,11 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
+import android.provider.Settings;
 import android.telecom.ConferenceParticipant;
+import android.telecom.TelecomManager;
 import android.telephony.Rlog;
+import android.widget.Toast;
 
 import com.android.ims.internal.CallGroup;
 import com.android.ims.internal.CallGroupManager;
@@ -2606,6 +2609,40 @@ public class ImsCall implements ICall {
                     listener.onCallUssdMessageReceived(ImsCall.this, mode, ussdMessage);
                 } catch (Throwable t) {
                     loge("callSessionUssdMessageReceived :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionTtyModeReceived(ImsCallSession session, int mode) {
+            if (DBG) {
+                log("callSessionTtyModeReceived :: session=" + session
+                        + ", mode=" + mode);
+            }
+
+            int settingsTtyMode = Settings.Secure.getInt(
+                    mContext.getContentResolver(),
+                    Settings.Secure.PREFERRED_TTY_MODE,
+                    TelecomManager.TTY_MODE_OFF);
+            if (settingsTtyMode == TelecomManager.TTY_MODE_OFF) {
+                // Notify the user that TTY mode changed in the far device
+                int resId = 0;
+                switch (mode) {
+                    case TelecomManager.TTY_MODE_FULL:
+                        resId = com.android.internal.R.string.peerTtyModeFull;
+                        break;
+                    case TelecomManager.TTY_MODE_HCO:
+                        resId = com.android.internal.R.string.peerTtyModeHco;
+                        break;
+                    case TelecomManager.TTY_MODE_VCO:
+                        resId = com.android.internal.R.string.peerTtyModeVco;
+                        break;
+                    case TelecomManager.TTY_MODE_OFF:
+                        resId = com.android.internal.R.string.peerTtyModeOff;
+                        break;
+                }
+                if (resId != 0) {
+                    Toast.makeText(mContext, resId, Toast.LENGTH_SHORT).show();
                 }
             }
         }
