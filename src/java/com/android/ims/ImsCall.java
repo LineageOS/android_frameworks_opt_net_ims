@@ -1315,6 +1315,40 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Start a DTMF code. According to <a href="http://tools.ietf.org/html/rfc2833">RFC 2833</a>,
+     * event 0 ~ 9 maps to decimal value 0 ~ 9, '*' to 10, '#' to 11, event 'A' ~ 'D' to 12 ~ 15,
+     * and event flash to 16. Currently, event flash is not supported.
+     *
+     * @param c that represents the DTMF to send. '0' ~ '9', 'A' ~ 'D', '*', '#' are valid inputs.
+     */
+    public void startDtmf(char c) {
+        if (DBG) {
+            log("startDtmf :: session=" + mSession + ", code=" + c);
+        }
+
+        synchronized(mLockObj) {
+            if (mSession != null) {
+                mSession.startDtmf(c);
+            }
+        }
+    }
+
+    /**
+     * Stop a DTMF code.
+     */
+    public void stopDtmf() {
+        if (DBG) {
+            log("stopDtmf :: session=" + mSession);
+        }
+
+        synchronized(mLockObj) {
+            if (mSession != null) {
+                mSession.stopDtmf();
+            }
+        }
+    }
+
+    /**
      * Sends an USSD message.
      *
      * @param ussdMessage USSD message to send
