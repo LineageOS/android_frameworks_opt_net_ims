@@ -425,6 +425,7 @@ public class ImsCall implements ICall {
     // termination request was made on the original session in case we need to act
     // on it in the case of a merge failure.
     private ImsReasonInfo mSessionEndDuringMergeReasonInfo = null;
+    private boolean mIsMerged = false;
 
     /**
      * Create an IMS call object.
@@ -693,6 +694,25 @@ public class ImsCall implements ICall {
 
             return mSession.isMultiparty();
         }
+    }
+
+    /**
+     * Marks whether an IMS call is merged. This should be {@code true} if the call becomes the
+     * member of a {@code CallGroup} of which it is not the owner. This should be set back to
+     * {@code false} if a merge fails.
+     *
+     * @param isMerged Whether the call is merged.
+     */
+    public void setIsMerged(boolean isMerged) {
+        mIsMerged = isMerged;
+    }
+
+    /**
+     * @return {@code true} if the call is the member of a {@code CallGroup} of which it is not the
+     *     owner, {@code false} otherwise.
+     */
+    public boolean isMerged() {
+        return mIsMerged;
     }
 
     /**
@@ -1116,13 +1136,17 @@ public class ImsCall implements ICall {
 
                 // Check to see if there is an owner to a valid call group.  If this is the
                 // case, then we already have a conference call.
-                if (mCallGroup != null && mCallGroup.getOwner() == null) {
-                    // We only set UPDATE_MERGE when we are adding the first
-                    // calls to the Conference.  If there is already a conference
-                    // no special handling is needed.The existing conference
-                    // session will just go active and any other sessions will be terminated
-                    // if needed.  There will be no merge failed callback.
-                    mUpdateRequest = UPDATE_MERGE;
+                if (mCallGroup != null) {
+                    if (mCallGroup.getOwner() == null) {
+                        // We only set UPDATE_MERGE when we are adding the first
+                        // calls to the Conference.  If there is already a conference
+                        // no special handling is needed.The existing conference
+                        // session will just go active and any other sessions will be terminated
+                        // if needed.  There will be no merge failed callback.
+                        mUpdateRequest = UPDATE_MERGE;
+                    } else {
+                        setIsMerged(true);
+                    }
                 }
             } else {
                 // This code basically says, we need to explicitly hold before requesting a merge
@@ -1344,6 +1368,7 @@ public class ImsCall implements ICall {
         if (mCallGroup == null) {
             if (referrerCallGroup == null) {
                 mCallGroup = CallGroupManager.getInstance().createCallGroup(new ImsCallGroup());
+                neutralReferrer.setCallGroup(mCallGroup);
             } else {
                 mCallGroup = referrerCallGroup;
             }
@@ -1357,42 +1382,6 @@ public class ImsCall implements ICall {
             if ((referrerCallGroup != null)
                     && (mCallGroup != referrerCallGroup)) {
                 loge("fatal :: call group is mismatched; call is corrupted...");
-            }
-        }
-    }
-
-    private void updateCallGroup(ImsCall owner) {
-        if (mCallGroup == null) {
-            return;
-        }
-
-        ImsCall neutralReferrer = (ImsCall)mCallGroup.getNeutralReferrer();
-
-        if (owner == null) {
-            // Maintain the call group if the current call has been merged in the past.
-            if (!mCallGroup.hasReferrer()) {
-                CallGroupManager.getInstance().destroyCallGroup(mCallGroup);
-                mCallGroup = null;
-            }
-        } else {
-            mCallGroup.addReferrer(this);
-
-            if (neutralReferrer != null) {
-                if (neutralReferrer.getCallGroup() == null) {
-                    neutralReferrer.setCallGroup(mCallGroup);
-                    mCallGroup.addReferrer(neutralReferrer);
-                }
-
-                neutralReferrer.enforceConversationMode();
-            }
-
-            // Close the existing owner call if present
-            ImsCall exOwner = (ImsCall)mCallGroup.getOwner();
-
-            mCallGroup.setOwner(owner);
-
-            if (exOwner != null) {
-                exOwner.close();
             }
         }
     }
@@ -1417,7 +1406,7 @@ public class ImsCall implements ICall {
         }
     }
 
-    private void setCallGroup(CallGroup callGroup) {
+    public void setCallGroup(CallGroup callGroup) {
         synchronized(mLockObj) {
             mCallGroup = callGroup;
         }
@@ -1761,6 +1750,12 @@ public class ImsCall implements ICall {
                 // a conference call is in progress.
                 mCallGroup.setOwner(ImsCall.this);
                 listener = mListener;
+
+                // Mark the call group's neutral referrer as merged.
+                ImsCall neutralReferrer = (ImsCall) mCallGroup.getNeutralReferrer();
+                if (neutralReferrer != null) {
+                    neutralReferrer.setIsMerged(true);
+                }
             } else {
                 // This is an interesting state that needs to be logged since we
                 // should only be going through this workflow for new conference calls
@@ -1832,6 +1827,7 @@ public class ImsCall implements ICall {
             mSessionEndDuringMerge = false;
             mSessionEndDuringMergeReasonInfo = null;
             mUpdateRequest = UPDATE_NONE;
+            setIsMerged(false);
         }
         if (listener != null) {
             try {
