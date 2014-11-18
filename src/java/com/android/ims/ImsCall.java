@@ -2887,4 +2887,54 @@ public class ImsCall implements ICall {
             }
         }
     }
+
+    /**
+     * Provides a human-readable string representation of an update request.
+     *
+     * @param updateRequest The update request.
+     * @return The string representation.
+     */
+    private String updateRequestToString(int updateRequest) {
+        switch (updateRequest) {
+            case UPDATE_NONE:
+                return "NONE";
+            case UPDATE_HOLD:
+                return "HOLD";
+            case UPDATE_HOLD_MERGE:
+                return "HOLD_MERGE";
+            case UPDATE_RESUME:
+                return "RESUME";
+            case UPDATE_MERGE:
+                return "MERGE";
+            case UPDATE_EXTEND_TO_CONFERENCE:
+                return "EXTEND_TO_CONFERENCE";
+            case UPDATE_UNSPECIFIED:
+                return "UNSPECIFIED";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    /**
+     * Provides a string representation of the {@link ImsCall}.  Primarily intended for use in log
+     * statements.
+     *
+     * @return String representation of call.
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[ImsCall objId:");
+        sb.append(System.identityHashCode(this));
+        sb.append(" multiParty:");
+        sb.append(isMultiparty()?"Y":"N");
+        sb.append(" session:");
+        sb.append(mSession);
+        sb.append(" updateRequest:");
+        sb.append(updateRequestToString(mUpdateRequest));
+        sb.append(" transientSession:");
+        sb.append(mTransientConferenceSession);
+        sb.append("]");
+        return sb.toString();
+    }
 }

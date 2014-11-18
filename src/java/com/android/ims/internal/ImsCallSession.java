@@ -1237,4 +1237,23 @@ public class ImsCallSession {
         }
 
     }
+
+    /**
+     * Provides a string representation of the {@link ImsCallSession}.  Primarily intended for
+     * use in log statements.
+     *
+     * @return String representation of session.
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[ImsCallSession objId:");
+        sb.append(System.identityHashCode(this));
+        sb.append(" state:");
+        sb.append(State.toString(getState()));
+        sb.append(" callId:");
+        sb.append(getCallId());
+        sb.append("]");
+        return sb.toString();
+    }
 }
