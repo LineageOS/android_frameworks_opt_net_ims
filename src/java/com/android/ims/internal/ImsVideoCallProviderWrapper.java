@@ -237,7 +237,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     }
 
     /** @inheritDoc */
-    public void onRequestCallDataUsage() {
+    public void onRequestConnectionDataUsage() {
         try {
             mVideoCallProvider.requestCallDataUsage();
         } catch (RemoteException e) {
