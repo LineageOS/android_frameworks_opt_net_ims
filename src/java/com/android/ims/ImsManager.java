@@ -182,11 +182,16 @@ public class ImsManager {
             return true;
         }
 
+        boolean disabledByGlobalSetting = android.provider.Settings.Global.getInt(
+                context.getContentResolver(),
+                android.provider.Settings.Global.VOLTE_FEATURE_DISABLED, 0) == 1;
+
         return
                 context.getResources().getBoolean(
                         com.android.internal.R.bool.config_device_volte_available) &&
                 context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_volte_available);
+                        com.android.internal.R.bool.config_carrier_volte_available) &&
+                !disabledByGlobalSetting;
     }
 
     /**
