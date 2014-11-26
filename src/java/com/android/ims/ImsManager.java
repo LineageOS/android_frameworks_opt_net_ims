@@ -224,12 +224,35 @@ public class ImsManager {
                 context.getContentResolver(),
                 android.provider.Settings.Global.VOLTE_FEATURE_DISABLED, 0) == 1;
 
-        return
-                context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_device_volte_available) &&
-                context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_volte_available) &&
-                !disabledByGlobalSetting;
+        return context.getResources().getBoolean(
+                com.android.internal.R.bool.config_device_volte_available) && context.getResources()
+                .getBoolean(com.android.internal.R.bool.config_carrier_volte_available)
+                && !disabledByGlobalSetting;
+    }
+
+    /*
+     * Indicates whether VoLTE is provisioned on device
+     */
+    public static boolean isVolteProvisionedOnDevice(Context context) {
+        boolean isProvisioned = true;
+        if (context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_carrier_volte_provisioned)) {
+            isProvisioned = false; // disable on any error
+            ImsManager mgr = ImsManager.getInstance(context,
+                    SubscriptionManager.getDefaultVoiceSubId());
+            if (mgr != null) {
+                try {
+                    ImsConfig config = mgr.getConfigInterface();
+                    if (config != null) {
+                        isProvisioned = config.getVolteProvisioned();
+                    }
+                } catch (ImsException ie) {
+                    // do nothing
+                }
+            }
+        }
+
+        return isProvisioned;
     }
 
     /**
