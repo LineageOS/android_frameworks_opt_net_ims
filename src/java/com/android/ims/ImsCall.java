@@ -55,7 +55,7 @@ public class ImsCall implements ICall {
     public static final int USSD_MODE_REQUEST = 1;
 
     private static final String TAG = "ImsCall";
-    private static final boolean FORCE_DEBUG = true; /* STOPSHIP if true */
+    private static final boolean FORCE_DEBUG = false; /* STOPSHIP if true */
     private static final boolean DBG = FORCE_DEBUG || Rlog.isLoggable(TAG, Log.DEBUG);
     private static final boolean VDBG = FORCE_DEBUG || Rlog.isLoggable(TAG, Log.VERBOSE);
 
