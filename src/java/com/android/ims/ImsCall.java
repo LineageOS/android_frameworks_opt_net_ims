@@ -1926,6 +1926,7 @@ public class ImsCall implements ICall {
                 listener = mListener;
                 mCallProfile = profile;
                 mUpdateRequest = UPDATE_NONE;
+                mHold = false;
             }
 
             if (listener != null) {
