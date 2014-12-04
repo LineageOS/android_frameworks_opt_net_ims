@@ -2060,7 +2060,6 @@ public class ImsCall implements ICall {
             synchronized(ImsCall.this) {
                 listener = mListener;
                 mCallProfile = profile;
-                mUpdateRequest = UPDATE_NONE;
             }
 
             if (listener != null) {
