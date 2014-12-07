@@ -247,7 +247,7 @@ public class ImsConfig {
     /**
      * Gets the value for IMS service/capabilities parameters used by IMS stack.
      * This function should not be called from the mainthread as it could block the
-     * mainthread to cause ANR.
+     * mainthread.
      *
      * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
      * @return the value in Integer format.
@@ -270,7 +270,7 @@ public class ImsConfig {
     /**
      * Gets the value for IMS service/capabilities parameters used by IMS stack.
      * This function should not be called from the mainthread as it could block the
-     * mainthread to cause ANR.
+     * mainthread.
      *
      * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
      * @return value in String format.
@@ -294,7 +294,7 @@ public class ImsConfig {
      * Sets the value for IMS service/capabilities parameters by
      * the operator device management entity.
      * This function should not be called from main thread as it could block
-     * mainthread to cause ANR.
+     * mainthread.
      *
      * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
      * @param value in Integer format.
@@ -326,6 +326,8 @@ public class ImsConfig {
     /**
      * Sets the value for IMS service/capabilities parameters by
      * the operator device management entity.
+     * This function should not be called from main thread as it could block
+     * mainthread.
      *
      * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
      * @param value in String format.
@@ -396,6 +398,23 @@ public class ImsConfig {
             miConfig.setFeatureValue(feature, network, value, listener);
         } catch (RemoteException e) {
             throw new ImsException("setFeatureValue()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * Gets the value for IMS Volte provisioned.
+     * It should be the same as operator provisioned value if applies.
+     *
+     * @return boolean
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public boolean getVolteProvisioned() throws ImsException {
+        try {
+           return miConfig.getVolteProvisioned();
+        } catch (RemoteException e) {
+            throw new ImsException("getVolteProvisioned()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
     }
