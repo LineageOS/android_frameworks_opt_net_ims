@@ -1139,9 +1139,18 @@ public class ImsCall implements ICall {
         }
 
         synchronized(mLockObj) {
-            setMergePeer(bgCall);
+            if ((!isMultiparty() && !bgCall.isMultiparty()) || isMultiparty()) {
+                // If neither call is multiparty, the current call is the merge host and the bg call
+                // is the merge peer (ie we're starting a new conference).
+                // OR
+                // If this call is multiparty, it is the merge host and the other call is the merge
+                // peer.
+                setMergePeer(bgCall);
+            } else {
+                // If the bg call is multiparty, it is the merge host.
+                setMergeHost(bgCall);
+            }
         }
-
         merge();
     }
 
@@ -1571,6 +1580,7 @@ public class ImsCall implements ICall {
             // Swap out the underlying sessions after shutting down the existing session.
             mSession.setListener(null);
             mSession = mTransientConferenceSession;
+            mTransientConferenceSession = null;
             listener = mListener;
 
             // Mark the merge peer call as merged so that when it terminates, the disconnect tone is
@@ -2592,6 +2602,17 @@ public class ImsCall implements ICall {
         sb.append(isMuted() ? "Y" : "N");
         sb.append(" updateRequest:");
         sb.append(updateRequestToString(mUpdateRequest));
+        sb.append(" merging:");
+        sb.append(isMerging() ? "Y" : "N");
+        if (isMerging()) {
+            if (isMergePeer()) {
+                sb.append("P");
+            } else {
+                sb.append("H");
+            }
+        }
+        sb.append(" merged:");
+        sb.append(isMerged() ? "Y" : "N");
         sb.append(" multiParty:");
         sb.append(isMultiparty() ? "Y" : "N");
         sb.append(" session:");
