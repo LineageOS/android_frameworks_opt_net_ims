@@ -16,6 +16,7 @@
 
 package com.android.ims.internal;
 
+import android.os.Message;
 import android.os.RemoteException;
 
 import com.android.ims.ImsCallProfile;
@@ -813,13 +814,13 @@ public class ImsCallSession {
      *
      * @param c the DTMF to send. '0' ~ '9', 'A' ~ 'D', '*', '#' are valid inputs.
      */
-    public void sendDtmf(char c) {
+    public void sendDtmf(char c, Message result) {
         if (mClosed) {
             return;
         }
 
         try {
-            miSession.sendDtmf(c, null);
+            miSession.sendDtmf(c, result);
         } catch (RemoteException e) {
         }
     }
