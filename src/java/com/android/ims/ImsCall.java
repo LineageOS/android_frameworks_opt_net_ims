@@ -369,6 +369,16 @@ public class ImsCall implements ICall {
         public void onCallStateChanged(ImsCall call, int state) {
             // no-op
         }
+
+        /**
+         * Called when TTY mode of remote party changed
+         *
+         * @param call the call object that carries out the IMS call
+         * @param mode TTY mode of remote party
+         */
+        public void onCallSessionTtyModeReceived(ImsCall call, int mode) {
+            // no-op
+        }
     }
 
 
@@ -2451,29 +2461,17 @@ public class ImsCall implements ICall {
                 logv("callSessionTtyModeReceived :: mode=" + mode);
             }
 
-            int settingsTtyMode = Settings.Secure.getInt(
-                    mContext.getContentResolver(),
-                    Settings.Secure.PREFERRED_TTY_MODE,
-                    TelecomManager.TTY_MODE_OFF);
-            if (settingsTtyMode == TelecomManager.TTY_MODE_OFF) {
-                // Notify the user that TTY mode changed in the far device
-                int resId = 0;
-                switch (mode) {
-                    case TelecomManager.TTY_MODE_FULL:
-                        resId = com.android.internal.R.string.peerTtyModeFull;
-                        break;
-                    case TelecomManager.TTY_MODE_HCO:
-                        resId = com.android.internal.R.string.peerTtyModeHco;
-                        break;
-                    case TelecomManager.TTY_MODE_VCO:
-                        resId = com.android.internal.R.string.peerTtyModeVco;
-                        break;
-                    case TelecomManager.TTY_MODE_OFF:
-                        resId = com.android.internal.R.string.peerTtyModeOff;
-                        break;
-                }
-                if (resId != 0) {
-                    Toast.makeText(mContext, resId, Toast.LENGTH_SHORT).show();
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallSessionTtyModeReceived(ImsCall.this, mode);
+                } catch (Throwable t) {
+                    loge("callSessionTtyModeReceived :: ", t);
                 }
             }
         }
