@@ -2103,6 +2103,10 @@ public class ImsCall implements ICall {
                         ", reasonInfo=" + reasonInfo);
             }
 
+            synchronized (mLockObj) {
+                mHold = false;
+            }
+
             boolean isHoldForMerge = false;
             ImsCall.Listener listener;
 
