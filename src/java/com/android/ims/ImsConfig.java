@@ -216,9 +216,20 @@ public class ImsConfig {
          * Value is in Integer format.
          */
         public static final int EAB_SETTING_ENABLED = 24;
+        /**
+         * Wi-Fi calling roaming status.
+         * Value is in Integer format. ON (1), OFF(0).
+         */
+        public static final int VOICE_OVER_WIFI_ROAMING = 25;
+        /**
+         * Wi-Fi calling modem - WfcModeFeatureValueConstants.
+         * Value is in Integer format.
+         */
+        public static final int VOICE_OVER_WIFI_MODE = 26;
+
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
-        public static final int PROVISIONED_CONFIG_END = EAB_SETTING_ENABLED;
+        public static final int PROVISIONED_CONFIG_END = VOICE_OVER_WIFI_MODE;
 
         // Expand the operator config items as needed here.
     }
@@ -241,6 +252,15 @@ public class ImsConfig {
     public static class FeatureValueConstants {
         public static final int OFF = 0;
         public static final int ON = 1;
+    }
+
+    /**
+     * Defines IMS feature value.
+     */
+    public static class WfcModeFeatureValueConstants {
+        public static final int WIFI_ONLY = 0;
+        public static final int CELLULAR_PREFERRED = 1;
+        public static final int WIFI_PREFERRED = 2;
     }
 
     public ImsConfig(IImsConfig iconfig, Context context) {
