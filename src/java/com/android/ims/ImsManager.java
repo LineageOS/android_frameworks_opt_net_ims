@@ -17,6 +17,7 @@
 package com.android.ims;
 
 import android.app.PendingIntent;
+import android.app.QueuedWork;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
@@ -58,6 +59,8 @@ public class ImsManager {
     public static final int PROPERTY_DBG_VOLTE_AVAIL_OVERRIDE_DEFAULT = 0;
     public static final String PROPERTY_DBG_VT_AVAIL_OVERRIDE = "persist.dbg.vt_avail_ovr";
     public static final int PROPERTY_DBG_VT_AVAIL_OVERRIDE_DEFAULT = 0;
+    public static final String PROPERTY_DBG_WFC_AVAIL_OVERRIDE = "persist.dbg.wfc_avail_ovr";
+    public static final int PROPERTY_DBG_WFC_AVAIL_OVERRIDE_DEFAULT = 0;
 
     /**
      * For accessing the IMS related service.
@@ -171,7 +174,7 @@ public class ImsManager {
         int enabled = android.provider.Settings.Global.getInt(
                     context.getContentResolver(),
                     android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED, ImsConfig.FeatureValueConstants.ON);
-        return (enabled == 1)? true:false;
+        return (enabled == 1) ? true : false;
     }
 
     /**
@@ -272,6 +275,133 @@ public class ImsManager {
                         com.android.internal.R.bool.config_device_vt_available) &&
                 context.getResources().getBoolean(
                         com.android.internal.R.bool.config_carrier_vt_available);
+    }
+
+    /**
+     * Returns the user configuration of WFC setting
+     */
+    public static boolean isWfcEnabledByUser(Context context) {
+        int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_ENABLED,
+                ImsConfig.FeatureValueConstants.ON);
+        return (enabled == 1) ? true : false;
+    }
+
+    /**
+     * Change persistent WFC enabled setting
+     */
+    public static void setWfcSetting(Context context, boolean enabled) {
+        int value = enabled ? 1 : 0;
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_ENABLED, value);
+
+        ImsManager imsManager = ImsManager.getInstance(context,
+                SubscriptionManager.getDefaultVoicePhoneId());
+        if (imsManager != null) {
+            try {
+                ImsConfig config = imsManager.getConfigInterface();
+                // FIXME: replace NETWORK_TYPE_LTE with NETWORK_TYPE_IWLAN
+                // when available
+                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_WIFI,
+                        TelephonyManager.NETWORK_TYPE_LTE,
+                        enabled ? ImsConfig.FeatureValueConstants.ON
+                                : ImsConfig.FeatureValueConstants.OFF, null);
+            } catch (ImsException e) {
+                // do nothing
+            }
+        }
+    }
+
+    /**
+     * Returns the user configuration of WFC modem setting
+     */
+    public static int getWfcMode(Context context) {
+        int setting = android.provider.Settings.Global.getInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_MODE,
+                ImsConfig.WfcModeFeatureValueConstants.WIFI_PREFERRED);
+        if (DBG) log("getWfcMode - setting=" + setting);
+        return setting;
+    }
+
+    /**
+     * Returns the user configuration of WFC modem setting
+     */
+    public static void setWfcMode(Context context, int wfcMode) {
+        if (DBG) log("setWfcMode - setting=" + wfcMode);
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_MODE, wfcMode);
+
+        final ImsManager imsManager = ImsManager.getInstance(context,
+                SubscriptionManager.getDefaultVoicePhoneId());
+        if (imsManager != null) {
+            final int value = wfcMode;
+            QueuedWork.singleThreadExecutor().submit(new Runnable() {
+                public void run() {
+                    try {
+                        imsManager.getConfigInterface().setProvisionedValue(
+                                ImsConfig.ConfigConstants.VOICE_OVER_WIFI_MODE,
+                                value);
+                    } catch (ImsException e) {
+                        // do nothing
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Returns the user configuration of WFC roaming setting
+     */
+    public static boolean isWfcRoamingEnabledByUser(Context context) {
+        int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
+                ImsConfig.FeatureValueConstants.ON);
+        return (enabled == 1) ? true : false;
+    }
+
+    /**
+     * Change persistent WFC roaming enabled setting
+     */
+    public static void setWfcRoamingSetting(Context context, boolean enabled) {
+        final int value = enabled
+                ? ImsConfig.FeatureValueConstants.ON
+                : ImsConfig.FeatureValueConstants.OFF;
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED, value);
+
+        final ImsManager imsManager = ImsManager.getInstance(context,
+                SubscriptionManager.getDefaultVoicePhoneId());
+        if (imsManager != null) {
+            QueuedWork.singleThreadExecutor().submit(new Runnable() {
+                public void run() {
+                    try {
+                        imsManager.getConfigInterface().setProvisionedValue(
+                                ImsConfig.ConfigConstants.VOICE_OVER_WIFI_ROAMING,
+                                value);
+                    } catch (ImsException e) {
+                        // do nothing
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Returns a platform configuration for WFC which may override the user
+     * setting. Note: WFC presumes that VoLTE is enabled (these are
+     * configuration settings which must be done correctly).
+     */
+    public static boolean isWfcEnabledByPlatform(Context context) {
+        if (SystemProperties.getInt(PROPERTY_DBG_WFC_AVAIL_OVERRIDE,
+                PROPERTY_DBG_WFC_AVAIL_OVERRIDE_DEFAULT) == 1) {
+            return true;
+        }
+
+        return
+               context.getResources().getBoolean(
+                       com.android.internal.R.bool.config_device_wfc_ims_available) &&
+               context.getResources().getBoolean(
+                       com.android.internal.R.bool.config_carrier_wfc_ims_available);
     }
 
     private ImsManager(Context context, int phoneId) {
@@ -715,15 +845,15 @@ public class ImsManager {
         return proxy;
     }
 
-    private void log(String s) {
+    private static void log(String s) {
         Rlog.d(TAG, s);
     }
 
-    private void loge(String s) {
+    private static void loge(String s) {
         Rlog.e(TAG, s);
     }
 
-    private void loge(String s, Throwable t) {
+    private static void loge(String s, Throwable t) {
         Rlog.e(TAG, s, t);
     }
 
