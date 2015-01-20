@@ -564,6 +564,20 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Gets the list of conference participants currently
+     * associated with this call.
+     *
+     * @return The list of conference participants.
+     */
+    public List<ConferenceParticipant> getConferenceParticipants() {
+        synchronized(mLockObj) {
+            log("getConferenceParticipants :: mConferenceParticipants"
+                    + mConferenceParticipants);
+            return mConferenceParticipants;
+        }
+    }
+
+    /**
      * Gets the state of the {@link ImsCallSession} that carries this call.
      * The value returned must be one of the states in {@link ImsCallSession#State}.
      *
@@ -1673,10 +1687,16 @@ public class ImsCall implements ICall {
                         ", endpoint=" + endpoint);
             }
 
-            if ((mCallGroup != null) && (!mCallGroup.isOwner(ImsCall.this))) {
-                continue;
-            }
-
+            /**
+             *  The lines below are not necessary as the owner of call group
+             *  is not set until merge is complete. As a result when there is
+             *  CEP update received before merge is complete, the update is
+             *  lost due to the check below. Moreover, the call group itself
+             *  is removed for subsequent release.
+             */
+            //if ((mCallGroup != null) && (!mCallGroup.isOwner(ImsCall.this))) {
+            //    continue;
+            //}
             // Attempt to find the participant in the call group if it exists.
             ImsCall referrer = null;
             if (mCallGroup != null) {
