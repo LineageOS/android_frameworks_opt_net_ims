@@ -1737,7 +1737,7 @@ public class ImsCall implements ICall {
             //}
             // Attempt to find the participant in the call group if it exists.
             ImsCall referrer = null;
-            if (mCallGroup != null) {
+            if (mCallGroup != null && endpoint != null && !endpoint.isEmpty()) {
                 referrer = (ImsCall) mCallGroup.getReferrer(endpoint);
             }
 
@@ -1746,6 +1746,10 @@ public class ImsCall implements ICall {
             // can be passed up to the {@code TelephonyConferenceController}.
             if (referrer == null) {
                 Uri handle = Uri.parse(user);
+                if (endpoint == null) {
+                    endpoint = "";
+                }
+
                 Uri endpointUri = Uri.parse(endpoint);
                 int connectionState = ImsConferenceState.getConnectionStateForStatus(status);
 
