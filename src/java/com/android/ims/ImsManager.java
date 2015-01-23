@@ -153,6 +153,57 @@ public class ImsManager {
      */
     public static final String EXTRA_IS_UNKNOWN_CALL = "codeaurora:isUnknown";
 
+    /**
+     * Part of the ACTION_IMS_INCOMING_CALL intents.
+     * A string value which hold the address of call.
+     * Used during conference scenario or during incoming phantom call
+     * @hide
+     */
+    public static final String EXTRA_UNKNOWN_CALL_ADDRESS = "codeaurora:unknownCallAddress";
+
+    /**
+     * @hide
+     */
+    public static final int CALL_ACTIVE = 1;
+
+    /**
+     * @hide
+     */
+    public static final int CALL_HOLD = 2;
+
+    /**
+     * @hide
+     */
+    public static final int CALL_DIALING = 3;
+
+    /**
+     * @hide
+     */
+    public static final int CALL_ALERTING = 4;
+
+    /**
+     * @hide
+     */
+    public static final int CALL_INCOMING = 5;
+
+    /**
+     * @hide
+     */
+    public static final int CALL_WAITING = 6;
+
+    /**
+     * @hide
+     */
+    public static final int CALL_END = 7;
+
+    /**
+     * Part of the ACTION_IMS_INCOMING_CALL intents.
+     * An int value which hold the state of call.
+     * Used during conference scenario or during incoming phantom call
+     * @hide
+     */
+    public static final String EXTRA_UNKNOWN_CALL_STATE = "codeaurora.unknownCallState";
+
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
 
