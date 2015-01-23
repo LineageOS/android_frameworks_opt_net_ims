@@ -1866,10 +1866,13 @@ public class ImsCall implements ICall {
                 mCallGroup.setOwner(ImsCall.this);
                 listener = mListener;
 
-                // Mark the call group's neutral referrer as merged.
+                // Remove the call group's neutral referrer as its not needed anyways
+                // If we retain this referrer, it causes issues during conference
+                // success scenario with one refer failing.
                 ImsCall neutralReferrer = (ImsCall) mCallGroup.getNeutralReferrer();
                 if (neutralReferrer != null) {
-                    neutralReferrer.setIsMerged(true);
+                    mCallGroup.removeReferrer(neutralReferrer);
+                    neutralReferrer.mCallGroup = null;
                 }
             } else {
                 // This is an interesting state that needs to be logged since we
