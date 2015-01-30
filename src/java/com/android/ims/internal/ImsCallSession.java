@@ -537,6 +537,32 @@ public class ImsCallSession {
     }
 
     /**
+     * Determines if the {@link ImsCallSession} is currently alive (e.g. not in a terminated or
+     * closed state).
+     *
+     * @return {@code True} if the session is alive.
+     */
+    public boolean isAlive() {
+        if (mClosed) {
+            return false;
+        }
+
+        int state = getState();
+        switch (state) {
+            case State.IDLE:
+            case State.INITIATED:
+            case State.NEGOTIATING:
+            case State.ESTABLISHING:
+            case State.ESTABLISHED:
+            case State.RENEGOTIATING:
+            case State.REESTABLISHING:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
      * Gets the native IMS call session.
      * @hide
      */
