@@ -57,7 +57,7 @@ public class ImsCall implements ICall {
     private static final boolean DBG = true;
 
     private List<ConferenceParticipant> mConferenceParticipants;
-
+    private boolean mIsCEPPresent = false;
     /**
      * Listener for events relating to an IMS call, such as when a call is being
      * recieved ("on ringing") or a call is outgoing ("on calling").
@@ -1244,6 +1244,8 @@ public class ImsCall implements ICall {
             createCallGroup(bgCall);
         }
 
+        updateConferenceParticipantsList(bgCall);
+
         merge();
     }
 
@@ -1349,7 +1351,6 @@ public class ImsCall implements ICall {
         if (DBG) {
             log("removeParticipants :: session=" + mSession);
         }
-
         synchronized(mLockObj) {
             if (mSession == null) {
                 loge("removeParticipants :: ");
@@ -1358,6 +1359,28 @@ public class ImsCall implements ICall {
             }
 
             mSession.removeParticipants(participants);
+
+            if (!mIsCEPPresent && participants != null && mConferenceParticipants != null) {
+                for (String participant : participants) {
+                    log ("Looping for participant " + participant);
+                    for (ConferenceParticipant c : mConferenceParticipants) {
+                        log ("Check handle for c = " + c.getHandle());
+                        if (participant != null && Uri.parse(participant).equals(c.getHandle())) {
+                            log ("Remove participant " + participant);
+                            mConferenceParticipants.remove(c);
+                            break;
+                        }
+                    }
+                }
+                if (mListener != null) {
+                    try {
+                        mListener.onConferenceParticipantsStateChanged(this,
+                                mConferenceParticipants);
+                    } catch (Throwable t) {
+                        loge("removeparticipants :: ", t);
+                    }
+                }
+            }
         }
     }
 
@@ -1668,7 +1691,7 @@ public class ImsCall implements ICall {
         }
 
         Iterator<Entry<String, Bundle>> iterator = participants.iterator();
-        mConferenceParticipants = new ArrayList<>(participants.size());
+        List<ConferenceParticipant> conferenceParticipants = new ArrayList<>(participants.size());
         while (iterator.hasNext()) {
             Entry<String, Bundle> entry = iterator.next();
 
@@ -1714,7 +1737,7 @@ public class ImsCall implements ICall {
                 if (connectionState != Connection.STATE_DISCONNECTED) {
                     ConferenceParticipant conferenceParticipant = new ConferenceParticipant(handle,
                             displayName, endpointUri, connectionState);
-                    mConferenceParticipants.add(conferenceParticipant);
+                    conferenceParticipants.add(conferenceParticipant);
                 }
                 continue;
             }
@@ -1745,11 +1768,16 @@ public class ImsCall implements ICall {
             }
         }
 
-        if (!mConferenceParticipants.isEmpty() && mListener != null) {
-            try {
-                mListener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
-            } catch (Throwable t) {
-                loge("notifyConferenceStateUpdated :: ", t);
+        synchronized(mLockObj) {
+            // Replace the participants list with the one received from latest CEP indication.
+            mConferenceParticipants = conferenceParticipants;
+            mIsCEPPresent = true;
+            if (mListener != null) {
+                try {
+                    mListener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
+                } catch (Throwable t) {
+                    loge("notifyConferenceStateUpdated :: ", t);
+                }
             }
         }
     }
@@ -1808,6 +1836,7 @@ public class ImsCall implements ICall {
                 listener = mListener;
                 clear(reasonInfo);
             }
+            mIsCEPPresent = false;
         }
 
         if (listener != null) {
@@ -1890,11 +1919,15 @@ public class ImsCall implements ICall {
             } catch (Throwable t) {
                 loge("processMergeComplete :: ", t);
             }
-            if (!mConferenceParticipants.isEmpty() && listener != null) {
-                try {
-                    listener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
-                } catch (Throwable t) {
-                    loge("processMergeComplete :: ", t);
+            synchronized(mLockObj) {
+                if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()
+                        && listener != null) {
+                    try {
+                        listener.onConferenceParticipantsStateChanged(this,
+                                mConferenceParticipants);
+                    } catch (Throwable t) {
+                        loge("processMergeComplete :: ", t);
+                    }
                 }
             }
         }
@@ -1973,6 +2006,59 @@ public class ImsCall implements ICall {
             throw (ImsException) t;
         } else {
             throw new ImsException(String.valueOf(code), t, code);
+        }
+    }
+
+    private void updateConferenceParticipantsList(ImsCall bgCall) {
+        if (bgCall == null) return;
+        ImsCall confCall = this;
+        ImsCall childCall = bgCall;
+        if (bgCall.isMultiparty()) {
+            // BG call is a conference, so add this call to it's participants list
+            log("updateConferenceParticipantsList: BG call is conference");
+            confCall = bgCall;
+            childCall = this;
+        } else if (!this.isMultiparty()) {
+            // Both are single calls. Treat this call as conference call and
+            // add itself as first participant.
+            log("updateConferenceParticipantsList: Make this call as conference and add child");
+            addToConferenceParticipantList(this);
+        }
+        confCall.addToConferenceParticipantList(childCall);
+    }
+
+    private void addToConferenceParticipantList(ImsCall childCall) {
+        if (childCall == null) return;
+
+        ImsCallProfile profile = childCall.getCallProfile();
+        if (profile == null) {
+            loge("addToConferenceParticipantList: null profile for childcall");
+            return;
+        }
+        String handle = profile.getCallExtra(ImsCallProfile.EXTRA_OI, null);
+        String name = profile.getCallExtra(ImsCallProfile.EXTRA_CNA, "");
+        if (handle == null) {
+            loge("addToConferenceParticipantList: Invalid number for childcall");
+            return;
+        }
+        Uri userUri = Uri.parse(handle);
+        ConferenceParticipant participant = new ConferenceParticipant(userUri,
+                name, userUri, Connection.STATE_ACTIVE);
+        synchronized(mLockObj) {
+            if (mConferenceParticipants == null) {
+                mConferenceParticipants = new ArrayList<ConferenceParticipant>();
+            }
+            if (DBG) log("Adding participant: " + participant + " to list");
+            mConferenceParticipants.add(participant);
+            if (isMultiparty() && !mIsCEPPresent && !mConferenceParticipants.isEmpty()
+                && mListener != null) {
+                try {
+                    mListener.onConferenceParticipantsStateChanged(this,
+                        mConferenceParticipants);
+                } catch (Throwable t) {
+                    loge("notifyConferenceStateUpdated :: ", t);
+                }
+            }
         }
     }
 
