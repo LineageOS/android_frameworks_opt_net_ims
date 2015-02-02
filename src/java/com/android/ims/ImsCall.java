@@ -2461,13 +2461,14 @@ public class ImsCall implements ICall {
                 log("callSessionMergeFailed :: session=" + sessionString +
                         ", reasonInfo=" + reasonInfoString);
             }
-            if (mUpdateRequest != UPDATE_MERGE) {
-                // Odd, we are not in the midst of merging anything.
-                if (DBG) {
-                    log("callSessionMergeFailed :: no merge in progress.");
-                }
-                return;
+
+            ImsCall neutralReferrer = (ImsCall) mCallGroup.getNeutralReferrer();
+            if (neutralReferrer != null) {
+                mCallGroup.removeReferrer(neutralReferrer);
+                neutralReferrer.mCallGroup = null;
             }
+            destroyCallGroup();
+
             // Let's tell our parent ImsCall that the merge has failed and we need to clean
             // up any temporary, transient state.
             processMergeFailed(reasonInfo);
