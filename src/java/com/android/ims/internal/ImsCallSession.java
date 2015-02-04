@@ -1178,6 +1178,9 @@ public class ImsCallSession {
             }
         }
 
+        /**
+         * Notifies of handover failure info for this call
+         */
         @Override
         public void callSessionHandoverFailed(IImsCallSession session,
                                        int srcAccessTech, int targetAccessTech,
