@@ -441,6 +441,10 @@ public class ImsCall implements ICall {
         mCallProfile = profile;
     }
 
+    public void updateHoldValues() {
+        mHold = true;
+    }
+
     /**
      * Closes this object. This object is not usable after being closed.
      */
