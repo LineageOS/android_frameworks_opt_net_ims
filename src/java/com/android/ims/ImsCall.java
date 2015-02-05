@@ -379,6 +379,29 @@ public class ImsCall implements ICall {
             ImsSuppServiceNotification suppServiceInfo) {
         }
 
+        /**
+         * Called when handover occurs from one access technology to another.
+         *
+         * @param session IMS session object
+         * @param srcAccessTech original access technology
+         * @param targetAccessTech new access technology
+         * @param reasonInfo
+         */
+        public void onCallHandover(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
+            ImsReasonInfo reasonInfo) {
+        }
+
+        /**
+         * Called when handover from one access technology to another fails.
+         *
+         * @param session IMS session object
+         * @param srcAccessTech original access technology
+         * @param targetAccessTech new access technology
+         * @param reasonInfo
+         */
+        public void onCallHandoverFailed(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
+            ImsReasonInfo reasonInfo) {
+        }
     }
 
 
@@ -2860,6 +2883,54 @@ public class ImsCall implements ICall {
             }
         }
 
+        public void callSessionHandover(ImsCallSession session, int srcAccessTech,
+            int targetAccessTech, ImsReasonInfo reasonInfo) {
+            if (DBG) {
+                log("callSessionHandover :: session=" + session + ", srcAccessTech=" +
+                    srcAccessTech + ", targetAccessTech=" + targetAccessTech + ", reasonInfo=" +
+                    reasonInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallHandover(ImsCall.this, srcAccessTech, targetAccessTech,
+                        reasonInfo);
+                } catch (Throwable t) {
+                    loge("callSessionHandover :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionHandoverFailed(ImsCallSession session, int srcAccessTech,
+            int targetAccessTech, ImsReasonInfo reasonInfo) {
+            if (DBG) {
+                log("callSessionHandoverFailed :: session=" + session + ", srcAccessTech=" +
+                    srcAccessTech + ", targetAccessTech=" + targetAccessTech + ", reasonInfo=" +
+                    reasonInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallHandoverFailed(ImsCall.this, srcAccessTech, targetAccessTech,
+                        reasonInfo);
+                } catch (Throwable t) {
+                    loge("callSessionHandoverFailed :: ", t);
+                }
+            }
+        }
     }
 
     /**
