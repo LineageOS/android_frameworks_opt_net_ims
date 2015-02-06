@@ -1711,8 +1711,6 @@ public class ImsCall implements ICall {
                 }
             }
 
-            clearMergePeer();
-
             // Clear some flags.  If the merge eventually worked, we can safely
             // ignore the call terminated message for the old session since we closed it already.
             clearSessionTerminationInfo();
@@ -1722,6 +1720,7 @@ public class ImsCall implements ICall {
                 mMergeHost.clearSessionTerminationInfo();
             }
 
+            clearMergePeer();
         }
         if (listener != null) {
             try {
@@ -2672,11 +2671,13 @@ public class ImsCall implements ICall {
 
         if (mMergeHost != null) {
             mMergeHost.mMergePeer = null;
+            mMergeHost.mUpdateRequest = UPDATE_NONE;
             mMergeHost = null;
         }
 
         if (mMergePeer != null) {
             mMergePeer.mMergeHost = null;
+            mMergePeer.mUpdateRequest = UPDATE_NONE;
             mMergePeer = null;
         }
     }
