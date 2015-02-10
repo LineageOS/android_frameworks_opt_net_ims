@@ -265,9 +265,9 @@ public class ImsManager {
 
         return
                 context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_device_volte_vt_available) &&
+                        com.android.internal.R.bool.config_device_vt_available) &&
                 context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_volte_vt_available);
+                        com.android.internal.R.bool.config_carrier_vt_available);
     }
 
     private ImsManager(Context context, long subId) {
