@@ -44,9 +44,6 @@ import com.android.internal.annotations.VisibleForTesting;
  * @hide
  */
 public class ImsCall implements ICall {
-    public static final int CALL_STATE_ACTIVE_TO_HOLD = 1;
-    public static final int CALL_STATE_HOLD_TO_ACTIVE = 2;
-
     // Mode of USSD message
     public static final int USSD_MODE_NOTIFY = 0;
     public static final int USSD_MODE_REQUEST = 1;
@@ -58,7 +55,7 @@ public class ImsCall implements ICall {
 
     /**
      * Listener for events relating to an IMS call, such as when a call is being
-     * recieved ("on ringing") or a call is outgoing ("on calling").
+     * received ("on ringing") or a call is outgoing ("on calling").
      * <p>Many of these events are also received by {@link ImsCallSession.Listener}.</p>
      */
     public static class Listener {
@@ -439,9 +436,15 @@ public class ImsCall implements ICall {
     // termination request was made on the original session in case we need to act
     // on it in the case of a merge failure.
     private ImsReasonInfo mSessionEndDuringMergeReasonInfo = null;
+    // This flag is used to indicate if this ImsCall was merged into a conference
+    // or not.  It is used primarily to determine if a disconnect sound should
+    // be heard when the call is terminated.
     private boolean mIsMerged = false;
-
-    // Indicates whether the call session has been merged into a conference.
+    // If true, this flag means that this ImsCall is in the process of merging
+    // into a conference but it does not yet have closure on if it was
+    // actually added to the conference or not. false implies that it either
+    // is not part of a merging conference or already knows if it was
+    // successfully added.
     private boolean mCallSessionMergePending = false;
 
     /**
@@ -505,6 +508,10 @@ public class ImsCall implements ICall {
         }
 
         return false;
+    }
+
+    public static boolean isSessionAlive(ImsCallSession session) {
+        return session != null && session.isAlive();
     }
 
     /**
@@ -901,7 +908,7 @@ public class ImsCall implements ICall {
      */
     public void accept(int callType) throws ImsException {
         if (VDBG) {
-            logv("accept ::");
+            log("accept ::");
         }
 
         accept(callType, new ImsStreamMediaProfile());
@@ -917,7 +924,7 @@ public class ImsCall implements ICall {
      */
     public void accept(int callType, ImsStreamMediaProfile profile) throws ImsException {
         if (VDBG) {
-            logv("accept :: callType=" + callType + ", profile=" + profile);
+            log("accept :: callType=" + callType + ", profile=" + profile);
         }
 
         synchronized(mLockObj) {
@@ -958,7 +965,7 @@ public class ImsCall implements ICall {
      */
     public void reject(int reason) throws ImsException {
         if (VDBG) {
-            logv("reject :: reason=" + reason);
+            log("reject :: reason=" + reason);
         }
 
         synchronized(mLockObj) {
@@ -989,7 +996,7 @@ public class ImsCall implements ICall {
      */
     public void terminate(int reason) throws ImsException {
         if (VDBG) {
-            logv("terminate :: reason=" + reason);
+            log("terminate :: ImsCall=" + this +" reason=" + reason);
         }
 
         synchronized(mLockObj) {
@@ -997,6 +1004,25 @@ public class ImsCall implements ICall {
             mInCall = false;
 
             if (mSession != null) {
+                // TODO: Fix the fact that user invoked call terminations during
+                // the process of establishing a conference call needs to be handled
+                // as a special case.
+                // Currently, any terminations (both invoked by the user or
+                // by the network results in a callSessionTerminated() callback
+                // from the network.  When establishing a conference call we bury
+                // these callbacks until we get closure on all participants of the
+                // conference. In some situations, we will throw away the callback
+                // (when the underlying session of the host of the new conference
+                // is terminated) or will will unbury it when the conference has been
+                // established, like when the peer of the new conference goes away
+                // after the conference has been created.  The UI relies on the callback
+                // to reflect the fact that the call is gone.
+                // So if a user decides to terminated a call while it is merging, it
+                // could take a long time to reflect in the UI due to the conference
+                // processing but we should probably cancel that and just terminate
+                // the call immediately and clean up.  This is not a huge issue right
+                // now because we have not seen instances where establishing a
+                // conference takes a long time (more than a second or two).
                 mSession.terminate(reason);
             }
         }
@@ -1011,7 +1037,7 @@ public class ImsCall implements ICall {
      */
     public void hold() throws ImsException {
         if (VDBG) {
-            logv("hold ::");
+            log("hold :: ImsCall=" + this);
         }
 
         if (isOnHold()) {
@@ -1050,7 +1076,7 @@ public class ImsCall implements ICall {
      */
     public void resume() throws ImsException {
         if (VDBG) {
-            logv("resume ::");
+            log("resume :: ImsCall=" + this);
         }
 
         if (!isOnHold()) {
@@ -1074,10 +1100,10 @@ public class ImsCall implements ICall {
                         ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
             }
 
-            mSession.resume(createResumeMediaProfile());
-            // FIXME: update the state on the callback?
-            mHold = false;
+            // mHold is set to false in confirmation callback that the
+            // ImsCall was resumed.
             mUpdateRequest = UPDATE_RESUME;
+            mSession.resume(createResumeMediaProfile());
         }
     }
 
@@ -1089,7 +1115,7 @@ public class ImsCall implements ICall {
      */
     private void merge() throws ImsException {
         if (VDBG) {
-            logv("merge ::");
+            log("merge :: ImsCall=" + this);
         }
 
         synchronized(mLockObj) {
@@ -1101,7 +1127,7 @@ public class ImsCall implements ICall {
             }
 
             if (mSession == null) {
-                loge("merge :: ");
+                loge("merge :: no call session");
                 throw new ImsException("No call session",
                         ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
             }
@@ -1144,7 +1170,7 @@ public class ImsCall implements ICall {
      */
     public void merge(ImsCall bgCall) throws ImsException {
         if (VDBG) {
-            logv("merge(1) :: bgImsCall=" + bgCall);
+            log("merge(1) :: bgImsCall=" + bgCall);
         }
 
         if (bgCall == null) {
@@ -1177,7 +1203,7 @@ public class ImsCall implements ICall {
      */
     public void update(int callType, ImsStreamMediaProfile mediaProfile) throws ImsException {
         if (VDBG) {
-            logv("update ::");
+            log("update ::");
         }
 
         if (isOnHold()) {
@@ -1216,7 +1242,7 @@ public class ImsCall implements ICall {
      */
     public void extendToConference(String[] participants) throws ImsException {
         if (VDBG) {
-            logv("extendToConference ::");
+            log("extendToConference ::");
         }
 
         if (isOnHold()) {
@@ -1254,7 +1280,7 @@ public class ImsCall implements ICall {
      */
     public void inviteParticipants(String[] participants) throws ImsException {
         if (VDBG) {
-            logv("inviteParticipants ::");
+            log("inviteParticipants ::");
         }
 
         synchronized(mLockObj) {
@@ -1298,7 +1324,7 @@ public class ImsCall implements ICall {
      */
     public void sendDtmf(char c, Message result) {
         if (VDBG) {
-            logv("sendDtmf :: code=" + c);
+            log("sendDtmf :: code=" + c);
         }
 
         synchronized(mLockObj) {
@@ -1349,7 +1375,7 @@ public class ImsCall implements ICall {
      */
     public void sendUssd(String ussdMessage) throws ImsException {
         if (VDBG) {
-            logv("sendUssd :: ussdMessage=" + ussdMessage);
+            log("sendUssd :: ussdMessage=" + ussdMessage);
         }
 
         synchronized(mLockObj) {
@@ -1439,7 +1465,7 @@ public class ImsCall implements ICall {
 
     private void mergeInternal() {
         if (VDBG) {
-            logv("mergeInternal ::");
+            log("mergeInternal :: ImsCall=" + this);
         }
 
         mSession.merge();
@@ -1516,7 +1542,7 @@ public class ImsCall implements ICall {
     private void processCallTerminated(ImsReasonInfo reasonInfo) {
         if (VDBG) {
             String reasonString = reasonInfo != null ? reasonInfo.toString() : "null";
-            logv("processCallTerminated :: reason=" + reasonString);
+            log("processCallTerminated :: ImsCall=" + this + " reason=" + reasonString);
         }
 
         ImsCall.Listener listener = null;
@@ -1525,7 +1551,7 @@ public class ImsCall implements ICall {
             // If we are in the midst of establishing a conference, we will bury the termination
             // until the merge has completed.  If necessary we can surface the termination at this
             // point.
-            if (mUpdateRequest == UPDATE_MERGE) {
+            if (isCallSessionMergePending()) {
                 // Since we are in the process of a merge, this trigger means something
                 // else because it is probably due to the merge happening vs. the
                 // session is really terminated. Let's flag this and revisit if
@@ -1538,18 +1564,6 @@ public class ImsCall implements ICall {
                 mSessionEndDuringMerge = true;
                 mSessionEndDuringMergeReasonInfo = reasonInfo;
                 return;
-            }
-
-            // If in the middle of a merge and call is not the merge host, then we are being
-            // disconnected due to the merge and should suppress the disconnect tone.
-            if (isMerging()) {
-                if (isMergePeer()) {
-                    setIsMerged(true);
-                } else {
-                    // We are the host and are being legitimately disconnected.  Ensure neither call
-                    // will suppress the disconnect tone.
-                    mMergePeer.setIsMerged(false);
-                }
             }
 
             // If we are terminating the conference call, notify using conference listeners.
@@ -1566,7 +1580,7 @@ public class ImsCall implements ICall {
             try {
                 listener.onCallTerminated(ImsCall.this, reasonInfo);
             } catch (Throwable t) {
-                loge("callSessionTerminated :: ", t);
+                loge("processCallTerminated :: ", t);
             }
         }
     }
@@ -1589,138 +1603,161 @@ public class ImsCall implements ICall {
         return false;
     }
 
-    /**
-     * Clears the cached session termination info which was saved during the merge process.
-     */
-    private void clearSessionTerminationInfo() {
-        mSessionEndDuringMerge = false;
-        mSessionEndDuringMergeReasonInfo = null;
+    private void setTransientSessionAsPrimary(ImsCallSession transientSession) {
+        synchronized (ImsCall.this) {
+            mSession.setListener(null);
+            mSession = transientSession;
+            mSession.setListener(createCallSessionListener());
+        }
     }
 
     /**
-     * We received a callback from ImsCallSession that a merge was complete. Clean up all
-     * internal state to represent this state change. This function will be called when
-     * the transient conference session goes active or we get an explicit merge complete
-     * callback on the transient session.
+     * This function will determine if there is a pending conference and if
+     * we are ready to finalize processing it.
+     */
+    private void tryProcessConferenceResult() {
+        if (shouldProcessConferenceResult()) {
+            if (isMergeHost()) {
+                processMergeComplete();
+            } else if (mMergeHost != null) {
+                mMergeHost.processMergeComplete();
+            } else {
+                // There must be a merge host at this point.
+                loge("tryProcessConferenceResult :: No merge host for this conference!");
+            }
+        }
+    }
+
+    /**
+     * We have detected that a initial conference call has been fully configured. The internal
+     * state of both {@code ImsCall} objects need to be cleaned up to reflect the new state.
+     * This function should only be called in the context of the merge host to simplify logic
      *
      */
     private void processMergeComplete() {
         if (VDBG) {
-            logv("processMergeComplete ::");
+            log("processMergeComplete :: ImsCall=" + this);
+        }
+
+        // The logic simplifies if we can assume that this function is only called on
+        // the merge host.
+        if (!isMergeHost()) {
+            loge("processMergeComplete :: We are not the merge host!");
+            return;
         }
 
         ImsCall.Listener listener;
         boolean swapRequired = false;
         synchronized(ImsCall.this) {
-            // Find the transient session.  It will either be set on the current call (e.g. this
-            // call is the merge host), or on the other call (e.g. this call is the merge peer and
-            // we need to look for the transient session in the merge host).
-            ImsCallSession transientConferenceSession = mTransientConferenceSession;
-            if (transientConferenceSession == null &&
-                    mMergeHost != null && mMergeHost.mTransientConferenceSession != null) {
-                transientConferenceSession = mMergeHost.mTransientConferenceSession;
-            }
+            ImsCall finalHostCall = this;
+            ImsCall finalPeerCall = mMergePeer;
 
-            if (transientConferenceSession == null) {
-                // This is an interesting state that needs to be logged since we
-                // should only be going through this workflow for new conference calls
-                // and not merges into existing conferences (which a null transient
-                // session would imply)
-                log("processMergeComplete :: ERROR no transient session");
-                return;
-            }
-
-            // Determine which call the transient session should be moved to.  If the current call
-            // session is still alive and the merge peer's session is not, we have a situation where
-            // the current call failed to merge into the conference but the merge peer did merge in
-            // to the conference.  In this type of scenario the current call will continue as a
-            // single party call, yet the background call will become the conference.
-            ImsCall conferenceCall;
-
-            if (isMergeHost() && mSession != null && mSession.isAlive() &&
-                    mMergePeer != null &&
-                    (mMergePeer.getCallSession() == null || !mMergePeer.getCallSession().isAlive())
-                    ) {
-                // transient will go to merge peer (I'm the host).
-                conferenceCall = mMergePeer;
-                swapRequired = true;
-                if (VDBG) {
-                    log("processMergeComplete :: transient will go to merge peer (I'm the host).");
-                }
-            } else if (isMergePeer() && mSession != null && mSession.isAlive() &&
-                    mMergeHost != null) {
-                // transient will go to merge host (I'm the peer).
-                conferenceCall = mMergeHost;
-                swapRequired = false;
-                if (VDBG) {
-                    log("processMergeComplete :: transient will go to merge host (I'm the peer).");
+            if (isMultiparty()) {
+                // The only clean up that we need to do for a merge into an existing conference
+                // is to deal with the disconnect of the peer if it was successfully added to
+                // the conference.
+                setIsMerged(false);
+                if (!isSessionAlive(mMergePeer.mSession)) {
+                    // If the peer is dead, let's not play a disconnect sound for it when we
+                    // unbury the termination callback.
+                    mMergePeer.setIsMerged(true);
+                } else {
+                    mMergePeer.setIsMerged(false);
                 }
             } else {
-                // transient will go to this call (I'm the host).
-                conferenceCall = this;
-                swapRequired = false;
-                if (VDBG) {
-                    log("processMergeComplete :: transient will go to this call (I'm the host).");
+                // If we are here, we are not trying to merge a new call into an existing
+                // conference.  That means that there is a transient session on the merge
+                // host that represents the future conference once all the parties
+                // have been added to it.  So make sure that it exists or else something
+                // very wrong is going on.
+                if (mTransientConferenceSession == null) {
+                    loge("processMergeComplete :: No transient session!");
+                    return;
                 }
-            }
-
-            // Swap out the underlying sessions after shutting down the existing session.
-            // Move the transient session to the call which has become the conference.
-            conferenceCall.mSession.setListener(null);
-            conferenceCall.mSession = transientConferenceSession;
-            listener = conferenceCall.mListener;
-
-            // Clear the transient session (it originated in this call).
-            mTransientConferenceSession = null;
-
-            // Mark the merge peer call as merged so that when it terminates, the disconnect tone is
-            // suppressed.
-            if (mMergePeer != null) {
-                mMergePeer.setIsMerged(true);
-            }
-
-            mUpdateRequest = UPDATE_NONE;
-
-            // Bubble up the termination for any call which is no longer alive.
-            // Check this call.
-            if (mSession == null || !mSession.isAlive()) {
-                if (VDBG) {
-                    log("processMergeComplete :: notifying of termination on " + this.toString());
+                if (mMergePeer == null) {
+                    loge("processMergeComplete :: No merge peer!");
+                    return;
                 }
-                notifySessionTerminatedDuringMerge();
-            }
 
-            // Check the other call.
-            if (isMergeHost()) {
-                mMergePeer.mUpdateRequest = UPDATE_NONE;
-                if (mMergePeer.mSession == null || !mMergePeer.mSession.isAlive()) {
+                // Since we are the host, we have the transient session attached to us. Let's detach
+                // it and figure out where we need to set it for the final conference configuration.
+                ImsCallSession transientConferenceSession = mTransientConferenceSession;
+                mTransientConferenceSession = null;
+
+                // Clear the listener for this transient session, we'll create a new listener
+                // when it is attached to the final ImsCall that it should live on.
+                transientConferenceSession.setListener(null);
+
+                // Determine which call the transient session should be moved to.  If the current
+                // call session is still alive and the merge peer's session is not, we have a
+                // situation where the current call failed to merge into the conference but the
+                // merge peer did merge in to the conference.  In this type of scenario the current
+                // call will continue as a single party call, yet the background call will become
+                // the conference.
+
+                if (isSessionAlive(mSession) && !isSessionAlive(mMergePeer.getCallSession())) {
+                    // I'm the host but we are moving the transient session to the peer since its
+                    // session was disconnected and my session is still alive.  This signifies that
+                    // their session was properly added to the conference but mine was not because
+                    // it is probably in the held state as opposed to part of the final conference.
+                    // In this case, we need to set isMerged to false on both calls so the
+                    // disconnect sound is called when either call disconnects.
+                    // Note that this case is only valid if this is an initial conference being
+                    // brought up.
+                    finalHostCall = mMergePeer;
+                    finalPeerCall = this;
+                    swapRequired = true;
+                    setIsMerged(false);
+                    mMergePeer.setIsMerged(false);
                     if (VDBG) {
-                        log("processMergeComplete :: notifying of termination on mMergePeer "
-                                + mMergePeer.toString());
+                        log("processMergeComplete :: transient will transfer to merge peer");
                     }
-                    mMergePeer.notifySessionTerminatedDuringMerge();
-                }
-            } else if (isMergePeer()) {
-                mMergeHost.mUpdateRequest = UPDATE_NONE;
-                if (mMergeHost.mSession == null || !mMergeHost.mSession.isAlive()) {
+                } else if (!isSessionAlive(mSession) && isSessionAlive(mMergePeer.getCallSession())) {
+                    // The transient session stays with us and the disconnect sound should be played
+                    // when the merge peer eventually disconnects since it was not actually added to
+                    // the conference and is probably sitting in the held state.
+                    finalHostCall = this;
+                    finalPeerCall = mMergePeer;
+                    swapRequired = false;
+                    setIsMerged(false);
+                    mMergePeer.setIsMerged(false); // Play the disconnect sound
                     if (VDBG) {
-                        log("processMergeComplete :: notifying of termination on mMergeHost "
-                                + mMergeHost.toString());
+                        log("processMergeComplete :: transient will stay with the merge host");
                     }
-                    mMergeHost.notifySessionTerminatedDuringMerge();
+                } else {
+                    // The transient session stays with us and the disconnect sound should not be
+                    // played when we ripple up the disconnect for the merge peer because it was
+                    // only disconnected to be added to the conference.
+                    finalHostCall = this;
+                    finalPeerCall = mMergePeer;
+                    swapRequired = false;
+                    setIsMerged(false);
+                    mMergePeer.setIsMerged(true);
+                    if (VDBG) {
+                        log("processMergeComplete :: transient will stay with us (I'm the host).");
+                    }
                 }
+
+                if (VDBG) {
+                    log("processMergeComplete :: call=" + finalHostCall + " is the final host");
+                }
+
+                // Add the transient session to the ImsCall that ended up being the host for the
+                // conference.
+                finalHostCall.setTransientSessionAsPrimary(transientConferenceSession);
             }
 
-            // Clear some flags.  If the merge eventually worked, we can safely
-            // ignore the call terminated message for the old session since we closed it already.
-            clearSessionTerminationInfo();
-            if (isMergeHost()) {
-                mMergePeer.clearSessionTerminationInfo();
-            } else if (isMergePeer()) {
-                mMergeHost.clearSessionTerminationInfo();
-            }
+            listener = finalHostCall.mListener;
 
-            clearMergePeer();
+            // Clear all the merge related flags.
+            clearMergeInfo();
+
+            // For the final peer...let's bubble up any possible disconnects that we had
+            // during the merge process
+            finalPeerCall.notifySessionTerminatedDuringMerge();
+            // For the final host, let's just bury the disconnects that we my have received
+            // during the merge process since we are now the host of the conference call.
+            finalHostCall.clearSessionTerminationFlags();
         }
         if (listener != null) {
             try {
@@ -1729,7 +1766,6 @@ public class ImsCall implements ICall {
                 loge("processMergeComplete :: ", t);
             }
         }
-
         return;
     }
 
@@ -1754,9 +1790,7 @@ public class ImsCall implements ICall {
                 notifyFailure = true;
                 notifyFailureReasonInfo = mSessionEndDuringMergeReasonInfo;
             }
-
-            mSessionEndDuringMerge = false;
-            mSessionEndDuringMergeReasonInfo = null;
+            clearSessionTerminationFlags();
         }
 
         if (listener != null && notifyFailure) {
@@ -1768,49 +1802,61 @@ public class ImsCall implements ICall {
         }
     }
 
+    private void clearSessionTerminationFlags() {
+        mSessionEndDuringMerge = false;
+        mSessionEndDuringMergeReasonInfo = null;
+    }
+
     /**
      * We received a callback from ImsCallSession that a merge failed. Clean up all
-     * internal state to represent this state change.
+     * internal state to represent this state change.  The calling function is a callback
+     * and should have been called on the session that was in the foreground
+     * when merge() was originally called.  It is assumed that this function will be called
+     * on the merge host.
      *
      * @param reasonInfo The {@link ImsReasonInfo} why the merge failed.
      */
     private void processMergeFailed(ImsReasonInfo reasonInfo) {
         if (VDBG) {
-            String reasonString = reasonInfo != null ? reasonInfo.toString() : "null";
-            logv("processMergeFailed :: reason=" + reasonString);
-        }
-
-        // Ensure any terminations are surfaced from this session.
-        notifySessionTerminatedDuringMerge();
-
-        // Ensure any terminations are surface from the other session.
-        if (isMergeHost()) {
-            mMergePeer.notifySessionTerminatedDuringMerge();
-        } else if (isMergePeer()) {
-            mMergeHost.notifySessionTerminatedDuringMerge();
+            log("processMergeFailed :: this=" + this + "reason=" + reasonInfo);
         }
 
         ImsCall.Listener listener;
         synchronized(ImsCall.this) {
-            listener = mListener;
-            if (mTransientConferenceSession != null) {
+            // The logic simplifies if we can assume that this function is only called on
+            // the merge host.
+            if (!isMergeHost()) {
+                loge("processMergeFailed :: We are not the merge host!");
+                return;
+            }
+
+            if (mMergePeer == null) {
+                loge("processMergeFailed :: No merge peer!");
+                return;
+            }
+
+            if (!isMultiparty()) {
+                if (mTransientConferenceSession == null) {
+                    loge("processMergeFailed :: No transient session!");
+                    return;
+                }
                 // Clean up any work that we performed on the transient session.
                 mTransientConferenceSession.setListener(null);
                 mTransientConferenceSession = null;
             }
 
-            mSessionEndDuringMerge = false;
-            mSessionEndDuringMergeReasonInfo = null;
-            mUpdateRequest = UPDATE_NONE;
+            // Ensure the calls being conferenced into the conference has isMerged = false.
+            setIsMerged(false);
+            mMergePeer.setIsMerged(false);
 
-            // Ensure the call being conferenced into the conference has isMerged = false.
-            if (isMergeHost()) {
-                mMergePeer.setIsMerged(false);
-            } else {
-                setIsMerged(false);
-            }
-            // Unlink the two calls since they are no longer being involved in an attempted merge.
-            clearMergePeer();
+            listener = mListener;
+
+            // Ensure any terminations are surfaced from this session.
+            notifySessionTerminatedDuringMerge();
+            mMergePeer.notifySessionTerminatedDuringMerge();
+
+            // Clear all the various flags around coordinating this merge.
+            clearMergeInfo();
         }
         if (listener != null) {
             try {
@@ -1819,6 +1865,7 @@ public class ImsCall implements ICall {
                 loge("processMergeFailed :: ", t);
             }
         }
+
         return;
     }
 
@@ -1862,13 +1909,14 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionProgressing(ImsCallSession session, ImsStreamMediaProfile profile) {
             if (isTransientConferenceSession(session)) {
+                // If it is a transient (conference) session, there is no action for this signal.
                 log("callSessionProgressing :: not supported for transient conference session=" +
                         session);
                 return;
             }
 
             if (VDBG) {
-                logv("callSessionProgressing :: profile=" + profile);
+                log("callSessionProgressing :: session=" + session + " profile=" + profile);
             }
 
             ImsCall.Listener listener;
@@ -1890,13 +1938,27 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionStarted(ImsCallSession session, ImsCallProfile profile) {
             if (VDBG) {
-                logv("callSessionStarted :: profile=" + profile);
+                log("callSessionStarted :: session=" + session + " profile=" + profile);
+            }
+
+            if (!isTransientConferenceSession(session)) {
+                // In the case that we are in the middle of a merge (either host or peer), we have
+                // closure as far as this call's primary session is concerned.  If we are not
+                // merging...its a NOOP.
+                setCallSessionMergePending(false);
+            } else {
+                if (VDBG) {
+                    log("callSessionStarted :: on transient session=" + session);
+                }
+                return;
             }
 
             // Check if there is an ongoing conference merge which has completed.  If there is
             // we can process the merge completion now.
-            if (hasCallSessionMergeCompleted()) {
-                processMergeComplete();
+            tryProcessConferenceResult();
+
+            if (isTransientConferenceSession(session)) {
+                // No further processing is needed if this is the transient session.
                 return;
             }
 
@@ -1919,13 +1981,14 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionStartFailed(ImsCallSession session, ImsReasonInfo reasonInfo) {
             if (isTransientConferenceSession(session)) {
+                // We should not get this callback for a transient session.
                 log("callSessionStartFailed :: not supported for transient conference session=" +
                         session);
                 return;
             }
 
             if (VDBG) {
-                logv("callSessionStartFailed :: reasonInfo=" + reasonInfo);
+                log("callSessionStartFailed :: session=" + session + " reasonInfo=" + reasonInfo);
             }
 
             ImsCall.Listener listener;
@@ -1946,37 +2009,42 @@ public class ImsCall implements ICall {
 
         @Override
         public void callSessionTerminated(ImsCallSession session, ImsReasonInfo reasonInfo) {
-            if (mSession != session) {
-                log("callSessionTerminated :: not supported for conference session=" + session);
+            if (isTransientConferenceSession(session)) {
+                log("callSessionTerminated :: on transient session=" + session);
+                // This is bad, it should be treated much a callSessionMergeFailed since the
+                // transient session only exists when in the process of a merge and the
+                // termination of this session is effectively the end of the merge.
+                processMergeFailed(reasonInfo);
                 return;
             }
+
+            if (VDBG) {
+                log("callSessionTerminated :: session=" + session + " reasonInfo=" + reasonInfo);
+            }
+
+            // Process the termination first.  If we are in the midst of establishing a conference
+            // call, we may bury this callback until we are done.  If there so no conference
+            // call, the code after this function will be a NOOP.
+            processCallTerminated(reasonInfo);
 
             // If session has terminated, it is no longer pending merge.
             setCallSessionMergePending(false);
 
             // Check if there is an ongoing conference merge which has completed.  If there is
             // we can process the merge completion now.
-            if (hasCallSessionMergeCompleted()) {
-                processMergeComplete();
-                return;
-            }
-
-            if (VDBG) {
-                logv("callSessionTerminated :: reasonInfo=" + reasonInfo);
-            }
-
-            processCallTerminated(reasonInfo);
+            tryProcessConferenceResult();
         }
 
         @Override
         public void callSessionHeld(ImsCallSession session, ImsCallProfile profile) {
             if (isTransientConferenceSession(session)) {
+                // We should not get this callback for a transient session.
                 log("callSessionHeld :: not supported for transient conference session=" + session);
                 return;
             }
 
             if (VDBG) {
-                logv("callSessionHeld :: profile=" + profile);
+                log("callSessionHeld :: session=" + session + "profile=" + profile);
             }
 
             ImsCall.Listener listener;
@@ -1989,15 +2057,15 @@ public class ImsCall implements ICall {
                 mCallProfile = profile;
 
                 if (mUpdateRequest == UPDATE_HOLD_MERGE) {
+                    // This hold request was made to set the stage for a merge.
                     mergeInternal();
                     return;
                 }
 
                 // Check if there is an ongoing conference merge which has completed.  If there is
-                // we can process the merge completion now.
-                if (hasCallSessionMergeCompleted()) {
-                    processMergeComplete();
-                }
+                // we can process the merge completion now.  processMergeComplete needs to be
+                // called on the merge host.
+                tryProcessConferenceResult();
 
                 mUpdateRequest = UPDATE_NONE;
                 listener = mListener;
@@ -2015,13 +2083,14 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionHoldFailed(ImsCallSession session, ImsReasonInfo reasonInfo) {
             if (isTransientConferenceSession(session)) {
+                // We should not get this callback for a transient session.
                 log("callSessionHoldFailed :: not supported for transient conference session=" +
                         session);
                 return;
             }
 
             if (VDBG) {
-                logv("callSessionHoldFailed :: reasonInfo=" + reasonInfo);
+                log("callSessionHoldFailed :: session" + session + "reasonInfo=" + reasonInfo);
             }
 
             boolean isHoldForMerge = false;
@@ -2036,15 +2105,6 @@ public class ImsCall implements ICall {
                 listener = mListener;
             }
 
-            if (isHoldForMerge) {
-                // Is hold for merge implemented/supported? If so we need to take a close look
-                // at this workflow to make sure that we handle the case where
-                // callSessionMergeFailed() does the right thing because we have not actually
-                // started the merge yet.
-                callSessionMergeFailed(session, reasonInfo);
-                return;
-            }
-
             if (listener != null) {
                 try {
                     listener.onCallHoldFailed(ImsCall.this, reasonInfo);
@@ -2057,13 +2117,14 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionHoldReceived(ImsCallSession session, ImsCallProfile profile) {
             if (isTransientConferenceSession(session)) {
+                // We should not get this callback for a transient session.
                 log("callSessionHoldReceived :: not supported for transient conference session=" +
                         session);
                 return;
             }
 
             if (VDBG) {
-                logv("callSessionHoldReceived :: profile=" + profile);
+                log("callSessionHoldReceived :: session=" + session + "profile=" + profile);
             }
 
             ImsCall.Listener listener;
@@ -2091,11 +2152,25 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionResumed :: profile=" + profile);
+                log("callSessionResumed :: session=" + session + "profile=" + profile);
             }
 
-            ImsCall.Listener listener;
+            // If this call was pending a merge, it is not anymore. This is the case when we
+            // are merging in a new call into an existing conference.
+            setCallSessionMergePending(false);
 
+            // Check if there is an ongoing conference merge which has completed.  If there is
+            // we can process the merge completion now.
+            tryProcessConferenceResult();
+
+            // TOOD: When we are merging a new call into an existing conference we are waiting
+            // for 2 triggers to let us know that the conference has been established, the first
+            // is a termination for the new calls (since it is added to the conference) the second
+            // would be a resume on the existing conference.  If the resume comes first, then
+            // we will make the onCallResumed() callback and its unclear how this will behave if
+            // the termination has not come yet.
+
+            ImsCall.Listener listener;
             synchronized(ImsCall.this) {
                 listener = mListener;
                 mCallProfile = profile;
@@ -2121,7 +2196,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionResumeFailed :: reasonInfo=" + reasonInfo);
+                log("callSessionResumeFailed :: session=" + session + "reasonInfo=" + reasonInfo);
             }
 
             ImsCall.Listener listener;
@@ -2149,7 +2224,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionResumeReceived :: profile=" + profile);
+                log("callSessionResumeReceived :: session=" + session + "profile=" + profile);
             }
 
             ImsCall.Listener listener;
@@ -2172,12 +2247,11 @@ public class ImsCall implements ICall {
         public void callSessionMergeStarted(ImsCallSession session,
                 ImsCallSession newSession, ImsCallProfile profile) {
             if (VDBG) {
-                String newSessionString = newSession == null ? "null" : newSession.toString();
-                logv("callSessionMergeStarted :: newSession=" + newSessionString +
+                log("callSessionMergeStarted :: session=" + session + " newSession=" + newSession +
                         ", profile=" + profile);
             }
 
-            if (mUpdateRequest != UPDATE_MERGE) {
+            if (!isCallSessionMergePending()) {
                 // Odd, we are not in the midst of merging anything.
                 log("callSessionMergeStarted :: no merge in progress.");
                 return;
@@ -2217,30 +2291,42 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionMergeComplete(ImsCallSession session) {
             if (VDBG) {
-                logv("callSessionMergeComplete ::");
+                log("callSessionMergeComplete :: session=" + session);
             }
+
+            setCallSessionMergePending(false);
 
             // Check if there is an ongoing conference merge which has completed.  If there is
             // we can process the merge completion now.
-            if (hasCallSessionMergeCompleted()) {
-                processMergeComplete();
-            }
+            tryProcessConferenceResult();
         }
 
         @Override
         public void callSessionMergeFailed(ImsCallSession session, ImsReasonInfo reasonInfo) {
             if (VDBG) {
-                String reasonInfoString = reasonInfo == null ? "null" : reasonInfo.toString();
-                logv("callSessionMergeFailed :: reasonInfo=" + reasonInfoString);
+                log("callSessionMergeFailed :: session=" + session + "reasonInfo=" + reasonInfo);
             }
-            if (mUpdateRequest != UPDATE_MERGE && !isMerging()) {
-                // Odd, we are not in the midst of merging anything.
-                log("callSessionMergeFailed :: no merge in progress.");
-                return;
+
+            // Its possible that there could be threading issues with the other thread handling
+            // the other call. This could affect our state.
+            synchronized (ImsCall.this) {
+                if (!isCallSessionMergePending()) {
+                    // Odd, we are not in the midst of merging anything.
+                    log("callSessionMergeFailed :: no merge in progress.");
+                    return;
+                }
+                // Let's tell our parent ImsCall that the merge has failed and we need to clean
+                // up any temporary, transient state.  Note this only gets called for an initial
+                // conference.  If a merge into an existing conference fails, the two sessions will
+                // just go back to their original state (ACTIVE or HELD).
+                if (isMergeHost()) {
+                    processMergeFailed(reasonInfo);
+                } else if (mMergeHost != null) {
+                    mMergeHost.processMergeFailed(reasonInfo);
+                } else {
+                    loge("callSessionMergeFailed :: No merge host for this conference!");
+                }
             }
-            // Let's tell our parent ImsCall that the merge has failed and we need to clean
-            // up any temporary, transient state.
-            processMergeFailed(reasonInfo);
         }
 
         @Override
@@ -2252,7 +2338,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionUpdated :: profile=" + profile);
+                log("callSessionUpdated :: session=" + session + " profile=" + profile);
             }
 
             ImsCall.Listener listener;
@@ -2281,7 +2367,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionUpdateFailed :: reasonInfo=" + reasonInfo);
+                log("callSessionUpdateFailed :: session=" + session + " reasonInfo=" + reasonInfo);
             }
 
             ImsCall.Listener listener;
@@ -2309,7 +2395,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionUpdateReceived :: profile=" + profile);
+                log("callSessionUpdateReceived :: session=" + session + " profile=" + profile);
             }
 
             ImsCall.Listener listener;
@@ -2339,8 +2425,8 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionConferenceExtended :: newSession=" + newSession + ", profile="
-                        + profile);
+                log("callSessionConferenceExtended :: session=" + session  + " newSession=" +
+                        newSession + ", profile=" + profile);
             }
 
             ImsCall newCall = createNewCall(newSession, profile);
@@ -2406,7 +2492,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionConferenceExtendReceived :: newSession=" + newSession +
+                log("callSessionConferenceExtendReceived :: newSession=" + newSession +
                         ", profile=" + profile);
             }
 
@@ -2441,7 +2527,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionInviteParticipantsRequestDelivered ::");
+                log("callSessionInviteParticipantsRequestDelivered ::");
             }
 
             ImsCall.Listener listener;
@@ -2469,7 +2555,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionInviteParticipantsRequestFailed :: reasonInfo=" + reasonInfo);
+                log("callSessionInviteParticipantsRequestFailed :: reasonInfo=" + reasonInfo);
             }
 
             ImsCall.Listener listener;
@@ -2496,7 +2582,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionRemoveParticipantsRequestDelivered ::");
+                log("callSessionRemoveParticipantsRequestDelivered ::");
             }
 
             ImsCall.Listener listener;
@@ -2524,7 +2610,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionRemoveParticipantsRequestFailed :: reasonInfo=" + reasonInfo);
+                log("callSessionRemoveParticipantsRequestFailed :: reasonInfo=" + reasonInfo);
             }
 
             ImsCall.Listener listener;
@@ -2552,7 +2638,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionConferenceStateUpdated :: state=" + state);
+                log("callSessionConferenceStateUpdated :: state=" + state);
             }
 
             conferenceStateUpdated(state);
@@ -2568,7 +2654,7 @@ public class ImsCall implements ICall {
             }
 
             if (VDBG) {
-                logv("callSessionUssdMessageReceived :: mode=" + mode + ", ussdMessage=" +
+                log("callSessionUssdMessageReceived :: mode=" + mode + ", ussdMessage=" +
                         ussdMessage);
             }
 
@@ -2590,7 +2676,7 @@ public class ImsCall implements ICall {
         @Override
         public void callSessionTtyModeReceived(ImsCallSession session, int mode) {
             if (VDBG) {
-                logv("callSessionTtyModeReceived :: mode=" + mode);
+                log("callSessionTtyModeReceived :: mode=" + mode);
             }
 
             ImsCall.Listener listener;
@@ -2666,20 +2752,26 @@ public class ImsCall implements ICall {
      * Clears the merge peer for this call, ensuring that the peer's connection to this call is also
      * severed at the same time.
      */
-    private void clearMergePeer() {
-        mUpdateRequest = UPDATE_NONE;
+    private void clearMergeInfo() {
+        if (VDBG) {
+            log("clearMergeInfo :: clearing all merge info");
+        }
 
+        // First clear out the merge partner then clear ourselves out.
         if (mMergeHost != null) {
             mMergeHost.mMergePeer = null;
             mMergeHost.mUpdateRequest = UPDATE_NONE;
-            mMergeHost = null;
+            mMergeHost.mCallSessionMergePending = false;
         }
-
         if (mMergePeer != null) {
             mMergePeer.mMergeHost = null;
             mMergePeer.mUpdateRequest = UPDATE_NONE;
-            mMergePeer = null;
+            mMergePeer.mCallSessionMergePending = false;
         }
+        mMergeHost = null;
+        mMergePeer = null;
+        mUpdateRequest = UPDATE_NONE;
+        mCallSessionMergePending = false;
     }
 
     /**
@@ -2762,42 +2854,76 @@ public class ImsCall implements ICall {
      * means that we have received terminate or hold signals for the sessions, indicating that they
      * are no longer in the process of being merged into the conference.
      * <p>
-     * The sessions are considered to have merged if: both calls are still in {@link #UPDATE_MERGE}
-     * state, both sessions are not waiting to be merged into the conference, and the transient
-     * conference session is alive.
+     * The sessions are considered to have merged if: both calls still have merge peer/host
+     * relationships configured,  both sessions are not waiting to be merged into the conference,
+     * and the transient conference session is alive in the case of an initial conference.
      *
      * @return {@code true} where the host and peer sessions have finished merging into the
      *      conference, {@code false} if the merge has not yet completed, and {@code false} if there
      *      is no conference merge in progress.
      */
-    private boolean hasCallSessionMergeCompleted() {
-        // First, determine if there is even a merge in progress by checking if this call and its
-        // peer/host are set to UPDATE_MERGE.
-        boolean isMergeInProgress = mUpdateRequest == UPDATE_MERGE ||
-                (isMergeHost() && mMergePeer.mUpdateRequest == UPDATE_MERGE) ||
-                (isMergePeer() && mMergeHost.mUpdateRequest == UPDATE_MERGE);
+    private boolean shouldProcessConferenceResult() {
+        boolean areMergeTriggersDone = false;
 
-        if (!isMergeInProgress) {
-            return false;
+        synchronized (ImsCall.this) {
+            // if there is a merge going on, then the merge host/peer relationships should have been
+            // set up.  This works for both the initial conference or merging a call into an
+            // existing conference.
+            if (!isMergeHost() && !isMergePeer()) {
+                if (VDBG) {
+                    log("shouldProcessConferenceResult :: no merge in progress");
+                }
+                return false;
+            }
+
+            // There is a merge in progress, so check the sessions to ensure:
+            // 1. Both calls have completed being merged (or failing to merge) into the conference.
+            // 2. The transient conference session is alive.
+            if (isMergeHost()) {
+                if (VDBG) {
+                    log("shouldProcessConferenceResult :: We are a merge host=" + this);
+                    log("shouldProcessConferenceResult :: Here is the merge peer=" + mMergePeer);
+                }
+                areMergeTriggersDone = !isCallSessionMergePending() &&
+                        !mMergePeer.isCallSessionMergePending();
+                if (!isMultiparty()) {
+                    // Only check the transient session when there is no existing conference
+                    areMergeTriggersDone &= isSessionAlive(mTransientConferenceSession);
+                }
+            } else if (isMergePeer()) {
+                if (VDBG) {
+                    log("shouldProcessConferenceResult :: We are a merge peer=" + this);
+                    log("shouldProcessConferenceResult :: Here is the merge host=" + mMergeHost);
+                }
+                areMergeTriggersDone = !isCallSessionMergePending() &&
+                        !mMergeHost.isCallSessionMergePending();
+                if (!mMergeHost.isMultiparty()) {
+                    // Only check the transient session when there is no existing conference
+                    areMergeTriggersDone &= isSessionAlive(mMergeHost.mTransientConferenceSession);
+                } else {
+                    // This else block is a special case for Verizon to handle these steps
+                    // 1. Establish a conference call.
+                    // 2. Add a new call (conference in in BG)
+                    // 3. Swap (conference active on FG)
+                    // 4. Merge
+                    // What happens here is that the BG call gets a terminated callback
+                    // because it was added to the conference. I've seen where
+                    // the FG gets no callback at all because its already active.
+                    // So if we continue to wait for it to set its isCallSessionMerging
+                    // flag to false...we'll be waiting forever.
+                    areMergeTriggersDone = !isCallSessionMergePending();
+                }
+            } else {
+                // Realistically this shouldn't happen, but best to be safe.
+                loge("shouldProcessConferenceResult : merge in progress but call is neither" +
+                        "host nor peer.");
+            }
+            if (VDBG) {
+                log("shouldProcessConferenceResult :: returning:" +
+                        (areMergeTriggersDone ? "true" : "false"));
+            }
         }
-
-        // There is a merge in progress, so check the sessions to ensure:
-        // 1. Both calls have completed being merged (or failing to merge) into the conference.
-        // 2. The transient conference session is alive.
-        if (isMergeHost()) {
-            return !isCallSessionMergePending() &&
-                    !mMergePeer.isCallSessionMergePending() &&
-                    mTransientConferenceSession != null && mTransientConferenceSession.isAlive();
-        } else if (isMergePeer()) {
-            return !isCallSessionMergePending() &&
-                    !mMergeHost.isCallSessionMergePending() &&
-                    mMergeHost.mTransientConferenceSession != null &&
-                    mMergeHost.mTransientConferenceSession.isAlive();
-        }
-
-        // Realistically this shouldn't happen, but best to be safe.
-        loge("hasCallSessionMergeCompleted : merge in progress but call is neither host nor peer.");
-        return false;
+        return areMergeTriggersDone;
     }
 
     /**
@@ -2826,10 +2952,14 @@ public class ImsCall implements ICall {
                 sb.append("H");
             }
         }
+        sb.append(" merge action pending:");
+        sb.append(isCallSessionMergePending() ? "Y" : "N");
         sb.append(" merged:");
         sb.append(isMerged() ? "Y" : "N");
         sb.append(" multiParty:");
         sb.append(isMultiparty() ? "Y" : "N");
+        sb.append(" buried term:");
+        sb.append(mSessionEndDuringMerge ? "Y" : "N");
         sb.append(" session:");
         sb.append(mSession);
         sb.append(" transientSession:");
