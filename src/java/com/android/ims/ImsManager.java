@@ -306,8 +306,18 @@ public class ImsManager {
                         TelephonyManager.NETWORK_TYPE_LTE,
                         enabled ? ImsConfig.FeatureValueConstants.ON
                                 : ImsConfig.FeatureValueConstants.OFF, null);
+
+                if (enabled) {
+                    imsManager.turnOnIms();
+                } else if (context.getResources().getBoolean(
+                        com.android.internal.R.bool.imsServiceAllowTurnOff)
+                        && (!isVolteEnabledByPlatform(context)
+                        || !isEnhanced4gLteModeSettingEnabledByUser(context))) {
+                    log("setWfcSetting() : imsServiceAllowTurnOff -> turnOffIms");
+                    imsManager.turnOffIms();
+                }
             } catch (ImsException e) {
-                // do nothing
+                loge("setWfcSetting(): " + e);
             }
         }
     }
@@ -872,7 +882,9 @@ public class ImsManager {
         if (turnOn) {
             turnOnIms();
         } else if (mContext.getResources().getBoolean(
-                com.android.internal.R.bool.imsServiceAllowTurnOff)) {
+                com.android.internal.R.bool.imsServiceAllowTurnOff)
+                && (!isWfcEnabledByPlatform(mContext)
+                || !isWfcEnabledByUser(mContext))) {
             log("setAdvanced4GMode() : imsServiceAllowTurnOff -> turnOffIms");
             turnOffIms();
         }
