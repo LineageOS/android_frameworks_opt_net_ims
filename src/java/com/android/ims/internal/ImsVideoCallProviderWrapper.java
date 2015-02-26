@@ -251,4 +251,10 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         } catch (RemoteException e) {
         }
     }
+
+    /** @inheritDoc */
+    public void onRequestConnectionDataUsage() {
+	    //FIXME: STUBS_LMR1_INTERNAL
+
+    }
 }
