@@ -347,6 +347,22 @@ public class ImsManager {
         createImsService(true);
     }
 
+    /*
+     * Returns a flag indicating whether the IMS service is available.
+     */
+    public boolean isServiceAvailable() {
+        if (mImsService != null) {
+            return true;
+        }
+
+        IBinder binder = ServiceManager.checkService(getImsServiceName(mPhoneId));
+        if (binder != null) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Opens the IMS service for making calls and/or receiving generic IMS calls.
      * The caller may make subsquent calls through {@link #makeCall}.
