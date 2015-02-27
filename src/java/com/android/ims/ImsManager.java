@@ -801,13 +801,24 @@ public class ImsManager {
         }
 
         @Override
-        public void registrationDisconnected() {
+        public void registrationProgressing() {
             if (DBG) {
-                log("registrationDisconnected ::");
+                log("registrationProgressing ::");
             }
 
             if (mListener != null) {
-                mListener.onImsDisconnected();
+                mListener.onImsProgressing();
+            }
+        }
+
+        @Override
+        public void registrationDisconnected(ImsReasonInfo imsReasonInfo) {
+            if (DBG) {
+                log("registrationDisconnected :: imsReasonInfo" + imsReasonInfo);
+            }
+
+            if (mListener != null) {
+                mListener.onImsDisconnected(imsReasonInfo);
             }
         }
 
