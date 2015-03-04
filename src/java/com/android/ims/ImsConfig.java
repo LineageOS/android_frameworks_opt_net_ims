@@ -223,9 +223,14 @@ public class ImsConfig {
          * Value is in Integer format. Enable (1), Disable(0).
          */
         public static final int GZIP_FLAG = 23;
+        /**
+         * VOLTE Status for EAB/s status of Enabled (1), or Disabled (0).
+         * Value is in Integer format.
+         */
+        public static final int EAB_SETTING_ENABLED = 24;
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
-        public static final int PROVISIONED_CONFIG_END = GZIP_FLAG;
+        public static final int PROVISIONED_CONFIG_END = EAB_SETTING_ENABLED;
 
         // Expand the operator config items as needed here.
     }
@@ -315,10 +320,60 @@ public class ImsConfig {
     }
 
     /**
+     * Gets the provisioned value for IMS service/capabilities parameters used by IMS stack.
+     * This function should not be called from the mainthread as it could block the
+     * mainthread.
+     *
+     * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
+     * @return the value in Integer format.
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public int getProvisionedValue(int item) throws ImsException {
+        int ret = 0;
+        /*
+        try {
+            ret = miConfig.getProvisionedValue(item);
+        }  catch (RemoteException e) {
+            throw new ImsException("getValue()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+        */
+        if (DBG) Rlog.d(TAG, "getProvisionedValue(): item = " + item + ", ret =" + ret);
+
+        return ret;
+    }
+
+    /**
+     * Gets the provisioned value for IMS service/capabilities parameters used by IMS stack.
+     * This function should not be called from the mainthread as it could block the
+     * mainthread.
+     *
+     * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
+     * @return value in String format.
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public String getProvisionedStringValue(int item) throws ImsException {
+        String ret = "Unknown";
+        /*
+        try {
+            ret = miConfig.getProvisionedStringValue(item);
+        }  catch (RemoteException e) {
+            throw new ImsException("getProvisionedStringValue()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+        */
+        if (DBG) Rlog.d(TAG, "getProvisionedStringValue(): item = " + item + ", ret =" + ret);
+
+        return ret;
+    }
+
+    /**
      * Sets the value for IMS service/capabilities parameters by
      * the operator device management entity.
      * This function should not be called from main thread as it could block
-     * mainthread to cause ANR.
+     * mainthread.
      *
      * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
      * @param value in Integer format.
@@ -350,6 +405,8 @@ public class ImsConfig {
     /**
      * Sets the value for IMS service/capabilities parameters by
      * the operator device management entity.
+     * This function should not be called from main thread as it could block
+     * mainthread.
      *
      * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
      * @param value in String format.
@@ -458,4 +515,25 @@ public class ImsConfig {
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
      }
+
+    /**
+     * Gets the value for IMS Volte provisioned.
+     * It should be the same as operator provisioned value if applies.
+     *
+     * @return boolean
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public boolean getVolteProvisioned() throws ImsException {
+        Rlog.d(TAG, "getVolteProvisioned() forced to return true!");
+        /*
+        try {
+           return miConfig.getVolteProvisioned();
+        } catch (RemoteException e) {
+            throw new ImsException("getVolteProvisioned()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+        */
+        return true;
+    }
 }

@@ -27,7 +27,9 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.provider.Settings;
+import android.telecom.TelecomManager;
 import android.telephony.Rlog;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
 import com.android.ims.internal.IImsCallSession;
@@ -103,14 +105,6 @@ public class ImsManager {
      * @hide
      */
     public static final String EXTRA_PHONE_ID = "android:phone_id";
-
-    /**
-     * Part of the ACTION_IMS_SERVICE_UP or _DOWN intents.
-     * A int value; the phoneId corresponding to the IMS service coming up or down.
-     * Internal use only.
-     * @hide
-     */
-    public static final String EXTRA_PHONEID = "android:phoneid";
 
     /**
      * Action for the incoming call intent for the Phone app.
@@ -248,6 +242,43 @@ public class ImsManager {
     }
 
     /**
+     * Change persistent Enhanced 4G LTE Mode setting
+     */
+    public static void setEnhanced4gLteModeSetting(Context context, boolean enabled) {
+        int value = enabled ? 1 : 0;
+        android.provider.Settings.Global.putInt(
+                context.getContentResolver(),
+                android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED, value);
+
+        if (isNonTtyOrTtyOnVolteEnabled(context)) {
+            ImsManager imsManager = ImsManager.getInstance(context,
+                    SubscriptionManager.getDefaultVoicePhoneId());
+            if (imsManager != null) {
+                try {
+                    imsManager.setAdvanced4GMode(enabled);
+                } catch (ImsException ie) {
+                    // do nothing
+                }
+            }
+        }
+    }
+
+    /**
+     * Indicates whether the call is non-TTY or if TTY - whether TTY on VoLTE is
+     * supported.
+     */
+    public static boolean isNonTtyOrTtyOnVolteEnabled(Context context) {
+        if (context.getResources().getBoolean(
+                com.android.internal.R.bool.config_carrier_volte_tty_supported)) {
+            return true;
+        }
+
+        return Settings.Secure.getInt(context.getContentResolver(),
+                Settings.Secure.PREFERRED_TTY_MODE, TelecomManager.TTY_MODE_OFF)
+                == TelecomManager.TTY_MODE_OFF;
+    }
+
+    /**
      * Returns a platform configuration for VoLTE which may override the user setting.
      */
     public static boolean isVolteEnabledByPlatform(Context context) {
@@ -260,12 +291,35 @@ public class ImsManager {
                 context.getContentResolver(),
                 android.provider.Settings.Global.VOLTE_FEATURE_DISABLED, 0) == 1;
 
-        return
-                context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_device_volte_available) &&
-                context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_volte_available) &&
-                !disabledByGlobalSetting;
+        return context.getResources().getBoolean(
+                com.android.internal.R.bool.config_device_volte_available) && context.getResources()
+                .getBoolean(com.android.internal.R.bool.config_carrier_volte_available)
+                && !disabledByGlobalSetting;
+    }
+
+    /*
+     * Indicates whether VoLTE is provisioned on device
+     */
+    public static boolean isVolteProvisionedOnDevice(Context context) {
+        boolean isProvisioned = true;
+        if (context.getResources().getBoolean(
+                        com.android.internal.R.bool.config_carrier_volte_provisioned)) {
+            isProvisioned = false; // disable on any error
+            ImsManager mgr = ImsManager.getInstance(context,
+                    SubscriptionManager.getDefaultVoiceSubId());
+            if (mgr != null) {
+                try {
+                    ImsConfig config = mgr.getConfigInterface();
+                    if (config != null) {
+                        isProvisioned = config.getVolteProvisioned();
+                    }
+                } catch (ImsException ie) {
+                    // do nothing
+                }
+            }
+        }
+
+        return isProvisioned;
     }
 
     /**
@@ -598,17 +652,31 @@ public class ImsManager {
         return mConfig;
     }
 
-    public void setUiTTYMode(int serviceId, int uiTtyMode, Message onComplete)
+    public void setUiTTYMode(Context context, int serviceId, int uiTtyMode, Message onComplete)
             throws ImsException {
 
-       checkAndThrowExceptionIfServiceUnavailable();
+        checkAndThrowExceptionIfServiceUnavailable();
 
-       try {
-           mImsService.setUiTTYMode(serviceId, uiTtyMode, onComplete);
-       } catch (RemoteException e) {
-           throw new ImsException("setTTYMode()", e,
-                   ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-       }
+        try {
+            mImsService.setUiTTYMode(serviceId, uiTtyMode, onComplete);
+        } catch (RemoteException e) {
+            throw new ImsException("setTTYMode()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+
+        /* TODO: config_carrier_volte_tty_supported needs to be enabled for
+                 carriers that support it in their respective MCC-MNC config.xml
+                 Example: values-mcc310-mnc230
+                 Uncomment the code below after the change is done. Leaving this
+                 commented so that TTY over VoLTE call is not blocked from apps.
+        */
+        /*
+        if (!context.getResources().getBoolean(
+                com.android.internal.R.bool.config_carrier_volte_tty_supported)) {
+            setAdvanced4GMode((uiTtyMode == TelecomManager.TTY_MODE_OFF) &&
+                    isEnhanced4gLteModeSettingEnabledByUser(context));
+        }
+        */
     }
 
     /**
