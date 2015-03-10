@@ -365,7 +365,7 @@ public class ImsManager {
     public static boolean isWfcRoamingEnabledByUser(Context context) {
         int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
-                ImsConfig.FeatureValueConstants.ON);
+                ImsConfig.FeatureValueConstants.OFF);
         return (enabled == 1) ? true : false;
     }
 
