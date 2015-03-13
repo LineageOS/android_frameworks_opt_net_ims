@@ -377,6 +377,16 @@ public class ImsCallSession {
                 ImsSuppServiceNotification suppServiceInfo) {
         }
 
+        /**
+         * Called when TTY mode of remote party changed
+         *
+         * @param session IMS session object
+         * @param mode TTY mode of remote party
+         */
+        public void callSessionTtyModeReceived(ImsCallSession session,
+                                       int mode) {
+            // no-op
+        }
     }
 
     private final IImsCallSession miSession;
@@ -1206,8 +1216,7 @@ public class ImsCallSession {
         public void callSessionTtyModeReceived(IImsCallSession session,
                 int mode) {
             if (mListener != null) {
-                //TODO: UI specific implementation.
-                //Vendor UI can listen to this callback to take action on received TTY mode.
+                mListener.callSessionTtyModeReceived(ImsCallSession.this, mode);
             }
         }
 
@@ -1239,5 +1248,24 @@ public class ImsCallSession {
             }
         }
 
+    }
+
+    /**
+     * Provides a string representation of the {@link ImsCallSession}.  Primarily intended for
+     * use in log statements.
+     *
+     * @return String representation of session.
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[ImsCallSession objId:");
+        sb.append(System.identityHashCode(this));
+        sb.append(" state:");
+        sb.append(State.toString(getState()));
+        sb.append(" callId:");
+        sb.append(getCallId());
+        sb.append("]");
+        return sb.toString();
     }
 }
