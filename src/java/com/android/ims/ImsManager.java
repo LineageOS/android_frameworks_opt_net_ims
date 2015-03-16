@@ -98,6 +98,14 @@ public class ImsManager {
             "com.android.ims.IMS_SERVICE_DOWN";
 
     /**
+     * Action to broadcast when ImsService registration fails.
+     * Internal use only.
+     * @hide
+     */
+    public static final String ACTION_IMS_REGISTRATION_ERROR =
+            "com.android.ims.REGISTRATION_ERROR";
+
+    /**
      * Part of the ACTION_IMS_SERVICE_UP or _DOWN intents.
      * A long value; the phone ID corresponding to the IMS service coming up or down.
      * Internal use only.
