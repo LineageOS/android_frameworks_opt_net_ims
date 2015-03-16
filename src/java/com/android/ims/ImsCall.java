@@ -385,6 +385,29 @@ public class ImsCall implements ICall {
             ImsSuppServiceNotification suppServiceInfo) {
         }
 
+        /**
+         * Called when handover occurs from one access technology to another.
+         *
+         * @param session IMS session object
+         * @param srcAccessTech original access technology
+         * @param targetAccessTech new access technology
+         * @param reasonInfo
+         */
+        public void onCallHandover(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
+            ImsReasonInfo reasonInfo) {
+        }
+
+        /**
+         * Called when handover from one access technology to another fails.
+         *
+         * @param session IMS session object
+         * @param srcAccessTech original access technology
+         * @param targetAccessTech new access technology
+         * @param reasonInfo
+         */
+        public void onCallHandoverFailed(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
+            ImsReasonInfo reasonInfo) {
+        }
     }
 
 
@@ -1743,7 +1766,7 @@ public class ImsCall implements ICall {
             //}
             // Attempt to find the participant in the call group if it exists.
             ImsCall referrer = null;
-            if (mCallGroup != null) {
+            if (mCallGroup != null && endpoint != null && !endpoint.isEmpty()) {
                 referrer = (ImsCall) mCallGroup.getReferrer(endpoint);
             }
 
@@ -1752,6 +1775,10 @@ public class ImsCall implements ICall {
             // can be passed up to the {@code TelephonyConferenceController}.
             if (referrer == null) {
                 Uri handle = Uri.parse(user);
+                if (endpoint == null) {
+                    endpoint = "";
+                }
+
                 Uri endpointUri = Uri.parse(endpoint);
                 int connectionState = ImsConferenceState.getConnectionStateForStatus(status);
 
@@ -2896,6 +2923,55 @@ public class ImsCall implements ICall {
                 }
                 if (resId != 0) {
                     Toast.makeText(mContext, resId, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    
+        public void callSessionHandover(ImsCallSession session, int srcAccessTech,
+            int targetAccessTech, ImsReasonInfo reasonInfo) {
+            if (DBG) {
+                log("callSessionHandover :: session=" + session + ", srcAccessTech=" +
+                    srcAccessTech + ", targetAccessTech=" + targetAccessTech + ", reasonInfo=" +
+                    reasonInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallHandover(ImsCall.this, srcAccessTech, targetAccessTech,
+                        reasonInfo);
+                } catch (Throwable t) {
+                    loge("callSessionHandover :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionHandoverFailed(ImsCallSession session, int srcAccessTech,
+            int targetAccessTech, ImsReasonInfo reasonInfo) {
+            if (DBG) {
+                log("callSessionHandoverFailed :: session=" + session + ", srcAccessTech=" +
+                    srcAccessTech + ", targetAccessTech=" + targetAccessTech + ", reasonInfo=" +
+                    reasonInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallHandoverFailed(ImsCall.this, srcAccessTech, targetAccessTech,
+                        reasonInfo);
+                } catch (Throwable t) {
+                    loge("callSessionHandoverFailed :: ", t);
                 }
             }
         }
