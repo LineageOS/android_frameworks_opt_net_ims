@@ -98,6 +98,14 @@ public class ImsManager {
             "com.android.ims.IMS_SERVICE_DOWN";
 
     /**
+     * Action to broadcast when ImsService registration fails.
+     * Internal use only.
+     * @hide
+     */
+    public static final String ACTION_IMS_REGISTRATION_ERROR =
+            "com.android.ims.REGISTRATION_ERROR";
+
+    /**
      * Part of the ACTION_IMS_SERVICE_UP or _DOWN intents.
      * A long value; the phone ID corresponding to the IMS service coming up or down.
      * Internal use only.
@@ -316,6 +324,11 @@ public class ImsManager {
                     log("setWfcSetting() : imsServiceAllowTurnOff -> turnOffIms");
                     imsManager.turnOffIms();
                 }
+
+                // Force IMS to register over LTE when turning off WFC
+                setWfcModeInternal(context, enabled
+                        ? getWfcMode(context)
+                        : ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED);
             } catch (ImsException e) {
                 loge("setWfcSetting(): " + e);
             }
@@ -341,6 +354,10 @@ public class ImsManager {
         android.provider.Settings.Global.putInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_MODE, wfcMode);
 
+        setWfcModeInternal(context, wfcMode);
+    }
+
+    private static void setWfcModeInternal(Context context, int wfcMode) {
         final ImsManager imsManager = ImsManager.getInstance(context,
                 SubscriptionManager.getDefaultVoicePhoneId());
         if (imsManager != null) {
@@ -365,7 +382,7 @@ public class ImsManager {
     public static boolean isWfcRoamingEnabledByUser(Context context) {
         int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
-                ImsConfig.FeatureValueConstants.ON);
+                ImsConfig.FeatureValueConstants.OFF);
         return (enabled == 1) ? true : false;
     }
 
