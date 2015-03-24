@@ -18,6 +18,7 @@ package com.android.ims.internal;
 
 import android.os.Message;
 import android.os.RemoteException;
+import android.telecom.Connection;
 
 import com.android.ims.ImsCallProfile;
 import com.android.ims.ImsConferenceState;
@@ -498,6 +499,23 @@ public class ImsCallSession {
             return miSession.getVideoCallProvider();
         } catch (RemoteException e) {
             return null;
+        }
+    }
+
+    /**
+     * Gets the call substate for this session.
+     *
+     * @return the call substate for this session.
+     */
+    public int getCallSubstate() {
+        if (mClosed) {
+            return Connection.SUBSTATE_NONE;
+        }
+
+        try {
+            return miSession.getCallSubstate();
+        } catch (RemoteException e) {
+            return Connection.SUBSTATE_NONE;
         }
     }
 

@@ -29,6 +29,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
 import android.telecom.ConferenceParticipant;
+import android.telecom.Connection;
 import android.util.Log;
 
 import com.android.ims.internal.ICall;
@@ -682,6 +683,26 @@ public class ImsCall implements ICall {
             } catch (Throwable t) {
                 loge("getCallExtra :: ", t);
                 throw new ImsException("getCallExtra()", t, 0);
+            }
+        }
+    }
+
+    /**
+     * Gets the call substate.
+     *
+     * @return int callsubstate
+     */
+    public int getCallSubstate() throws ImsException {
+        synchronized(mLockObj) {
+            if (mSession == null) {
+                throw new ImsException("No call session",
+                    ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
+            }
+            try {
+                return mSession.getCallSubstate();
+            } catch (Throwable t) {
+                loge("getCallSubstate :: ", t);
+                throw new ImsException("getCallSubstate()", t, 0);
             }
         }
     }
