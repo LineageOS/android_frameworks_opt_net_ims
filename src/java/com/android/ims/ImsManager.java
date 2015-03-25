@@ -885,24 +885,13 @@ public class ImsManager {
         }
 
         @Override
-        public void registrationProgressing() {
+        public void registrationDisconnected() {
             if (DBG) {
-                log("registrationProgressing ::");
+                log("registrationDisconnected ::");
             }
 
             if (mListener != null) {
-                mListener.onImsProgressing();
-            }
-        }
-
-        @Override
-        public void registrationDisconnected(ImsReasonInfo imsReasonInfo) {
-            if (DBG) {
-                log("registrationDisconnected :: imsReasonInfo" + imsReasonInfo);
-            }
-
-            if (mListener != null) {
-                mListener.onImsDisconnected(imsReasonInfo);
+                mListener.onImsDisconnected();
             }
         }
 
