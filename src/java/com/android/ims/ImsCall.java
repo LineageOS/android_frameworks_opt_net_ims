@@ -2522,7 +2522,20 @@ public class ImsCall implements ICall {
             ImsCall neutralReferrer = (ImsCall) mCallGroup.getNeutralReferrer();
             if (neutralReferrer != null) {
                 mCallGroup.removeReferrer(neutralReferrer);
-                neutralReferrer.mCallGroup = null;
+                // We want to cleanup the neutral referrer's callgroup only if it is
+                // not already a conference call. So no cleanup is required for a
+                // 4-way conference merge failure.
+                if (!neutralReferrer.isMultiparty()) {
+                    if (DBG) {
+                        log("Setting neutral referrer's callgroup to null.");
+                    }
+                    neutralReferrer.mCallGroup = null;
+                } else {
+                    if (DBG) {
+                        log("Background call is a multiparty call with "
+                                + "other referrers, and should not be disturbed.");
+                    }
+                }
             }
             destroyCallGroup();
 
