@@ -907,6 +907,18 @@ public class ImsManager {
         }
 
         @Override
+        public void registrationDisconnected() {
+            if (DBG) {
+                log("registrationDisconnected");
+            }
+
+            if (mListener != null) {
+                mListener.onImsDisconnected();
+            }
+        }
+
+
+        @Override
         public void registrationResumed() {
             if (DBG) {
                 log("registrationResumed ::");

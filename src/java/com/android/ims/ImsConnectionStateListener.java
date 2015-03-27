@@ -46,6 +46,13 @@ public class ImsConnectionStateListener {
     }
 
     /**
+     * Compatibility version
+     */
+    public void onImsDisconnected() {
+        // no-op
+    }
+
+    /**
      * Called when its suspended IMS connection is resumed, meaning the connection
      * now allows throughput.
      */
