@@ -1071,11 +1071,33 @@ public class ImsManager {
         }
 
         @Override
+        public void registrationConnected() {
+            if (DBG) {
+                log("registrationConnected ::");
+            }
+
+            if (mListener != null) {
+                mListener.onImsConnected();
+            }
+        }
+
+        @Override
         public void registrationProgressing(int imsRadioTech) {
             // Note: imsRadioTech value maps to RIL_RADIO_TECHNOLOGY
             //       values in ServiceState.java.
             if (DBG) {
                 log("registrationProgressing :: imsRadioTech=" + imsRadioTech);
+            }
+
+            if (mListener != null) {
+                mListener.onImsProgressing();
+            }
+        }
+
+        @Override
+        public void registrationProgressing() {
+            if (DBG) {
+                log("registrationProgressing ::");
             }
 
             if (mListener != null) {
