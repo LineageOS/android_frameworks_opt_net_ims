@@ -43,6 +43,8 @@ import com.android.ims.internal.IImsConfig;
 
 import com.android.internal.telephony.TelephonyProperties;
 
+import java.lang.reflect.Method;
+
 import java.util.HashMap;
 
 /**
@@ -311,9 +313,14 @@ public class ImsManager {
                 try {
                     ImsConfig config = mgr.getConfigInterface();
                     if (config != null) {
-                        isProvisioned = config.getVolteProvisioned();
+                        Method m = config.getClass().getDeclaredMethod("getVolteProvisioned");
+                        if (m != null) {
+                            isProvisioned = (Boolean)config.getVolteProvisioned();
+                        } else {
+                            isProvisioned = false;
+                        }
                     }
-                } catch (ImsException ie) {
+                } catch (Exception ie) {
                     // do nothing
                 }
             }
