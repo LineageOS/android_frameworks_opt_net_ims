@@ -23,6 +23,9 @@ import android.telephony.Rlog;
 import com.android.ims.ImsConfigListener;
 import com.android.ims.ImsReasonInfo;
 import com.android.ims.internal.IImsConfig;
+
+import java.lang.reflect.Method;
+
 /**
  * Provides APIs to get/set the IMS service feature/capability/parameters.
  * The config items include:
@@ -332,8 +335,11 @@ public class ImsConfig {
     public int getProvisionedValue(int item) throws ImsException {
         int ret = 0;
         try {
-            ret = miConfig.getProvisionedValue(item);
-        }  catch (RemoteException e) {
+            Method m = miConfig.getClass().getDeclaredMethod("getProvisionedValue", Integer.class);
+            if (m != null) {
+                ret = (Integer)m.invoke(miConfig, item);
+            }
+        }  catch (Exception e) {
             throw new ImsException("getValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
@@ -355,8 +361,11 @@ public class ImsConfig {
     public String getProvisionedStringValue(int item) throws ImsException {
         String ret = "Unknown";
         try {
-            ret = miConfig.getProvisionedStringValue(item);
-        }  catch (RemoteException e) {
+            Method m = miConfig.getClass().getDeclaredMethod("getProvisionedStringValue");
+            if (m != null) {
+                ret = (String)m.invoke(miConfig, item);
+            }
+        }  catch (Exception e) {
             throw new ImsException("getProvisionedStringValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
@@ -522,8 +531,13 @@ public class ImsConfig {
      */
     public boolean getVolteProvisioned() throws ImsException {
         try {
-           return miConfig.getVolteProvisioned();
-        } catch (RemoteException e) {
+            Method m = miConfig.getClass().getDeclaredMethod("getVolteProvisioned");
+            if (m != null) {
+                return (Boolean)m.invoke(miConfig);
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
             throw new ImsException("getVolteProvisioned()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
