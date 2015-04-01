@@ -414,6 +414,16 @@ public class ImsCall implements ICall {
         public void onCallHandoverFailed(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
             ImsReasonInfo reasonInfo) {
         }
+
+        /**
+         * Notifies of a change to the multiparty state for this {@code ImsCall}.
+         *
+         * @param imsCall The IMS call.
+         * @param isMultiParty {@code true} if the call became multiparty, {@code false}
+         *      otherwise.
+         */
+        public void onMultipartyStateChanged(ImsCall imsCall, boolean isMultiParty) {
+        }
     }
 
     // List of update operation for IMS call control
@@ -484,6 +494,19 @@ public class ImsCall implements ICall {
     // is not part of a merging conference or already knows if it was
     // successfully added.
     private boolean mCallSessionMergePending = false;
+
+    /**
+     * For multi-party IMS calls (e.g. conferences), determines if this {@link ImsCall} is the one
+     * hosting the call.  This is used to distinguish between a situation where an {@link ImsCall}
+     * is {@link #isMultiparty()} because calls were merged on the device, and a situation where
+     * an {@link ImsCall} is {@link #isMultiparty()} because it is a member of a conference started
+     * on another device.
+     * <p>
+     * When {@code true}, this {@link ImsCall} is is the origin of the conference call.
+     * When {@code false}, this {@link ImsCall} is a member of a conference started on another
+     * device.
+     */
+    private boolean mIsConferenceHost = false;
 
     /**
      * Create an IMS call object.
@@ -753,6 +776,20 @@ public class ImsCall implements ICall {
             }
 
             return mSession.isMultiparty();
+        }
+    }
+
+    /**
+     * Where {@link #isMultiparty()} is {@code true}, determines if this {@link ImsCall} is the
+     * origin of the conference call (i.e. {@code #isConferenceHost()} is {@code true}), or if this
+     * {@link ImsCall} is a member of a conference hosted on another device.
+     *
+     * @return {@code true} if this call is the origin of the conference call it is a member of,
+     *      {@code false} otherwise.
+     */
+    public boolean isConferenceHost() {
+        synchronized(mLockObj) {
+            return isMultiparty() && mIsConferenceHost;
         }
     }
 
@@ -1752,6 +1789,12 @@ public class ImsCall implements ICall {
             // For the final host, let's just bury the disconnects that we my have received
             // during the merge process since we are now the host of the conference call.
             finalHostCall.clearSessionTerminationFlags();
+
+            // Keep track of the fact that merge host is the origin of a conference call in
+            // progress.  This is important so that we can later determine if a multiparty ImsCall
+            // is multiparty because it was the origin of a conference call, or because it is a
+            // member of a conference on another device.
+            finalHostCall.mIsConferenceHost = true;
         }
         if (listener != null) {
             try {
@@ -2595,6 +2638,36 @@ public class ImsCall implements ICall {
             }
         }
 
+        /**
+         * Notifies of a change to the multiparty state for this {@code ImsCallSession}.
+         *
+         * @param session The call session.
+         * @param isMultiParty {@code true} if the session became multiparty, {@code false}
+         *      otherwise.
+         */
+        @Override
+        public void callSessionMultipartyStateChanged(ImsCallSession session,
+                boolean isMultiParty) {
+            if (VDBG) {
+                log("callSessionMultipartyStateChanged isMultiParty: " + (isMultiParty ? "Y"
+                        : "N"));
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onMultipartyStateChanged(ImsCall.this, isMultiParty);
+                } catch (Throwable t) {
+                    loge("callSessionMultipartyStateChanged :: ", t);
+                }
+            }
+        }
+
         public void callSessionHandover(ImsCallSession session, int srcAccessTech,
             int targetAccessTech, ImsReasonInfo reasonInfo) {
             logi("callSessionHandover :: session=" + session + ", srcAccessTech=" +
@@ -2904,6 +2977,8 @@ public class ImsCall implements ICall {
         sb.append(isMerged() ? "Y" : "N");
         sb.append(" multiParty:");
         sb.append(isMultiparty() ? "Y" : "N");
+        sb.append(" confHost:");
+        sb.append(isConferenceHost() ? "Y" : "N");
         sb.append(" buried term:");
         sb.append(mSessionEndDuringMerge ? "Y" : "N");
         sb.append(" session:");
