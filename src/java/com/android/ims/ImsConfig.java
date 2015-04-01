@@ -457,7 +457,7 @@ public class ImsConfig {
     /**
      * Gets the value for IMS feature item for video call quality.
      *
-     * @param listener, provided if caller needs to be notified for set result.
+     * @param listener, provided if caller needs to be notified for get result.
      * @return void
      *
      * @throws ImsException if calling the IMS service results in an error.
@@ -493,6 +493,40 @@ public class ImsConfig {
             }
         } catch (Exception e) {
             throw new ImsException("setVideoQuality()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+     }
+
+    /**
+     * Total number of packets sent or received
+     *
+     * @param listener, provided if caller needs to be notified for get result.
+     * @return void
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+     public void getPacketCount(ImsConfigListener listener) throws ImsException {
+        try {
+            miConfig.getPacketCount(listener);
+        } catch (RemoteException e) {
+            throw new ImsException("getPacketCount()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+     }
+
+    /**
+     * Total number of packets errors encountered
+     *
+     * @param listener, provided if caller needs to be notified for get result.
+     * @return void
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+     public void getPacketErrorCount(ImsConfigListener listener) throws ImsException {
+        try {
+            miConfig.getPacketErrorCount(listener);
+        } catch (RemoteException e) {
+            throw new ImsException("getPacketErrorCount()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
      }
