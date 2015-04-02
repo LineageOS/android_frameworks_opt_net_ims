@@ -1822,30 +1822,26 @@ public class ImsCall implements ICall {
                 return;
             }
 
-            if (mMergePeer == null) {
-                loge("processMergeFailed :: No merge peer!");
-                return;
-            }
-
-            if (!isMultiparty()) {
-                if (mTransientConferenceSession == null) {
-                    loge("processMergeFailed :: No transient session!");
-                    return;
-                }
-                // Clean up any work that we performed on the transient session.
+            // Try to clean up the transient session if it exists.
+            if (mTransientConferenceSession != null) {
                 mTransientConferenceSession.setListener(null);
                 mTransientConferenceSession = null;
             }
 
-            // Ensure the calls being conferenced into the conference has isMerged = false.
-            setIsMerged(false);
-            mMergePeer.setIsMerged(false);
-
             listener = mListener;
 
+            // Ensure the calls being conferenced into the conference has isMerged = false.
             // Ensure any terminations are surfaced from this session.
+            setIsMerged(false);
             notifySessionTerminatedDuringMerge();
-            mMergePeer.notifySessionTerminatedDuringMerge();
+
+            if (mMergePeer != null) {
+                // Perform the same cleanup on the merge peer if it exists.
+                mMergePeer.setIsMerged(false);
+                mMergePeer.notifySessionTerminatedDuringMerge();
+            } else {
+                loge("processMergeFailed :: No merge peer!");
+            }
 
             // Clear all the various flags around coordinating this merge.
             clearMergeInfo();
@@ -2238,11 +2234,6 @@ public class ImsCall implements ICall {
             // Its possible that there could be threading issues with the other thread handling
             // the other call. This could affect our state.
             synchronized (ImsCall.this) {
-                if (!isCallSessionMergePending()) {
-                    // Odd, we are not in the midst of merging anything.
-                    logi("callSessionMergeFailed :: no merge in progress.");
-                    return;
-                }
                 // Let's tell our parent ImsCall that the merge has failed and we need to clean
                 // up any temporary, transient state.  Note this only gets called for an initial
                 // conference.  If a merge into an existing conference fails, the two sessions will
