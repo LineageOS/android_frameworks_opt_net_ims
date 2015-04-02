@@ -277,60 +277,6 @@ public class ImsConfig {
     }
 
     /**
-     * Gets the value for IMS service/capabilities parameters used by IMS stack.
-     * This function should not be called from the mainthread as it could block the
-     * mainthread to cause ANR.
-     *
-     * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
-     * @return the value in Integer format.
-     *
-     * @throws ImsException if calling the IMS service results in an error.
-     */
-    public int getMasterValue(int item) throws ImsException {
-        int ret = 0;
-        try {
-            Method m = miConfig.getClass().getDeclaredMethod("getMasterValue",
-                    int.class);
-            if (m != null) {
-                ret = (Integer) m.invoke(miConfig, item);
-            }
-        }  catch (Exception e) {
-            throw new ImsException("getValue()", e,
-                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-        }
-        if (DBG) Rlog.d(TAG, "getMasterValue(): item = " + item + ", ret =" + ret);
-
-        return ret;
-    }
-
-    /**
-     * Gets the value for IMS service/capabilities parameters used by IMS stack.
-     * This function should not be called from the mainthread as it could block the
-     * mainthread to cause ANR.
-     *
-     * @param item, as defined in com.android.ims.ImsConfig#ConfigConstants.
-     * @return value in String format.
-     *
-     * @throws ImsException if calling the IMS service results in an error.
-     */
-    public String getMasterStringValue(int item) throws ImsException {
-        String ret = "Unknown";
-        try {
-            Method m = miConfig.getClass().getDeclaredMethod("getMasterStringValue",
-                    int.class);
-            if (m != null) {
-                ret = (String) m.invoke(miConfig, item);
-            }
-        }  catch (Exception e) {
-            throw new ImsException("getMasterStringValue()", e,
-                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-        }
-        if (DBG) Rlog.d(TAG, "getMasterStringValue(): item = " + item + ", ret =" + ret);
-
-        return ret;
-    }
-
-    /**
      * Gets the provisioned value for IMS service/capabilities parameters used by IMS stack.
      * This function should not be called from the mainthread as it could block the
      * mainthread.
@@ -343,12 +289,8 @@ public class ImsConfig {
     public int getProvisionedValue(int item) throws ImsException {
         int ret = 0;
         try {
-            Method m = miConfig.getClass().getDeclaredMethod("getProvisionedValue",
-                    int.class);
-            if (m != null) {
-                ret = (Integer) m.invoke(miConfig, item);
-            }
-        }  catch (Exception e) {
+            ret = miConfig.getProvisionedValue(item);
+        }  catch (RemoteException e) {
             throw new ImsException("getValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
@@ -370,12 +312,8 @@ public class ImsConfig {
     public String getProvisionedStringValue(int item) throws ImsException {
         String ret = "Unknown";
         try {
-            Method m = miConfig.getClass().getDeclaredMethod("getProvisionedStringValue",
-                    int.class);
-            if (m != null) {
-                ret = (String) m.invoke(miConfig, item);
-            }
-        }  catch (Exception e) {
+            ret = miConfig.getProvisionedStringValue(item);
+        }  catch (RemoteException e) {
             throw new ImsException("getProvisionedStringValue()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
@@ -549,13 +487,8 @@ public class ImsConfig {
      */
     public boolean getVolteProvisioned() throws ImsException {
         try {
-            Method m = miConfig.getClass().getDeclaredMethod("getVolteProvisioned");
-            if (m != null) {
-                return (Boolean)m.invoke(miConfig);
-            } else {
-                return false;
-            }
-        } catch (Exception e) {
+           return miConfig.getVolteProvisioned();
+        } catch (RemoteException e) {
             throw new ImsException("getVolteProvisioned()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
