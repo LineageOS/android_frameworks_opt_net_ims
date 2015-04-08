@@ -250,7 +250,7 @@ public class ImsManager {
                         com.android.internal.R.bool.config_carrier_volte_provisioned)) {
             isProvisioned = false; // disable on any error
             ImsManager mgr = ImsManager.getInstance(context,
-                    SubscriptionManager.getDefaultVoiceSubId());
+                    SubscriptionManager.getDefaultVoicePhoneId());
             if (mgr != null) {
                 try {
                     ImsConfig config = mgr.getConfigInterface();
