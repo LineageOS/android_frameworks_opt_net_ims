@@ -378,6 +378,18 @@ public class ImsCallSession {
                                        int mode) {
             // no-op
         }
+
+        /**
+         * Notifies of a change to the multiparty state for this {@code ImsCallSession}.
+         *
+         * @param session The call session.
+         * @param isMultiParty {@code true} if the session became multiparty, {@code false}
+         *      otherwise.
+         */
+        public void callSessionMultipartyStateChanged(ImsCallSession session,
+                boolean isMultiParty) {
+            // no-op
+        }
     }
 
     private final IImsCallSession miSession;
@@ -1217,6 +1229,21 @@ public class ImsCallSession {
                 int mode) {
             if (mListener != null) {
                 mListener.callSessionTtyModeReceived(ImsCallSession.this, mode);
+            }
+        }
+
+        /**
+         * Notifies of a change to the multiparty state for this {@code ImsCallSession}.
+         *
+         * @param session The call session.
+         * @param isMultiParty {@code true} if the session became multiparty, {@code false}
+         *      otherwise.
+         */
+        public void callSessionMultipartyStateChanged(IImsCallSession session,
+                boolean isMultiParty) {
+
+            if (mListener != null) {
+                mListener.callSessionMultipartyStateChanged(ImsCallSession.this, isMultiParty);
             }
         }
     }
