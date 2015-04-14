@@ -2661,7 +2661,7 @@ public class ImsCall implements ICall {
         public void callSessionMultipartyStateChanged(ImsCallSession session,
                 boolean isMultiParty) {
             if (VDBG) {
-                log("callSessionMultipartyStateChanged isMultiParty: " + (isMultiParty ? "Y"
+                logi("callSessionMultipartyStateChanged isMultiParty: " + (isMultiParty ? "Y"
                         : "N"));
             }
 
