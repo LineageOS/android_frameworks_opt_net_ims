@@ -270,6 +270,26 @@ public class ImsConfig {
         public static final int ON = 1;
     }
 
+   /**
+    * Defines IMS Wifi Calling feature values.
+    */
+    public static class WifiCallingValueConstants {
+        public static final int NOT_SUPPORTED = 0;
+        public static final int ON = 1;
+        public static final int OFF = 2;
+    }
+
+   /**
+    * Defines IMS Wifi calling operation values.
+    */
+    public static class WifiCallingPreference {
+        public static final int WIFI_PREF_NONE = 0;
+        public static final int WIFI_PREFERRED = 1;
+        public static final int WIFI_ONLY      = 2;
+        public static final int CELLULAR_PREFERRED = 3;
+        public static final int CELLULAR_ONLY = 4;
+    }
+
     public ImsConfig(IImsConfig iconfig, Context context) {
         if (DBG) Rlog.d(TAG, "ImsConfig creates");
         miConfig = iconfig;
@@ -490,6 +510,43 @@ public class ImsConfig {
            return miConfig.getVolteProvisioned();
         } catch (RemoteException e) {
             throw new ImsException("getVolteProvisioned()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * Gets the value for IMS feature item for wifi calling preference.
+     *
+     * @param listener, provided if caller needs to be notified for get result.
+     * @return void
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public void getWifiCallingPreference(ImsConfigListener listener) throws ImsException {
+        try {
+            miConfig.getWifiCallingPreference(listener);
+        } catch (RemoteException e) {
+            throw new ImsException("getWifiCallingPreference()", e,
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * Sets the value for IMS feature item wifi calling.
+     *
+     * @param wifiCallingStatus, defines the value of wifi calling status.
+     * @param wifiCallingPreference, defines the value of wifi calling preference.
+     * @param listener, provided if caller needs to be notified for set result.
+     * @return void
+     *
+     * @throws ImsException if calling the IMS service results in an error.
+     */
+    public void setWifiCallingPreference(int wifiCallingStatus, int wifiCallingPreference,
+            ImsConfigListener listener) throws ImsException {
+        try {
+            miConfig.setWifiCallingPreference(wifiCallingStatus, wifiCallingPreference, listener);
+        } catch (RemoteException e) {
+            throw new ImsException("setWifiCallingPreference()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
     }
