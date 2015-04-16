@@ -515,23 +515,6 @@ public class ImsCallSession {
     }
 
     /**
-     * Gets the call substate for this session.
-     *
-     * @return the call substate for this session.
-     */
-    public int getCallSubstate() {
-        if (mClosed) {
-            return Connection.SUBSTATE_NONE;
-        }
-
-        try {
-            return miSession.getCallSubstate();
-        } catch (RemoteException e) {
-            return Connection.SUBSTATE_NONE;
-        }
-    }
-
-    /**
      * Gets the value associated with the specified property of this session.
      *
      * @return the string value associated with the specified property
