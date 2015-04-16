@@ -688,26 +688,6 @@ public class ImsCall implements ICall {
     }
 
     /**
-     * Gets the call substate.
-     *
-     * @return int callsubstate
-     */
-    public int getCallSubstate() throws ImsException {
-        synchronized(mLockObj) {
-            if (mSession == null) {
-                throw new ImsException("No call session",
-                    ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
-            }
-            try {
-                return mSession.getCallSubstate();
-            } catch (Throwable t) {
-                loge("getCallSubstate :: ", t);
-                throw new ImsException("getCallSubstate()", t, 0);
-            }
-        }
-    }
-
-    /**
      * Gets the last reason information when the call is not established, cancelled or terminated.
      *
      * @return the last reason information
