@@ -376,6 +376,16 @@ public class ImsCall implements ICall {
         }
 
         /**
+         * Called when the call supp service is received
+         * The default implementation calls {@link #onCallStateChanged}.
+         *
+         * @param call the call object that carries out the IMS call
+         */
+        public void onCallSuppServiceReceived(ImsCall call,
+            ImsSuppServiceNotification suppServiceInfo) {
+        }
+
+        /**
          * Called when handover occurs from one access technology to another.
          *
          * @param session IMS session object
@@ -2850,6 +2860,35 @@ public class ImsCall implements ICall {
                     listener.onCallUssdMessageReceived(ImsCall.this, mode, ussdMessage);
                 } catch (Throwable t) {
                     loge("callSessionUssdMessageReceived :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionSuppServiceReceived(ImsCallSession session,
+                ImsSuppServiceNotification suppServiceInfo ) {
+            if (isTransientConferenceSession(session)) {
+                log("callSessionSuppServiceReceived :: not supported for transient conference"
+                        + " session=" + session);
+                return;
+            }
+
+            if (DBG) {
+                log("callSessionSuppServiceReceived :: session=" + session +
+                         ", suppServiceInfo" + suppServiceInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallSuppServiceReceived(ImsCall.this, suppServiceInfo);
+                } catch (Throwable t) {
+                    loge("callSessionSuppServiceReceived :: ", t);
                 }
             }
         }
