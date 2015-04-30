@@ -16,6 +16,8 @@
 
 package com.android.ims.internal;
 
+import com.android.internal.os.SomeArgs;
+
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -67,9 +69,18 @@ public abstract class ImsVideoCallProvider {
                 case MSG_SET_ZOOM:
                     onSetZoom((Float) msg.obj);
                     break;
-                case MSG_SEND_SESSION_MODIFY_REQUEST:
-                    onSendSessionModifyRequest((VideoProfile) msg.obj);
+                case MSG_SEND_SESSION_MODIFY_REQUEST: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        VideoProfile fromProfile = (VideoProfile) args.arg1;
+                        VideoProfile toProfile = (VideoProfile) args.arg2;
+
+                        onSendSessionModifyRequest(fromProfile, toProfile);
+                    } finally {
+                        args.recycle();
+                    }
                     break;
+                }
                 case MSG_SEND_SESSION_MODIFY_RESPONSE:
                     onSendSessionModifyResponse((VideoProfile) msg.obj);
                     break;
@@ -116,9 +127,11 @@ public abstract class ImsVideoCallProvider {
             mProviderHandler.obtainMessage(MSG_SET_ZOOM, value).sendToTarget();
         }
 
-        public void sendSessionModifyRequest(VideoProfile requestProfile) {
-            mProviderHandler.obtainMessage(
-                    MSG_SEND_SESSION_MODIFY_REQUEST, requestProfile).sendToTarget();
+        public void sendSessionModifyRequest(VideoProfile fromProfile, VideoProfile toProfile) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = fromProfile;
+            args.arg2 = toProfile;
+            mProviderHandler.obtainMessage(MSG_SEND_SESSION_MODIFY_REQUEST, args).sendToTarget();
         }
 
         public void sendSessionModifyResponse(VideoProfile responseProfile) {
@@ -166,7 +179,8 @@ public abstract class ImsVideoCallProvider {
     public abstract void onSetZoom(float value);
 
     /** @see Connection.VideoProvider#onSendSessionModifyRequest */
-    public abstract void onSendSessionModifyRequest(VideoProfile requestProfile);
+    public abstract void onSendSessionModifyRequest(VideoProfile fromProfile,
+            VideoProfile toProfile);
 
     /** @see Connection.VideoProvider#onSendSessionModifyResponse */
     public abstract void onSendSessionModifyResponse(VideoProfile responseProfile);
