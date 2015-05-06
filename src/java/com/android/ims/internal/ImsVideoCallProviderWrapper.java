@@ -213,9 +213,9 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     }
 
     /** @inheritDoc */
-    public void onSendSessionModifyRequest(VideoProfile requestProfile) {
+    public void onSendSessionModifyRequest(VideoProfile fromProfile, VideoProfile toProfile) {
         try {
-            mVideoCallProvider.sendSessionModifyRequest(requestProfile);
+            mVideoCallProvider.sendSessionModifyRequest(fromProfile, toProfile);
         } catch (RemoteException e) {
         }
     }
