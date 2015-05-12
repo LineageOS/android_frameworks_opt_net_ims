@@ -18,6 +18,7 @@ package com.android.ims.internal;
 
 import com.android.internal.os.SomeArgs;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -91,7 +92,7 @@ public abstract class ImsVideoCallProvider {
                     onRequestCallDataUsage();
                     break;
                 case MSG_SET_PAUSE_IMAGE:
-                    onSetPauseImage((String) msg.obj);
+                    onSetPauseImage((Uri) msg.obj);
                     break;
                 default:
                     break;
@@ -147,7 +148,7 @@ public abstract class ImsVideoCallProvider {
             mProviderHandler.obtainMessage(MSG_REQUEST_CALL_DATA_USAGE).sendToTarget();
         }
 
-        public void setPauseImage(String uri) {
+        public void setPauseImage(Uri uri) {
             mProviderHandler.obtainMessage(MSG_SET_PAUSE_IMAGE, uri).sendToTarget();
         }
     }
@@ -192,7 +193,7 @@ public abstract class ImsVideoCallProvider {
     public abstract void onRequestCallDataUsage();
 
     /** @see Connection.VideoProvider#onSetPauseImage */
-    public abstract void onSetPauseImage(String uri);
+    public abstract void onSetPauseImage(Uri uri);
 
     /** @see Connection.VideoProvider#receiveSessionModifyRequest */
     public void receiveSessionModifyRequest(VideoProfile VideoProfile) {

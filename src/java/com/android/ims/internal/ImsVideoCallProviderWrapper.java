@@ -16,6 +16,7 @@
 
 package com.android.ims.internal;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -245,7 +246,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     }
 
     /** @inheritDoc */
-    public void onSetPauseImage(String uri) {
+    public void onSetPauseImage(Uri uri) {
         try {
             mVideoCallProvider.setPauseImage(uri);
         } catch (RemoteException e) {
