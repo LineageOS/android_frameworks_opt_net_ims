@@ -408,6 +408,15 @@ public class ImsCall implements ICall {
         public void onCallHandoverFailed(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
             ImsReasonInfo reasonInfo) {
         }
+
+        /**
+         * Called when retry error is notified.
+         *
+         * @param session IMS session object
+         * @param reasonInfo
+         */
+        public void onCallRetryErrorReceived(ImsCall imsCall, ImsReasonInfo reasonInfo) {
+        }
     }
 
 
@@ -2938,6 +2947,29 @@ public class ImsCall implements ICall {
                         reasonInfo);
                 } catch (Throwable t) {
                     loge("callSessionHandoverFailed :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionRetryErrorReceived(ImsCallSession session,
+                ImsReasonInfo reasonInfo) {
+            if (DBG) {
+                log("callSessionRetryErrorReceived :: session=" + session +
+                         ", reasonInfo " + reasonInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallRetryErrorReceived(ImsCall.this, reasonInfo);
+                } catch (Throwable t) {
+                    loge("callSessionRetryErrorReceived :: ", t);
                 }
             }
         }
