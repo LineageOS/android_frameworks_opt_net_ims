@@ -21,9 +21,9 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
-import android.telecom.CameraCapabilities;
 import android.telecom.Connection;
 import android.telecom.VideoProfile;
+import android.telecom.VideoProfile.CameraCapabilities;
 import android.view.Surface;
 
 import com.android.internal.os.SomeArgs;
@@ -102,7 +102,8 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         }
 
         @Override
-        public void changeCameraCapabilities(CameraCapabilities cameraCapabilities) {
+        public void changeCameraCapabilities(
+                VideoProfile.CameraCapabilities cameraCapabilities) {
             mHandler.obtainMessage(MSG_CHANGE_CAMERA_CAPABILITIES,
                     cameraCapabilities).sendToTarget();
         }
@@ -146,7 +147,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                     changeCallDataUsage((long) msg.obj);
                     break;
                 case MSG_CHANGE_CAMERA_CAPABILITIES:
-                    changeCameraCapabilities((CameraCapabilities) msg.obj);
+                    changeCameraCapabilities((VideoProfile.CameraCapabilities) msg.obj);
                     break;
                 case MSG_CHANGE_VIDEO_QUALITY:
                     changeVideoQuality(msg.arg1);
