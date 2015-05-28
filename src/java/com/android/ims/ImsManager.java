@@ -680,19 +680,11 @@ public class ImsManager {
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
 
-        /* TODO: config_carrier_volte_tty_supported needs to be enabled for
-                 carriers that support it in their respective MCC-MNC config.xml
-                 Example: values-mcc310-mnc230
-                 Uncomment the code below after the change is done. Leaving this
-                 commented so that TTY over VoLTE call is not blocked from apps.
-        */
-        /*
         if (!context.getResources().getBoolean(
                 com.android.internal.R.bool.config_carrier_volte_tty_supported)) {
             setAdvanced4GMode((uiTtyMode == TelecomManager.TTY_MODE_OFF) &&
                     isEnhanced4gLteModeSettingEnabledByUser(context));
         }
-        */
     }
 
     /**
