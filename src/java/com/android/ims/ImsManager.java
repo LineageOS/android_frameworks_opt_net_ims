@@ -138,6 +138,18 @@ public class ImsManager {
      */
     public static final String EXTRA_USSD = "android:ussd";
 
+    /**
+     * Part of the ACTION_IMS_INCOMING_CALL intents.
+     * A boolean value; Flag to indicate whether the call is an unknown
+     * dialing call. Such calls are originated by sending commands (like
+     * AT commands) directly to modem without Android involvement.
+     * Even though they are not incoming calls, they are propagated
+     * to Phone app using same ACTION_IMS_INCOMING_CALL intent.
+     * Internal use only.
+     * @hide
+     */
+    public static final String EXTRA_IS_UNKNOWN_CALL = "codeaurora:isUnknown";
+
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
 
@@ -1089,6 +1101,15 @@ public class ImsManager {
             if (mListener != null) {
                 mListener.onFeatureCapabilityChanged(serviceClass,
                         enabledFeatures, disabledFeatures);
+            }
+        }
+
+        @Override
+        public void voiceMessageCountUpdate(int count) {
+            log("voiceMessageCountUpdate :: count=" + count);
+
+            if (mListener != null) {
+                mListener.onVoiceMessageCountChanged(count);
             }
         }
 
