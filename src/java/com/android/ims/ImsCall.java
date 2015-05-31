@@ -386,6 +386,16 @@ public class ImsCall implements ICall {
         }
 
         /**
+         * Called when the call supp service is received
+         * The default implementation calls {@link #onCallStateChanged}.
+         *
+         * @param call the call object that carries out the IMS call
+         */
+        public void onCallSuppServiceReceived(ImsCall call,
+            ImsSuppServiceNotification suppServiceInfo) {
+        }
+
+        /**
          * Called when TTY mode of remote party changed
          *
          * @param call the call object that carries out the IMS call
@@ -2135,7 +2145,10 @@ public class ImsCall implements ICall {
                 return;
             }
 
-            synchronized(mLockObj) {
+            logi("callSessionHoldFailed :: session=" + session +
+                    ", reasonInfo=" + reasonInfo);
+
+            synchronized (mLockObj) {
                 mHold = false;
             }
 
@@ -2794,6 +2807,33 @@ public class ImsCall implements ICall {
                         reasonInfo);
                 } catch (Throwable t) {
                     loge("callSessionHandoverFailed :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionSuppServiceReceived(ImsCallSession session,
+                ImsSuppServiceNotification suppServiceInfo ) {
+            if (isTransientConferenceSession(session)) {
+                logi("callSessionSuppServiceReceived :: not supported for transient conference"
+                        + " session=" + session);
+                return;
+            }
+
+            logi("callSessionSuppServiceReceived :: session=" + session +
+                     ", suppServiceInfo" + suppServiceInfo);
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallSuppServiceReceived(ImsCall.this, suppServiceInfo);
+                } catch (Throwable t) {
+                    loge("callSessionSuppServiceReceived :: ", t);
                 }
             }
         }
