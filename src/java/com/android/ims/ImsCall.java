@@ -70,6 +70,7 @@ public class ImsCall implements ICall {
     // across different IMS implementations.
     private static final boolean CONF_DBG = true;
 
+    private List<ConferenceParticipant> mConferenceParticipants;
     /**
      * Listener for events relating to an IMS call, such as when a call is being
      * received ("on ringing") or a call is outgoing ("on calling").
@@ -641,6 +642,20 @@ public class ImsCall implements ICall {
             }
 
             return mProposedCallProfile;
+        }
+    }
+
+    /**
+     * Gets the list of conference participants currently
+     * associated with this call.
+     *
+     * @return The list of conference participants.
+     */
+    public List<ConferenceParticipant> getConferenceParticipants() {
+        synchronized(mLockObj) {
+            logi("getConferenceParticipants :: mConferenceParticipants"
+                    + mConferenceParticipants);
+            return mConferenceParticipants;
         }
     }
 
@@ -1248,6 +1263,7 @@ public class ImsCall implements ICall {
                 setMergeHost(bgCall);
             }
         }
+
         merge();
     }
 
@@ -1346,8 +1362,7 @@ public class ImsCall implements ICall {
      *
      */
     public void removeParticipants(String[] participants) throws ImsException {
-        logi("removeParticipants ::");
-
+        logi("removeParticipants :: session=" + mSession);
         synchronized(mLockObj) {
             if (mSession == null) {
                 loge("removeParticipants :: ");
@@ -1356,6 +1371,7 @@ public class ImsCall implements ICall {
             }
 
             mSession.removeParticipants(participants);
+
         }
     }
 
@@ -1530,7 +1546,7 @@ public class ImsCall implements ICall {
         }
 
         Iterator<Entry<String, Bundle>> iterator = participants.iterator();
-        List<ConferenceParticipant> conferenceParticipants = new ArrayList<>(participants.size());
+        mConferenceParticipants = new ArrayList<>(participants.size());
         while (iterator.hasNext()) {
             Entry<String, Bundle> entry = iterator.next();
 
@@ -1550,17 +1566,22 @@ public class ImsCall implements ICall {
             }
 
             Uri handle = Uri.parse(user);
+            if (endpoint == null) {
+                endpoint = "";
+            }
             Uri endpointUri = Uri.parse(endpoint);
             int connectionState = ImsConferenceState.getConnectionStateForStatus(status);
 
-            ConferenceParticipant conferenceParticipant = new ConferenceParticipant(handle,
-                    displayName, endpointUri, connectionState);
-            conferenceParticipants.add(conferenceParticipant);
+            if (connectionState != Connection.STATE_DISCONNECTED) {
+                ConferenceParticipant conferenceParticipant = new ConferenceParticipant(handle,
+                        displayName, endpointUri, connectionState);
+                mConferenceParticipants.add(conferenceParticipant);
+            }
         }
 
-        if (!conferenceParticipants.isEmpty() && mListener != null) {
+        if (!mConferenceParticipants.isEmpty() && mListener != null) {
             try {
-                mListener.onConferenceParticipantsStateChanged(this, conferenceParticipants);
+                mListener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
             } catch (Throwable t) {
                 loge("notifyConferenceStateUpdated :: ", t);
             }
@@ -1803,6 +1824,13 @@ public class ImsCall implements ICall {
             } catch (Throwable t) {
                 loge("processMergeComplete :: ", t);
             }
+            if (!mConferenceParticipants.isEmpty()) {
+                try {
+                    listener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
+                } catch (Throwable t) {
+                    loge("processMergeComplete :: ", t);
+                }
+            }
         }
         return;
     }
@@ -1845,7 +1873,7 @@ public class ImsCall implements ICall {
         mSessionEndDuringMergeReasonInfo = null;
     }
 
-    /**
+   /**
      * We received a callback from ImsCallSession that a merge failed. Clean up all
      * internal state to represent this state change.  The calling function is a callback
      * and should have been called on the session that was in the foreground
@@ -2075,6 +2103,10 @@ public class ImsCall implements ICall {
                 return;
             }
 
+            synchronized(mLockObj) {
+                mHold = false;
+            }
+
             boolean isHoldForMerge = false;
             ImsCall.Listener listener;
 
@@ -2173,6 +2205,10 @@ public class ImsCall implements ICall {
                 logi("callSessionResumeFailed :: not supported for transient conference session=" +
                         session);
                 return;
+            }
+
+            synchronized(mLockObj) {
+                mHold = true;
             }
 
             ImsCall.Listener listener;
@@ -2307,7 +2343,6 @@ public class ImsCall implements ICall {
             synchronized(ImsCall.this) {
                 listener = mListener;
                 mCallProfile = profile;
-                mUpdateRequest = UPDATE_NONE;
             }
 
             if (listener != null) {
@@ -2574,12 +2609,6 @@ public class ImsCall implements ICall {
         public void callSessionConferenceStateUpdated(ImsCallSession session,
                 ImsConferenceState state) {
             logi("callSessionConferenceStateUpdated :: state=" + state);
-
-            if (isTransientConferenceSession(session)) {
-                logi("callSessionConferenceStateUpdated :: not supported for transient " +
-                        "conference session=" + session);
-                return;
-            }
 
             conferenceStateUpdated(state);
         }
