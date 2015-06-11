@@ -20,6 +20,8 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.telecom.Connection;
 
+import java.util.Objects;
+import android.util.Log;
 import com.android.ims.ImsCallProfile;
 import com.android.ims.ImsConferenceState;
 import com.android.ims.ImsReasonInfo;
@@ -1044,9 +1046,21 @@ public class ImsCallSession {
          * @param session The call session.
          */
         @Override
-        public void callSessionMergeComplete(IImsCallSession session) {
+        public void callSessionMergeComplete(IImsCallSession activeCallSession) {
             if (mListener != null) {
-                mListener.callSessionMergeComplete(ImsCallSession.this);
+                // Check if the active session is the same session that was
+                // active before the merge request was sent. 
+                ImsCallSession validActiveSession = ImsCallSession.this;
+                    try {
+                        if (!Objects.equals(miSession.getCallId(), activeCallSession.getCallId())) {
+                            // New session created after conference
+                            validActiveSession = new ImsCallSession(activeCallSession);
+                        }
+                    } catch (RemoteException rex) {
+                        Log.e(TAG, "callSessionMergeComplete: exception for getCallId!");
+                    }
+
+               mListener.callSessionMergeComplete(validActiveSession);
             }
         }
 
