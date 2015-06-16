@@ -149,7 +149,7 @@ public class ImsManager {
      * Internal use only.
      * @hide
      */
-    public static final String EXTRA_IS_UNKNOWN_CALL = "codeaurora:isUnknown";
+    public static final String EXTRA_IS_UNKNOWN_CALL = "android:isUnknown";
 
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
