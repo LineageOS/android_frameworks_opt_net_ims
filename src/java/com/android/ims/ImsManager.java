@@ -147,10 +147,9 @@ public class ImsManager {
      * AT commands) directly to modem without Android involvement.
      * Even though they are not incoming calls, they are propagated
      * to Phone app using same ACTION_IMS_INCOMING_CALL intent.
-     * Internal use only.
      * @hide
      */
-    public static final String EXTRA_IS_UNKNOWN_CALL = "codeaurora:isUnknown";
+    public static final String EXTRA_IS_UNKNOWN_CALL = "android:isUnknown";
 
     private static final String TAG = "ImsManager";
     private static final boolean DBG = true;
