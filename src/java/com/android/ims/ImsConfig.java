@@ -237,10 +237,15 @@ public class ImsConfig {
          * Value is in Integer format.
          */
         public static final int VOICE_OVER_WIFI_MODE = 26;
+        /**
+         * Video Quality - VideoQualityFeatureValuesConstants.
+         * Value is in Integer format.
+         */
+        public static final int VIDEO_QUALITY = 27;
 
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
-        public static final int PROVISIONED_CONFIG_END = VOICE_OVER_WIFI_MODE;
+        public static final int PROVISIONED_CONFIG_END = VIDEO_QUALITY;
 
         // Expand the operator config items as needed here.
     }
@@ -258,15 +263,11 @@ public class ImsConfig {
     }
 
     /**
-     * Defines IMS get operation values.
+     * Defines IMS video quality feature value.
      */
-    public static class OperationValuesConstants {
-        /**
-         * Values related to Video Quality
-         */
-        public static final int VIDEO_QUALITY_UNKNOWN = -1;
-        public static final int VIDEO_QUALITY_LOW = 0;
-        public static final int VIDEO_QUALITY_HIGH = 1;
+    public static class VideoQualityFeatureValuesConstants {
+        public static final int LOW = 0;
+        public static final int HIGH = 1;
     }
 
    /**
