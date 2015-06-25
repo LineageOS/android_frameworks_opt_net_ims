@@ -27,6 +27,7 @@ import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
+import android.telephony.CarrierConfigManager;
 import android.telephony.Rlog;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -224,8 +225,8 @@ public class ImsManager {
      * supported.
      */
     public static boolean isNonTtyOrTtyOnVolteEnabled(Context context) {
-        if (context.getResources().getBoolean(
-                com.android.internal.R.bool.config_carrier_volte_tty_supported)) {
+        if (getBooleanCarrierConfig(context,
+                    CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
             return true;
         }
 
@@ -248,8 +249,9 @@ public class ImsManager {
                 android.provider.Settings.Global.VOLTE_FEATURE_DISABLED, 0) == 1;
 
         return context.getResources().getBoolean(
-                com.android.internal.R.bool.config_device_volte_available) && context.getResources()
-                .getBoolean(com.android.internal.R.bool.config_carrier_volte_available)
+                com.android.internal.R.bool.config_device_volte_available)
+                && getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_VOLTE_AVAILABLE_BOOL)
                 && !disabledByGlobalSetting;
     }
 
@@ -258,8 +260,8 @@ public class ImsManager {
      */
     public static boolean isVolteProvisionedOnDevice(Context context) {
         boolean isProvisioned = true;
-        if (context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_volte_provisioned)) {
+        if (getBooleanCarrierConfig(context,
+                    CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
             isProvisioned = false; // disable on any error
             ImsManager mgr = ImsManager.getInstance(context,
                     SubscriptionManager.getDefaultVoicePhoneId());
@@ -293,8 +295,8 @@ public class ImsManager {
         return
                 context.getResources().getBoolean(
                         com.android.internal.R.bool.config_device_vt_available) &&
-                context.getResources().getBoolean(
-                        com.android.internal.R.bool.config_carrier_vt_available);
+                getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_VT_AVAILABLE_BOOL);
     }
 
     /**
@@ -372,8 +374,8 @@ public class ImsManager {
 
                 if (enabled) {
                     imsManager.turnOnIms();
-                } else if (context.getResources().getBoolean(
-                        com.android.internal.R.bool.imsServiceAllowTurnOff)
+                } else if (getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
                         && (!isVolteEnabledByPlatform(context)
                         || !isEnhanced4gLteModeSettingEnabledByUser(context))) {
                     log("setWfcSetting() : imsServiceAllowTurnOff -> turnOffIms");
@@ -482,8 +484,8 @@ public class ImsManager {
         return
                context.getResources().getBoolean(
                        com.android.internal.R.bool.config_device_wfc_ims_available) &&
-               context.getResources().getBoolean(
-                       com.android.internal.R.bool.config_carrier_wfc_ims_available);
+               getBooleanCarrierConfig(context,
+                       CarrierConfigManager.KEY_CARRIER_WFC_IMS_AVAILABLE_BOOL);
     }
 
     private ImsManager(Context context, int phoneId) {
@@ -824,10 +826,28 @@ public class ImsManager {
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
 
-        if (!context.getResources().getBoolean(
-                com.android.internal.R.bool.config_carrier_volte_tty_supported)) {
+        if (!getBooleanCarrierConfig(context,
+                CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
             setAdvanced4GMode((uiTtyMode == TelecomManager.TTY_MODE_OFF) &&
                     isEnhanced4gLteModeSettingEnabledByUser(context));
+        }
+    }
+
+    /**
+     * Get the boolean config from carrier config manager.
+     *
+     * @param context the context to get carrier service
+     * @param key config key defined in CarrierConfigManager
+     * @return boolean value of corresponding key.
+     */
+    private static boolean getBooleanCarrierConfig(Context context, String key) {
+        CarrierConfigManager configManager = (CarrierConfigManager) context.getSystemService(
+                Context.CARRIER_CONFIG_SERVICE);
+        if (configManager != null) {
+            return configManager.getConfig().getBoolean(key);
+        } else {
+            // Return static default defined in CarrierConfigManager.
+            return CarrierConfigManager.getDefaultConfig().getBoolean(key);
         }
     }
 
@@ -972,8 +992,8 @@ public class ImsManager {
         }
         if (turnOn) {
             turnOnIms();
-        } else if (mContext.getResources().getBoolean(
-                com.android.internal.R.bool.imsServiceAllowTurnOff)
+        } else if (getBooleanCarrierConfig(mContext,
+                CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
                 && (!isWfcEnabledByPlatform(mContext)
                 || !isWfcEnabledByUser(mContext))) {
             log("setAdvanced4GMode() : imsServiceAllowTurnOff -> turnOffIms");
