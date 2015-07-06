@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
@@ -843,8 +844,12 @@ public class ImsManager {
     private static boolean getBooleanCarrierConfig(Context context, String key) {
         CarrierConfigManager configManager = (CarrierConfigManager) context.getSystemService(
                 Context.CARRIER_CONFIG_SERVICE);
+        PersistableBundle b = null;
         if (configManager != null) {
-            return configManager.getConfig().getBoolean(key);
+            b = configManager.getConfig();
+        }
+        if (b != null) {
+            return b.getBoolean(key);
         } else {
             // Return static default defined in CarrierConfigManager.
             return CarrierConfigManager.getDefaultConfig().getBoolean(key);
