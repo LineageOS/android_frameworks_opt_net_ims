@@ -67,4 +67,11 @@ public class ImsConnectionStateListener {
                 int[] enabledFeatures, int[] disabledFeatures) {
         // no-op
     }
+
+    /**
+     * Called when waiting voice message count changes.
+     */
+    public void onVoiceMessageCountChanged(int count) {
+        // no-op
+    }
 }
