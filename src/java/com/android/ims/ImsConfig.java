@@ -36,7 +36,6 @@ public class ImsConfig {
     private boolean DBG = true;
     private final IImsConfig miConfig;
     private Context mContext;
-    private static final String MODIFY_PHONE_STATE = android.Manifest.permission.MODIFY_PHONE_STATE;
 
     /**
     * Defines IMS service/capability feature constants.
@@ -341,7 +340,6 @@ public class ImsConfig {
      */
     public int setProvisionedValue(int item, int value)
             throws ImsException {
-        mContext.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
         int ret = ImsConfig.OperationStatusConstants.UNKNOWN;
         if (DBG) {
             Rlog.d(TAG, "setProvisionedValue(): item = " + item +
@@ -374,7 +372,6 @@ public class ImsConfig {
      */
     public int setProvisionedStringValue(int item, String value)
             throws ImsException {
-        mContext.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
         int ret = ImsConfig.OperationStatusConstants.UNKNOWN;
         try {
             ret = miConfig.setProvisionedStringValue(item, value);
@@ -426,7 +423,6 @@ public class ImsConfig {
      */
     public void setFeatureValue(int feature, int network, int value,
             ImsConfigListener listener) throws ImsException {
-        mContext.enforceCallingOrSelfPermission(MODIFY_PHONE_STATE, null);
         if (DBG) {
             Rlog.d(TAG, "setFeatureValue: feature = " + feature + ", network =" + network +
                     ", value =" + value + ", listener =" + listener);
