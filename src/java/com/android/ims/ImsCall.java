@@ -765,6 +765,17 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Checks if the call is pending a hold operation.
+     *
+     * @return true if the call is pending a hold operation.
+     */
+    public boolean isPendingHold() {
+        synchronized(mLockObj) {
+            return (mUpdateRequest == UPDATE_HOLD);
+        }
+    }
+
+    /**
      * Checks if the call is established.
      *
      * @return true if the call is established
@@ -1601,7 +1612,8 @@ public class ImsCall implements ICall {
             }
         }
 
-        if (!mConferenceParticipants.isEmpty() && mListener != null) {
+        if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()
+                && mListener != null) {
             try {
                 mListener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
             } catch (Throwable t) {
@@ -1885,7 +1897,7 @@ public class ImsCall implements ICall {
             } catch (Throwable t) {
                 loge("processMergeComplete :: ", t);
             }
-            if (!mConferenceParticipants.isEmpty()) {
+            if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()) {
                 try {
                     listener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
                 } catch (Throwable t) {
