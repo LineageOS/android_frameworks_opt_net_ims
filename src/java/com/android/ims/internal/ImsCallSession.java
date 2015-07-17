@@ -1034,10 +1034,9 @@ public class ImsCallSession {
         @Override
         public void callSessionMergeStarted(IImsCallSession session,
                 IImsCallSession newSession, ImsCallProfile profile) {
-            if (mListener != null) {
-                mListener.callSessionMergeStarted(ImsCallSession.this,
-                        new ImsCallSession(newSession), profile);
-            }
+            // This callback can be used for future use to add additional
+            // functionality that may be needed between conference start and complete
+            Log.d(TAG, "callSessionMergeStarted");
         }
 
         /**
@@ -1046,21 +1045,25 @@ public class ImsCallSession {
          * @param session The call session.
          */
         @Override
-        public void callSessionMergeComplete(IImsCallSession activeCallSession) {
+        public void callSessionMergeComplete(IImsCallSession newSession) {
             if (mListener != null) {
-                // Check if the active session is the same session that was
-                // active before the merge request was sent. 
-                ImsCallSession validActiveSession = ImsCallSession.this;
+                if (newSession != null) {
+                    // Check if the active session is the same session that was
+                    // active before the merge request was sent.
+                    ImsCallSession validActiveSession = ImsCallSession.this;
                     try {
-                        if (!Objects.equals(miSession.getCallId(), activeCallSession.getCallId())) {
+                        if (!Objects.equals(miSession.getCallId(), newSession.getCallId())) {
                             // New session created after conference
-                            validActiveSession = new ImsCallSession(activeCallSession);
+                            validActiveSession = new ImsCallSession(newSession);
                         }
                     } catch (RemoteException rex) {
                         Log.e(TAG, "callSessionMergeComplete: exception for getCallId!");
                     }
-
-               mListener.callSessionMergeComplete(validActiveSession);
+                    mListener.callSessionMergeComplete(validActiveSession);
+               } else {
+                   // Session already exists. Hence no need to pass
+                   mListener.callSessionMergeComplete(null);
+               }
             }
         }
 
