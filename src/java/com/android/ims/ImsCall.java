@@ -1838,6 +1838,9 @@ public class ImsCall implements ICall {
                     // brought up.
                     mMergePeer.mHold = false;
                     this.mHold = true;
+                    if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()) {
+                        mMergePeer.mConferenceParticipants = mConferenceParticipants;
+                    }
                     finalHostCall = mMergePeer;
                     finalPeerCall = this;
                     swapRequired = true;
@@ -1914,7 +1917,8 @@ public class ImsCall implements ICall {
             }
             if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()) {
                 try {
-                    listener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
+                    listener.onConferenceParticipantsStateChanged(finalHostCall,
+                            mConferenceParticipants);
                 } catch (Throwable t) {
                     loge("processMergeComplete :: ", t);
                 }
