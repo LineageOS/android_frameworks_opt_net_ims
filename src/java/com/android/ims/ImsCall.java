@@ -2327,40 +2327,6 @@ public class ImsCall implements ICall {
             logi("callSessionMergeStarted :: session=" + session + " newSession=" + newSession +
                     ", profile=" + profile);
 
-            if (!isCallSessionMergePending()) {
-                // Odd, we are not in the midst of merging anything.
-                logi("callSessionMergeStarted :: no merge in progress.");
-                return;
-            }
-
-            // There are 2 ways that we can go here.  If the session that supplied the params
-            // is not null, then it is the new session that represents the new conference
-            // if the merge succeeds. If it is null, the merge is happening on our current
-            // ImsCallSession.
-            if (session == null) {
-                // Everything is already set up and we just need to make sure
-                // that we properly respond to all the future callbacks about
-                // this merge.
-                if (CONF_DBG) {
-                    logi("callSessionMergeStarted :: merging into existing ImsCallSession");
-                }
-                return;
-            }
-
-            if (CONF_DBG) {
-                logi("callSessionMergeStarted ::  setting our transient ImsCallSession");
-            }
-
-            // If we are here, this means that we are creating a new conference and
-            // we need to do some extra work around managing a new ImsCallSession that
-            // could represent our new ImsCallSession if the merge succeeds.
-            synchronized(ImsCall.this) {
-                // Keep track of this session for future callbacks to indicate success
-                // or failure of this merge.
-                mTransientConferenceSession = newSession;
-                mTransientConferenceSession.setListener(createCallSessionListener());
-            }
-
             return;
         }
 
@@ -2377,7 +2343,7 @@ public class ImsCall implements ICall {
 
         /**
          * We received a callback from ImsCallSession that merge completed.
-         * @param session - this session can have 2 values based on the below scenarios
+         * @param newSession - this session can have 2 values based on the below scenarios
          *
 	 * Conference Scenarios :
          * Case 1 - 3 way success case
@@ -2389,24 +2355,29 @@ public class ImsCall implements ICall {
          *          call (mergeHost) and the single party call is in the background.
          *
          * Conference Result:
-         * session : active session after conference
-         * session = new session for case 1, 2, 3. Should be considered as mTransientConferencession
-         * session = Active conference session for case 5, same as current session,
-         *           mergehost was foreground call
-         *           mTransientConferencession will be null
-         * session = Active conference session for case 4, mergeHost was background call
-         *           mTransientConferencession will be null
+         * session : new session after conference
+         * newSession = new session for case 1, 2, 3.
+         *              Should be considered as mTransientConferencession
+         * newSession = Active conference session for case 5 will be null
+         *              mergehost was foreground call
+         *              mTransientConferencession will be null
+         * newSession = Active conference session for case 4 will be null
+         *              mergeHost was background call
+         *              mTransientConferencession will be null
          */
         @Override
-        public void callSessionMergeComplete(ImsCallSession session) {
-            logi("callSessionMergeComplete :: session=" + session);
+        public void callSessionMergeComplete(ImsCallSession newSession) {
+            logi("callSessionMergeComplete :: newSession =" + newSession);
             if (!isMergeHost()) {
                 // Handles case 4
                 mMergeHost.processMergeComplete();
             } else {
-                // Handles case 1, 2, 3, 5
-                mTransientConferenceSession = doesCallSessionExistsInMerge(session) ?
-                    null: session;
+                // Handles case 1, 2, 3
+                if (newSession != null) {
+                    mTransientConferenceSession = doesCallSessionExistsInMerge(newSession) ?
+                            null: newSession;
+                }
+                // Handles case 5
                 processMergeComplete();
             }
         }
