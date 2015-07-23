@@ -503,6 +503,15 @@ public class ImsCall implements ICall {
     private boolean mCallSessionMergePending = false;
 
     /**
+     * If {@code true}, this flag indicates that a request to terminate the call was made by
+     * Telephony (could be from the user or some internal telephony logic)
+     * and that when we receive a {@link #processCallTerminated(ImsReasonInfo)} callback from the
+     * radio indicating that the call was terminated, we should override any burying of the
+     * termination due to an ongoing conference merge.
+     */
+    private boolean mTerminationRequestPending = false;
+
+    /**
      * For multi-party IMS calls (e.g. conferences), determines if this {@link ImsCall} is the one
      * hosting the call.  This is used to distinguish between a situation where an {@link ImsCall}
      * is {@link #isMultiparty()} because calls were merged on the device, and a situation where
@@ -1085,7 +1094,7 @@ public class ImsCall implements ICall {
     }
 
     /**
-     * Terminates an IMS call.
+     * Terminates an IMS call (e.g. user initiated).
      *
      * @param reason reason code to terminate a call
      * @throws ImsException if the IMS service fails to terminate the call
@@ -1096,6 +1105,7 @@ public class ImsCall implements ICall {
         synchronized(mLockObj) {
             mHold = false;
             mInCall = false;
+            mTerminationRequestPending = true;
 
             if (mSession != null) {
                 // TODO: Fix the fact that user invoked call terminations during
@@ -1622,14 +1632,16 @@ public class ImsCall implements ICall {
      * @param reasonInfo The reason for the session termination
      */
     private void processCallTerminated(ImsReasonInfo reasonInfo) {
-        logi("processCallTerminated :: reason=" + reasonInfo);
+        logi("processCallTerminated :: reason=" + reasonInfo + " userInitiated = " +
+                mTerminationRequestPending);
 
         ImsCall.Listener listener = null;
         synchronized(ImsCall.this) {
             // If we are in the midst of establishing a conference, we will bury the termination
-            // until the merge has completed.  If necessary we can surface the termination at this
-            // point.
-            if (isCallSessionMergePending()) {
+            // until the merge has completed.  If necessary we can surface the termination at
+            // this point.
+            // We will also NOT bury the termination if a termination was initiated locally.
+            if (isCallSessionMergePending() && !mTerminationRequestPending) {
                 // Since we are in the process of a merge, this trigger means something
                 // else because it is probably due to the merge happening vs. the
                 // session is really terminated. Let's flag this and revisit if
@@ -1642,6 +1654,9 @@ public class ImsCall implements ICall {
                 mSessionEndDuringMerge = true;
                 mSessionEndDuringMergeReasonInfo = reasonInfo;
                 return;
+            } else if (mTerminationRequestPending) {
+                // Abort the merge if we receive a termination request from telephony or the user.
+                clearMergeInfo();
             }
 
             // If we are terminating the conference call, notify using conference listeners.
