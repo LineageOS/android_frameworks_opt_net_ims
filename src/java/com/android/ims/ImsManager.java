@@ -318,10 +318,8 @@ public class ImsManager {
         if (imsManager != null) {
             try {
                 ImsConfig config = imsManager.getConfigInterface();
-                // FIXME: replace NETWORK_TYPE_LTE with NETWORK_TYPE_IWLAN
-                // when available
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_WIFI,
-                        TelephonyManager.NETWORK_TYPE_LTE,
+                        TelephonyManager.NETWORK_TYPE_IWLAN,
                         enabled ? ImsConfig.FeatureValueConstants.ON
                                 : ImsConfig.FeatureValueConstants.OFF, null);
 
