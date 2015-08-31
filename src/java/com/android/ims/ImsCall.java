@@ -1718,16 +1718,21 @@ public class ImsCall implements ICall {
         }
     }
 
-    private void maybeMarkPeerAsMerged() {
-        if (!isSessionAlive(mMergePeer.mSession)) {
+    private void markCallAsMerged(boolean playDisconnectTone) {
+        if (!isSessionAlive(mSession)) {
             // If the peer is dead, let's not play a disconnect sound for it when we
             // unbury the termination callback.
-            logi("maybeMarkPeerAsMerged");
-            mMergePeer.setIsMerged(true);
-            mMergePeer.mSessionEndDuringMerge = true;
-            mMergePeer.mSessionEndDuringMergeReasonInfo = new ImsReasonInfo(
-                    ImsReasonInfo.CODE_UNSPECIFIED, 0,
-                    "Call ended during conference merge process.");
+            logi("markCallAsMerged");
+            setIsMerged(playDisconnectTone);
+            mSessionEndDuringMerge = true;
+            String reasonInfo;
+            if (playDisconnectTone) {
+                reasonInfo = "Call ended by network";
+            } else {
+                reasonInfo = "Call ended during conference merge process.";
+            }
+            mSessionEndDuringMergeReasonInfo = new ImsReasonInfo(
+                    ImsReasonInfo.CODE_UNSPECIFIED, 0, reasonInfo);
         }
     }
 
@@ -1796,7 +1801,7 @@ public class ImsCall implements ICall {
                     this.mHold = false;
                     swapRequired = true;
                 }
-                maybeMarkPeerAsMerged();
+                mMergePeer.markCallAsMerged(false);
                 finalHostCall = this;
                 finalPeerCall = mMergePeer;
             } else {
@@ -1871,7 +1876,7 @@ public class ImsCall implements ICall {
                     // only disconnected to be added to the conference.
                     finalHostCall = this;
                     finalPeerCall = mMergePeer;
-                    maybeMarkPeerAsMerged();
+                    mMergePeer.markCallAsMerged(false);
                     swapRequired = false;
                     setIsMerged(false);
                     mMergePeer.setIsMerged(true);
@@ -1996,12 +2001,14 @@ public class ImsCall implements ICall {
 
             // Ensure the calls being conferenced into the conference has isMerged = false.
             // Ensure any terminations are surfaced from this session.
-            setIsMerged(false);
+            markCallAsMerged(true);
+            setCallSessionMergePending(false);
             notifySessionTerminatedDuringMerge();
 
+            // Perform the same cleanup on the merge peer if it exists.
             if (mMergePeer != null) {
-                // Perform the same cleanup on the merge peer if it exists.
-                mMergePeer.setIsMerged(false);
+                mMergePeer.markCallAsMerged(true);
+                mMergePeer.setCallSessionMergePending(false);
                 mMergePeer.notifySessionTerminatedDuringMerge();
             } else {
                 loge("processMergeFailed :: No merge peer!");
