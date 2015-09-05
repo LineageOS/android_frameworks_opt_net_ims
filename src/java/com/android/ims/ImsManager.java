@@ -20,12 +20,14 @@ import android.app.PendingIntent;
 import android.app.QueuedWork;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
@@ -166,6 +168,8 @@ public class ImsManager {
     private ImsUt mUt = null;
     // Interface to get/set ims config items
     private ImsConfig mConfig = null;
+    private boolean mConfigUpdated = false;
+    private static final String PREF_ENABLE_VIDEO_CALLING_KEY = "enable_video_calling";
 
     // ECBM interface
     private ImsEcbm mEcbm = null;
@@ -398,15 +402,22 @@ public class ImsManager {
      * Change persistent WFC roaming enabled setting
      */
     public static void setWfcRoamingSetting(Context context, boolean enabled) {
-        final int value = enabled
-                ? ImsConfig.FeatureValueConstants.ON
-                : ImsConfig.FeatureValueConstants.OFF;
         android.provider.Settings.Global.putInt(context.getContentResolver(),
-                android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED, value);
+                android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
+                enabled
+                        ? ImsConfig.FeatureValueConstants.ON
+                        : ImsConfig.FeatureValueConstants.OFF);
 
+        setWfcRoamingSettingInternal(context, enabled);
+    }
+
+    private static void setWfcRoamingSettingInternal(Context context, boolean enabled) {
         final ImsManager imsManager = ImsManager.getInstance(context,
                 SubscriptionManager.getDefaultVoicePhoneId());
         if (imsManager != null) {
+            final int value = enabled
+                    ? ImsConfig.FeatureValueConstants.ON
+                    : ImsConfig.FeatureValueConstants.OFF;
             QueuedWork.singleThreadExecutor().submit(new Runnable() {
                 public void run() {
                     try {
@@ -437,6 +448,96 @@ public class ImsManager {
                        com.android.internal.R.bool.config_device_wfc_ims_available) &&
                getBooleanCarrierConfig(context,
                        CarrierConfigManager.KEY_CARRIER_WFC_IMS_AVAILABLE_BOOL);
+    }
+
+    /**
+     * Sync carrier config and user settings with ImsConfig.
+     *
+     * @param context for the manager object
+     * @param phoneId phone id
+     * @param force update
+     */
+    public static void updateImsServiceConfig(Context context, int phoneId, boolean force) {
+        final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
+        if (imsManager != null && (!imsManager.mConfigUpdated || force)) {
+            try {
+                imsManager.updateVolteFeatureValue();
+                imsManager.updateVideoCallFeatureValue();
+                imsManager.updateWfcFeatureAndProvisionedValues();
+                imsManager.mConfigUpdated = true;
+            } catch (ImsException e) {
+                loge("updateImsServiceConfig: " + e);
+                imsManager.mConfigUpdated = false;
+            }
+        }
+    }
+
+    private void updateVolteFeatureValue() throws ImsException {
+        boolean available = isVolteEnabledByPlatform(mContext);
+        boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext);
+        boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
+
+        log("updateVolteFeatureValue: available = " + available
+                + ", enabled = " + enabled
+                + ", nonTTY = " + isNonTty);
+
+        getConfigInterface().setFeatureValue(
+                ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
+                TelephonyManager.NETWORK_TYPE_LTE,
+                (available && enabled && isNonTty) ?
+                        ImsConfig.FeatureValueConstants.ON :
+                        ImsConfig.FeatureValueConstants.OFF,
+                null);
+    }
+
+    private void updateVideoCallFeatureValue() throws ImsException {
+        boolean available = isVtEnabledByPlatform(mContext);
+        SharedPreferences sharedPrefs =
+                PreferenceManager.getDefaultSharedPreferences(mContext);
+        boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext) &&
+                sharedPrefs.getBoolean(PREF_ENABLE_VIDEO_CALLING_KEY, true);
+        boolean isNonTty = Settings.Secure.getInt(mContext.getContentResolver(),
+                Settings.Secure.PREFERRED_TTY_MODE, TelecomManager.TTY_MODE_OFF)
+                == TelecomManager.TTY_MODE_OFF;
+
+        log("updateVideoCallFeatureValue: available = " + available
+                + ", enabled = " + enabled
+                + ", nonTTY = " + isNonTty);
+
+        getConfigInterface().setFeatureValue(
+                ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                TelephonyManager.NETWORK_TYPE_LTE,
+                (available && enabled && isNonTty) ?
+                        ImsConfig.FeatureValueConstants.ON :
+                        ImsConfig.FeatureValueConstants.OFF,
+                null);
+    }
+
+    private void updateWfcFeatureAndProvisionedValues() throws ImsException {
+        boolean available = isWfcEnabledByPlatform(mContext);
+        boolean enabled = isWfcEnabledByUser(mContext);
+        int mode = getWfcMode(mContext);
+        boolean roaming = isWfcRoamingEnabledByUser(mContext);
+
+        log("updateWfcFeatureAndProvisionedValues: available = " + available
+                + ", enabled = " + enabled
+                + ", mode = " + mode
+                + ", roaming = " + roaming);
+
+        getConfigInterface().setFeatureValue(
+                ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                TelephonyManager.NETWORK_TYPE_LTE,
+                (available && enabled) ?
+                        ImsConfig.FeatureValueConstants.ON :
+                        ImsConfig.FeatureValueConstants.OFF,
+                null);
+
+        if (!available || !enabled) {
+            mode = ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED;
+            roaming = false;
+        }
+        setWfcModeInternal(mContext, mode);
+        setWfcRoamingSettingInternal(mContext, roaming);
     }
 
     private ImsManager(Context context, int phoneId) {
