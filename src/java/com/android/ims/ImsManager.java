@@ -461,9 +461,17 @@ public class ImsManager {
         final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
         if (imsManager != null && (!imsManager.mConfigUpdated || force)) {
             try {
-                imsManager.updateVolteFeatureValue();
-                imsManager.updateVideoCallFeatureValue();
-                imsManager.updateWfcFeatureAndProvisionedValues();
+                boolean turnOn = imsManager.updateVolteFeatureValue();
+                turnOn |= imsManager.updateVideoCallFeatureValue();
+                turnOn |= imsManager.updateWfcFeatureAndProvisionedValues();
+
+                if (turnOn) {
+                    imsManager.turnOnIms();
+                } else if (getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)) {
+                    imsManager.turnOffIms();
+                }
+
                 imsManager.mConfigUpdated = true;
             } catch (ImsException e) {
                 loge("updateImsServiceConfig: " + e);
@@ -472,10 +480,16 @@ public class ImsManager {
         }
     }
 
-    private void updateVolteFeatureValue() throws ImsException {
+    /**
+     * Update VoLTE config
+     * @return whether feature is On
+     * @throws ImsException
+     */
+    private boolean updateVolteFeatureValue() throws ImsException {
         boolean available = isVolteEnabledByPlatform(mContext);
         boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext);
         boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
+        boolean turnOn = available && enabled && isNonTty;
 
         log("updateVolteFeatureValue: available = " + available
                 + ", enabled = " + enabled
@@ -484,13 +498,20 @@ public class ImsManager {
         getConfigInterface().setFeatureValue(
                 ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                 TelephonyManager.NETWORK_TYPE_LTE,
-                (available && enabled && isNonTty) ?
+                turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
                 null);
+
+        return turnOn;
     }
 
-    private void updateVideoCallFeatureValue() throws ImsException {
+    /**
+     * Update VC config
+     * @return whether feature is On
+     * @throws ImsException
+     */
+    private boolean updateVideoCallFeatureValue() throws ImsException {
         boolean available = isVtEnabledByPlatform(mContext);
         SharedPreferences sharedPrefs =
                 PreferenceManager.getDefaultSharedPreferences(mContext);
@@ -499,6 +520,7 @@ public class ImsManager {
         boolean isNonTty = Settings.Secure.getInt(mContext.getContentResolver(),
                 Settings.Secure.PREFERRED_TTY_MODE, TelecomManager.TTY_MODE_OFF)
                 == TelecomManager.TTY_MODE_OFF;
+        boolean turnOn = available && enabled && isNonTty;
 
         log("updateVideoCallFeatureValue: available = " + available
                 + ", enabled = " + enabled
@@ -507,17 +529,25 @@ public class ImsManager {
         getConfigInterface().setFeatureValue(
                 ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
                 TelephonyManager.NETWORK_TYPE_LTE,
-                (available && enabled && isNonTty) ?
+                turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
                 null);
+
+        return turnOn;
     }
 
-    private void updateWfcFeatureAndProvisionedValues() throws ImsException {
+    /**
+     * Update WFC config
+     * @return whether feature is On
+     * @throws ImsException
+     */
+    private boolean updateWfcFeatureAndProvisionedValues() throws ImsException {
         boolean available = isWfcEnabledByPlatform(mContext);
         boolean enabled = isWfcEnabledByUser(mContext);
         int mode = getWfcMode(mContext);
         boolean roaming = isWfcRoamingEnabledByUser(mContext);
+        boolean turnOn = available && enabled;
 
         log("updateWfcFeatureAndProvisionedValues: available = " + available
                 + ", enabled = " + enabled
@@ -527,17 +557,19 @@ public class ImsManager {
         getConfigInterface().setFeatureValue(
                 ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
                 TelephonyManager.NETWORK_TYPE_LTE,
-                (available && enabled) ?
+                turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
                 null);
 
-        if (!available || !enabled) {
+        if (!turnOn) {
             mode = ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED;
             roaming = false;
         }
         setWfcModeInternal(mContext, mode);
         setWfcRoamingSettingInternal(mContext, roaming);
+
+        return turnOn;
     }
 
     private ImsManager(Context context, int phoneId) {
