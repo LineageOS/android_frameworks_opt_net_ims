@@ -1582,6 +1582,10 @@ public class ImsCall implements ICall {
     }
 
     private void notifyConferenceStateUpdated(ImsConferenceState state) {
+        if (state == null || state.mParticipants == null) {
+            return;
+        }
+
         Set<Entry<String, Bundle>> participants = state.mParticipants.entrySet();
 
         if (participants == null) {
