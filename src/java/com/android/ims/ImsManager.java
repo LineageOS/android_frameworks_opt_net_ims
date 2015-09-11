@@ -555,8 +555,8 @@ public class ImsManager {
                 + ", roaming = " + roaming);
 
         getConfigInterface().setFeatureValue(
-                ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
-                TelephonyManager.NETWORK_TYPE_LTE,
+                ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_WIFI,
+                TelephonyManager.NETWORK_TYPE_IWLAN,
                 turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
