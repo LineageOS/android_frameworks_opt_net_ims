@@ -1626,8 +1626,7 @@ public class ImsCall implements ICall {
             }
         }
 
-        if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()
-                && mListener != null) {
+        if (mConferenceParticipants != null && mListener != null) {
             try {
                 mListener.onConferenceParticipantsStateChanged(this, mConferenceParticipants);
             } catch (Throwable t) {
