@@ -1584,6 +1584,10 @@ public class ImsCall implements ICall {
     }
 
     private void notifyConferenceStateUpdated(ImsConferenceState state) {
+        if (state == null || state.mParticipants == null) {
+            return;
+        }
+
         Set<Entry<String, Bundle>> participants = state.mParticipants.entrySet();
 
         if (participants == null) {
@@ -1844,6 +1848,13 @@ public class ImsCall implements ICall {
                     if (mConferenceParticipants != null && !mConferenceParticipants.isEmpty()) {
                         mMergePeer.mConferenceParticipants = mConferenceParticipants;
                     }
+                    // At this point both host & peer will have participant information.
+                    // Peer will transition to host & the participant information
+                    // from that will be used
+                    // HostCall that failed to merge will remain as a single call with
+                    // mConferenceParticipants, which should not be used.
+                    // Expectation is that if this call becomes part of a conference call in future,
+                    // mConferenceParticipants will be overriten with new CEP that is received.
                     finalHostCall = mMergePeer;
                     finalPeerCall = this;
                     swapRequired = true;
