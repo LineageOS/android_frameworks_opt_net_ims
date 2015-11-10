@@ -1283,4 +1283,42 @@ public class ImsManager {
         }
         return mEcbm;
     }
+
+    /**
+     * Resets ImsManager settings back to factory defaults.
+     *
+     * @hide
+     */
+    public static void factoryReset(Context context) {
+        // Set VoLTE to default
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED,
+                ImsConfig.FeatureValueConstants.ON);
+
+        // Set VoWiFi to default
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_ENABLED,
+                ImsConfig.FeatureValueConstants.OFF);
+
+        // Set VoWiFi mode to default
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_MODE,
+                ImsConfig.WfcModeFeatureValueConstants.WIFI_PREFERRED);
+
+        // Set VoWiFi roaming to default
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
+                ImsConfig.FeatureValueConstants.OFF);
+
+        // Set VT to default
+        SharedPreferences sharedPrefs =
+                PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = sharedPrefs.edit();
+        editor.putBoolean(PREF_ENABLE_VIDEO_CALLING_KEY, true);
+        editor.commit();
+
+        // Push settings to ImsConfig
+        ImsManager.updateImsServiceConfig(context,
+                SubscriptionManager.getDefaultVoicePhoneId(), true);
+    }
 }
