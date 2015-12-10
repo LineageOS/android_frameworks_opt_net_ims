@@ -254,7 +254,8 @@ public class ImsManager {
         return context.getResources().getBoolean(
                 com.android.internal.R.bool.config_device_volte_available)
                 && getBooleanCarrierConfig(context,
-                        CarrierConfigManager.KEY_CARRIER_VOLTE_AVAILABLE_BOOL);
+                        CarrierConfigManager.KEY_CARRIER_VOLTE_AVAILABLE_BOOL)
+                && isGbaValid(context);
     }
 
     /*
@@ -298,7 +299,8 @@ public class ImsManager {
                 context.getResources().getBoolean(
                         com.android.internal.R.bool.config_device_vt_available) &&
                 getBooleanCarrierConfig(context,
-                        CarrierConfigManager.KEY_CARRIER_VT_AVAILABLE_BOOL);
+                        CarrierConfigManager.KEY_CARRIER_VT_AVAILABLE_BOOL) &&
+                isGbaValid(context);
     }
 
     /**
@@ -492,7 +494,31 @@ public class ImsManager {
                context.getResources().getBoolean(
                        com.android.internal.R.bool.config_device_wfc_ims_available) &&
                getBooleanCarrierConfig(context,
-                       CarrierConfigManager.KEY_CARRIER_WFC_IMS_AVAILABLE_BOOL);
+                       CarrierConfigManager.KEY_CARRIER_WFC_IMS_AVAILABLE_BOOL) &&
+               isGbaValid(context);
+    }
+
+    /**
+     * If carrier requires that IMS is only available if GBA capable SIM is used,
+     * then this function checks GBA bit in EF IST.
+     *
+     * Format of EF IST is defined in 3GPP TS 31.103 (Section 4.2.7).
+     */
+    private static boolean isGbaValid(Context context) {
+        if (getBooleanCarrierConfig(context,
+                CarrierConfigManager.KEY_CARRIER_IMS_GBA_REQUIRED_BOOL)) {
+            final TelephonyManager telephonyManager = TelephonyManager.getDefault();
+            String efIst = telephonyManager.getIsimIst();
+            if (efIst == null) {
+                loge("ISF is NULL");
+                return true;
+            }
+            boolean result = efIst != null && efIst.length() > 1 &&
+                    (0x02 & (byte)efIst.charAt(1)) != 0;
+            if (DBG) log("GBA capable=" + result + ", ISF=" + efIst);
+            return result;
+        }
+        return true;
     }
 
     /**
