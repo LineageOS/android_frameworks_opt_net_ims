@@ -302,6 +302,49 @@ public class ImsManager {
     }
 
     /**
+     * Returns the user configuration of VT setting
+     */
+    public static boolean isVtEnabledByUser(Context context) {
+        int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
+                android.provider.Settings.Global.VT_IMS_ENABLED,
+                ImsConfig.FeatureValueConstants.ON);
+        return (enabled == 1) ? true : false;
+    }
+
+    /**
+     * Change persistent VT enabled setting
+     */
+    public static void setVtSetting(Context context, boolean enabled) {
+        int value = enabled ? 1 : 0;
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.VT_IMS_ENABLED, value);
+
+        ImsManager imsManager = ImsManager.getInstance(context,
+                SubscriptionManager.getDefaultVoicePhoneId());
+        if (imsManager != null) {
+            try {
+                ImsConfig config = imsManager.getConfigInterface();
+                config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                        TelephonyManager.NETWORK_TYPE_LTE,
+                        enabled ? ImsConfig.FeatureValueConstants.ON
+                                : ImsConfig.FeatureValueConstants.OFF, null);
+
+                if (enabled) {
+                    imsManager.turnOnIms();
+                } else if (context.getResources().getBoolean(
+                        com.android.internal.R.bool.imsServiceAllowTurnOff) && (
+                        !isVolteEnabledByPlatform(context)
+                        || !isEnhanced4gLteModeSettingEnabledByUser(context))) {
+                    log("setVtSetting() : imsServiceAllowTurnOff -> turnOffIms");
+                    imsManager.turnOffIms();
+                }
+            } catch (ImsException e) {
+                loge("setVtSetting(): " + e);
+            }
+        }
+    }
+
+    /**
      * Returns the user configuration of WFC setting
      */
     public static boolean isWfcEnabledByUser(Context context) {
