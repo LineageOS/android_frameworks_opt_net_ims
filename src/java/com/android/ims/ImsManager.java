@@ -331,9 +331,9 @@ public class ImsManager {
 
                 if (enabled) {
                     imsManager.turnOnIms();
-                } else if (context.getResources().getBoolean(
-                        com.android.internal.R.bool.imsServiceAllowTurnOff) && (
-                        !isVolteEnabledByPlatform(context)
+                } else if (getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
+                        && (!isVolteEnabledByPlatform(context)
                         || !isEnhanced4gLteModeSettingEnabledByUser(context))) {
                     log("setVtSetting() : imsServiceAllowTurnOff -> turnOffIms");
                     imsManager.turnOffIms();
