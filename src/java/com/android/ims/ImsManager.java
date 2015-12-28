@@ -44,6 +44,8 @@ import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.IImsConfig;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.util.HashMap;
 
 /**
@@ -1363,5 +1365,30 @@ public class ImsManager {
         // Push settings to ImsConfig
         ImsManager.updateImsServiceConfig(context,
                 SubscriptionManager.getDefaultVoicePhoneId(), true);
+    }
+
+    public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
+        pw.println("ImsManager:");
+        pw.println("  mPhoneId = " + mPhoneId);
+        pw.println("  mConfigUpdated = " + mConfigUpdated);
+        pw.println("  mImsService = " + mImsService);
+
+        pw.println("  isGbaValid = " + isGbaValid(mContext));
+        pw.println("  isImsTurnOffAllowed = " + isImsTurnOffAllowed());
+        pw.println("  isNonTtyOrTtyOnVolteEnabled = " + isNonTtyOrTtyOnVolteEnabled(mContext));
+
+        pw.println("  isVolteEnabledByPlatform = " + isVolteEnabledByPlatform(mContext));
+        pw.println("  isVolteProvisionedOnDevice = " + isVolteProvisionedOnDevice(mContext));
+        pw.println("  isEnhanced4gLteModeSettingEnabledByUser = " +
+                isEnhanced4gLteModeSettingEnabledByUser(mContext));
+        pw.println("  isVtEnabledByPlatform = " + isVtEnabledByPlatform(mContext));
+        pw.println("  isVtEnabledByUser = " + isVtEnabledByUser(mContext));
+
+        pw.println("  isWfcEnabledByPlatform = " + isWfcEnabledByPlatform(mContext));
+        pw.println("  isWfcEnabledByUser = " + isWfcEnabledByUser(mContext));
+        pw.println("  getWfcMode = " + getWfcMode(mContext));
+        pw.println("  isWfcRoamingEnabledByUser = " + isWfcRoamingEnabledByUser(mContext));
+
+        pw.flush();
     }
 }
