@@ -262,12 +262,18 @@ public class ImsManager {
      * Indicates whether VoLTE is provisioned on device
      */
     public static boolean isVolteProvisionedOnDevice(Context context) {
+        return isVolteProvisionedOnDevice(context, SubscriptionManager.getDefaultVoicePhoneId());
+    }
+
+    /**
+     * @hide
+     */
+    public static boolean isVolteProvisionedOnDevice(Context context, int phoneId) {
         boolean isProvisioned = true;
         if (getBooleanCarrierConfig(context,
-                    CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
+                CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
             isProvisioned = false; // disable on any error
-            ImsManager mgr = ImsManager.getInstance(context,
-                    SubscriptionManager.getDefaultVoicePhoneId());
+            ImsManager mgr = ImsManager.getInstance(context, phoneId);
             if (mgr != null) {
                 try {
                     ImsConfig config = mgr.getConfigInterface();
