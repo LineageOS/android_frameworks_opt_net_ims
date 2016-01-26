@@ -1902,6 +1902,9 @@ public class ImsCall implements ICall {
 
             listener = finalHostCall.mListener;
 
+            updateCallProfile(finalPeerCall);
+            updateCallProfile(finalHostCall);
+
             // Clear all the merge related flags.
             clearMergeInfo();
 
@@ -1937,6 +1940,20 @@ public class ImsCall implements ICall {
             }
         }
         return;
+    }
+
+    private static void updateCallProfile(ImsCall call) {
+        if (call != null) {
+            call.updateCallProfile();
+        }
+    }
+
+    private void updateCallProfile() {
+        synchronized (mLockObj) {
+            if (mSession != null) {
+                mCallProfile = mSession.getCallProfile();
+            }
+        }
     }
 
     /**
