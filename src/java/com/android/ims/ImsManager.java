@@ -173,6 +173,8 @@ public class ImsManager {
     private boolean mConfigUpdated = false;
     private static final String PREF_ENABLE_VIDEO_CALLING_KEY = "enable_video_calling";
 
+    private ImsConfigListener mImsConfigListener;
+
     // ECBM interface
     private ImsEcbm mEcbm = null;
 
@@ -329,7 +331,8 @@ public class ImsManager {
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
                         TelephonyManager.NETWORK_TYPE_LTE,
                         enabled ? ImsConfig.FeatureValueConstants.ON
-                                : ImsConfig.FeatureValueConstants.OFF, null);
+                                : ImsConfig.FeatureValueConstants.OFF,
+                        imsManager.mImsConfigListener);
 
                 if (enabled) {
                     imsManager.turnOnIms();
@@ -372,7 +375,8 @@ public class ImsManager {
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_WIFI,
                         TelephonyManager.NETWORK_TYPE_IWLAN,
                         enabled ? ImsConfig.FeatureValueConstants.ON
-                                : ImsConfig.FeatureValueConstants.OFF, null);
+                                : ImsConfig.FeatureValueConstants.OFF,
+                        imsManager.mImsConfigListener);
 
                 if (enabled) {
                     imsManager.turnOnIms();
@@ -572,7 +576,7 @@ public class ImsManager {
                 turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
-                null);
+                mImsConfigListener);
 
         return turnOn;
     }
@@ -603,7 +607,7 @@ public class ImsManager {
                 turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
-                null);
+                mImsConfigListener);
 
         return turnOn;
     }
@@ -631,7 +635,7 @@ public class ImsManager {
                 turnOn ?
                         ImsConfig.FeatureValueConstants.ON :
                         ImsConfig.FeatureValueConstants.OFF,
-                null);
+                mImsConfigListener);
 
         if (!turnOn) {
             mode = ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED;
@@ -663,6 +667,10 @@ public class ImsManager {
         }
 
         return false;
+    }
+
+    public void setImsConfigListener(ImsConfigListener listener) {
+        mImsConfigListener = listener;
     }
 
     /**
@@ -1145,14 +1153,15 @@ public class ImsManager {
             ImsConfig config = getConfigInterface();
             if (config != null && (turnOn || !isImsTurnOffAllowed())) {
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
-                        TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+                        TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
+
                 if (isVtEnabledByPlatform(mContext)) {
                     // TODO: once VT is available on platform:
                     // - replace the '1' with the current user configuration of VT.
                     // - separate exception checks for setFeatureValue() failures for VoLTE and VT.
                     //   I.e. if VoLTE fails still try to configure VT.
                     config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
-                            TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, null);
+                            TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
                 }
             }
         } catch (ImsException e) {
