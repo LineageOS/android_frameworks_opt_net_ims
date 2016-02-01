@@ -202,6 +202,12 @@ public class ImsManager {
      * Returns the user configuration of Enhanced 4G LTE Mode setting
      */
     public static boolean isEnhanced4gLteModeSettingEnabledByUser(Context context) {
+        // If user can't edit Enhanced 4G LTE Mode, it assumes Enhanced 4G LTE Mode is always true.
+        // If user changes SIM from editable mode to uneditable mode, need to return true.
+        if (!getBooleanCarrierConfig(context,
+                    CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL)) {
+            return true;
+        }
         int enabled = android.provider.Settings.Global.getInt(
                     context.getContentResolver(),
                     android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED, ImsConfig.FeatureValueConstants.ON);
