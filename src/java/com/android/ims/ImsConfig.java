@@ -377,10 +377,15 @@ public class ImsConfig {
          * Value is in String format.
          */
         public static final int SMS_PSI = 52;
+        /**
+         * Video Quality - VideoQualityFeatureValuesConstants.
+         * Value is in Integer format.
+         */
+        public static final int VIDEO_QUALITY = 53;
 
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
-        public static final int PROVISIONED_CONFIG_END = SMS_PSI;
+        public static final int PROVISIONED_CONFIG_END = VIDEO_QUALITY;
 
         // Expand the operator config items as needed here.
     }
@@ -407,6 +412,14 @@ public class ImsConfig {
         public static final int VIDEO_QUALITY_UNKNOWN = -1;
         public static final int VIDEO_QUALITY_LOW = 0;
         public static final int VIDEO_QUALITY_HIGH = 1;
+    }
+
+    /**
+     * Defines IMS video quality feature value.
+     */
+    public static class VideoQualityFeatureValuesConstants {
+        public static final int LOW = 0;
+        public static final int HIGH = 1;
     }
 
    /**
@@ -603,39 +616,4 @@ public class ImsConfig {
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
     }
-
-    /**
-     * Gets the value for IMS feature item for video call quality.
-     *
-     * @param listener, provided if caller needs to be notified for set result.
-     * @return void
-     *
-     * @throws ImsException if calling the IMS service results in an error.
-     */
-    public void getVideoQuality(ImsConfigListener listener) throws ImsException {
-        try {
-            miConfig.getVideoQuality(listener);
-        } catch (RemoteException e) {
-            throw new ImsException("getVideoQuality()", e,
-                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-        }
-    }
-
-    /**
-     * Sets the value for IMS feature item video quality.
-     *
-     * @param quality, defines the value of video quality.
-     * @param listener, provided if caller needs to be notified for set result.
-     * @return void
-     *
-     * @throws ImsException if calling the IMS service results in an error.
-     */
-     public void setVideoQuality(int quality, ImsConfigListener listener) throws ImsException {
-        try {
-            miConfig.setVideoQuality(quality, listener);
-        } catch (RemoteException e) {
-            throw new ImsException("setVideoQuality()", e,
-                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-        }
-     }
 }
