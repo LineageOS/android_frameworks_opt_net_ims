@@ -593,9 +593,7 @@ public class ImsManager {
                 PreferenceManager.getDefaultSharedPreferences(mContext);
         boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext) &&
                 sharedPrefs.getBoolean(PREF_ENABLE_VIDEO_CALLING_KEY, true);
-        boolean isNonTty = Settings.Secure.getInt(mContext.getContentResolver(),
-                Settings.Secure.PREFERRED_TTY_MODE, TelecomManager.TTY_MODE_OFF)
-                == TelecomManager.TTY_MODE_OFF;
+        boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
         boolean turnOn = available && enabled && isNonTty;
 
         log("updateVideoCallFeatureValue: available = " + available
