@@ -35,6 +35,7 @@ import android.telephony.Rlog;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
+import android.text.TextUtils;
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsEcbmListener;
@@ -67,6 +68,7 @@ public class ImsManager {
     public static final int PROPERTY_DBG_VT_AVAIL_OVERRIDE_DEFAULT = 0;
     public static final String PROPERTY_DBG_WFC_AVAIL_OVERRIDE = "persist.dbg.wfc_avail_ovr";
     public static final int PROPERTY_DBG_WFC_AVAIL_OVERRIDE_DEFAULT = 0;
+    public static final String PROPERTY_VOLTE_FEATURE_ENABLED = "persist.radio.volte_ftr_enable";
 
     /**
      * For accessing the IMS related service.
@@ -256,6 +258,24 @@ public class ImsManager {
                 && getBooleanCarrierConfig(context,
                         CarrierConfigManager.KEY_CARRIER_VOLTE_AVAILABLE_BOOL)
                 && isGbaValid(context);
+    }
+
+    /**
+     * Indicates whether Volte Feature property is enabled.
+     */
+    public static boolean isVolteFeatureEnabled() {
+        String isVolteFeatureEnabled = SystemProperties.get(PROPERTY_VOLTE_FEATURE_ENABLED);
+        if (DBG) log("isVolteFeatureEnabled: " + isVolteFeatureEnabled);
+
+        return TextUtils.equals(isVolteFeatureEnabled, "true");
+    }
+
+    /**
+     * Sets property to indicate whether Volte Feature is enabled.
+     */
+    public static void setVolteFeatureEnabled(boolean enabled) {
+        if (DBG) log("setVolteFeatureEnabled: " + enabled);
+        SystemProperties.set(PROPERTY_VOLTE_FEATURE_ENABLED, Boolean.toString(enabled));
     }
 
     /*
