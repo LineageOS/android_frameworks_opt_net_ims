@@ -67,6 +67,7 @@ public class ImsManager {
     public static final int PROPERTY_DBG_VT_AVAIL_OVERRIDE_DEFAULT = 0;
     public static final String PROPERTY_DBG_WFC_AVAIL_OVERRIDE = "persist.dbg.wfc_avail_ovr";
     public static final int PROPERTY_DBG_WFC_AVAIL_OVERRIDE_DEFAULT = 0;
+    public static final String PROPERTY_VOLTE_FEATURE_ENABLED = "persist.radio.volte_ftr_enable";
 
     /**
      * For accessing the IMS related service.
@@ -256,6 +257,24 @@ public class ImsManager {
                 && getBooleanCarrierConfig(context,
                         CarrierConfigManager.KEY_CARRIER_VOLTE_AVAILABLE_BOOL)
                 && isGbaValid(context);
+    }
+
+    /**
+     * Indicates whether Volte Feature property is enabled.
+     */
+    public static boolean isVolteFeatureEnabled() {
+        boolean isVolteFeatureEnabled = SystemProperties.getBoolean(PROPERTY_VOLTE_FEATURE_ENABLED, false);
+        if (DBG) log("isVolteFeatureEnabled: " + isVolteFeatureEnabled);
+
+        return isVolteFeatureEnabled;
+    }
+
+    /**
+     * Sets property to indicate whether Volte Feature is enabled.
+     */
+    public static void setVolteFeatureEnabled(boolean enabled) {
+        if (DBG) log("setVolteFeatureEnabled: " + enabled);
+        SystemProperties.set(PROPERTY_VOLTE_FEATURE_ENABLED, Boolean.toString(enabled));
     }
 
     /*
