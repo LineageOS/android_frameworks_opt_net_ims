@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ffb9cba7_b7606b34",
+        "filename": "src/java/com/android/ims/ImsManager.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 13513
+      },
+      "writtenOn": "2016-02-25T07:22:51Z",
+      "side": 1,
+      "message": "Since this is set if IMS is registered then no need to set this as persist. name it like cm.radio.volte_call_capable",
+      "revId": "679c04b8be222d2b195fd34add4ba42629c94855",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
