@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ffb9cba7_97568706",
+        "filename": "src/java/com/android/ims/ImsManager.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 2936
+      },
+      "writtenOn": "2016-02-25T04:12:41Z",
+      "side": 1,
+      "message": "Use getBoolean instead, so you don\u0027t have to parse it and check for equivalence against the \"true\" string. It also lets you specify a default.\n\nAlso, is there a permission/feature check that needs to happen here as well?",
+      "range": {
+        "startLine": 267,
+        "startChar": 56,
+        "endLine": 267,
+        "endChar": 59
+      },
+      "revId": "1649cca3fda4dfdfe9aa23b9d754e25b17166589",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
