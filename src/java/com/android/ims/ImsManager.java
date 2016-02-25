@@ -21,6 +21,7 @@ import android.app.QueuedWork;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PersistableBundle;
@@ -1341,6 +1342,14 @@ public class ImsManager {
             }
         }
 
+        @Override
+        public void registrationAssociatedUriChanged(Uri[] uris) {
+            if (DBG) log("registrationAssociatedUriChanged ::");
+
+            if (mListener != null) {
+                mListener.registrationAssociatedUriChanged(uris);
+            }
+        }
     }
     /**
      * Gets the ECBM interface to request ECBM exit.
