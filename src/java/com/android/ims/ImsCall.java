@@ -3118,6 +3118,10 @@ public class ImsCall implements ICall {
         sb.append(isOnHold() ? "Y" : "N");
         sb.append(" mute:");
         sb.append(isMuted() ? "Y" : "N");
+        if (mCallProfile != null) {
+            sb.append(" tech:");
+            sb.append(mCallProfile.getCallExtra(ImsCallProfile.EXTRA_CALL_RAT_TYPE));
+        }
         sb.append(" updateRequest:");
         sb.append(updateRequestToString(mUpdateRequest));
         sb.append(" merging:");
