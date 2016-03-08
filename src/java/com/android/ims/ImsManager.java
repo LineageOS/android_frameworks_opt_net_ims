@@ -242,7 +242,7 @@ public class ImsManager {
      */
     public static boolean isNonTtyOrTtyOnVolteEnabled(Context context) {
         if (getBooleanCarrierConfig(context,
-                    CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
+                CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
             return true;
         }
 
@@ -362,7 +362,9 @@ public class ImsManager {
     public static boolean isWfcEnabledByUser(Context context) {
         int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ENABLED,
-                ImsConfig.FeatureValueConstants.OFF);
+                getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ENABLED_BOOL) ?
+                        ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF);
         return (enabled == 1) ? true : false;
     }
 
@@ -410,8 +412,8 @@ public class ImsManager {
      */
     public static int getWfcMode(Context context) {
         int setting = android.provider.Settings.Global.getInt(context.getContentResolver(),
-                android.provider.Settings.Global.WFC_IMS_MODE,
-                ImsConfig.WfcModeFeatureValueConstants.WIFI_PREFERRED);
+                android.provider.Settings.Global.WFC_IMS_MODE, getIntCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT));
         if (DBG) log("getWfcMode - setting=" + setting);
         return setting;
     }
@@ -452,7 +454,9 @@ public class ImsManager {
     public static boolean isWfcRoamingEnabledByUser(Context context) {
         int enabled = android.provider.Settings.Global.getInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
-                ImsConfig.FeatureValueConstants.OFF);
+                getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_ENABLED_BOOL) ?
+                        ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF);
         return (enabled == 1) ? true : false;
     }
 
@@ -462,8 +466,7 @@ public class ImsManager {
     public static void setWfcRoamingSetting(Context context, boolean enabled) {
         android.provider.Settings.Global.putInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
-                enabled
-                        ? ImsConfig.FeatureValueConstants.ON
+                enabled ? ImsConfig.FeatureValueConstants.ON
                         : ImsConfig.FeatureValueConstants.OFF);
 
         setWfcRoamingSettingInternal(context, enabled);
@@ -1031,6 +1034,28 @@ public class ImsManager {
     }
 
     /**
+     * Get the int config from carrier config manager.
+     *
+     * @param context the context to get carrier service
+     * @param key config key defined in CarrierConfigManager
+     * @return integer value of corresponding key.
+     */
+    private static int getIntCarrierConfig(Context context, String key) {
+        CarrierConfigManager configManager = (CarrierConfigManager) context.getSystemService(
+                Context.CARRIER_CONFIG_SERVICE);
+        PersistableBundle b = null;
+        if (configManager != null) {
+            b = configManager.getConfig();
+        }
+        if (b != null) {
+            return b.getInt(key);
+        } else {
+            // Return static default defined in CarrierConfigManager.
+            return CarrierConfigManager.getDefaultConfig().getInt(key);
+        }
+    }
+
+    /**
      * Gets the call ID from the specified incoming call broadcast intent.
      *
      * @param incomingCallIntent the incoming call broadcast intent
@@ -1398,17 +1423,22 @@ public class ImsManager {
         // Set VoWiFi to default
         android.provider.Settings.Global.putInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ENABLED,
-                ImsConfig.FeatureValueConstants.OFF);
+                getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ENABLED_BOOL) ?
+                        ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF);
 
         // Set VoWiFi mode to default
         android.provider.Settings.Global.putInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_MODE,
-                ImsConfig.WfcModeFeatureValueConstants.WIFI_PREFERRED);
+                getIntCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT));
 
         // Set VoWiFi roaming to default
         android.provider.Settings.Global.putInt(context.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ROAMING_ENABLED,
-                ImsConfig.FeatureValueConstants.OFF);
+                getBooleanCarrierConfig(context,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_ENABLED_BOOL) ?
+                        ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF);
 
         // Set VT to default
         SharedPreferences sharedPrefs =
