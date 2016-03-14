@@ -23,6 +23,7 @@ import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsCallSessionListener;
 import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
+import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
@@ -110,6 +111,11 @@ public abstract class ImsServiceBase {
         public void setUiTTYMode(int serviceId, int uiTtyMode, Message onComplete) {
             onSetUiTTYMode(serviceId, uiTtyMode, onComplete);
         }
+
+        @Override
+        public IImsMultiEndpoint getMultiEndpointInterface(int serviceId) {
+            return onGetMultiEndpointInterface(serviceId);
+        }
     }
 
     private ImsServiceBinder mBinder;
@@ -196,6 +202,11 @@ public abstract class ImsServiceBase {
 
     protected void onSetUiTTYMode(int serviceId, int uiTtyMode, Message onComplete) {
         // no-op
+    }
+
+    protected IImsMultiEndpoint onGetMultiEndpointInterface(int serviceId) {
+        // no-op
+        return null;
     }
 }
 
