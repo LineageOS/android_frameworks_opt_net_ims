@@ -1724,13 +1724,15 @@ public class ImsCall implements ICall {
             setIsMerged(playDisconnectTone);
             mSessionEndDuringMerge = true;
             String reasonInfo;
+            int reasonCode = ImsReasonInfo.CODE_UNSPECIFIED;
             if (playDisconnectTone) {
                 reasonInfo = "Call ended by network";
             } else {
                 reasonInfo = "Call ended during conference merge process.";
+                reasonCode = ImsReasonInfo.CODE_USER_TERMINATED_BY_REMOTE;
             }
             mSessionEndDuringMergeReasonInfo = new ImsReasonInfo(
-                    ImsReasonInfo.CODE_UNSPECIFIED, 0, reasonInfo);
+                    reasonCode, 0, reasonInfo);
         }
     }
 
@@ -1800,6 +1802,7 @@ public class ImsCall implements ICall {
                     swapRequired = true;
                 }
                 mMergePeer.markCallAsMerged(false);
+                mMergePeer.setIsMerged(true);
                 finalHostCall = this;
                 finalPeerCall = mMergePeer;
             } else {
