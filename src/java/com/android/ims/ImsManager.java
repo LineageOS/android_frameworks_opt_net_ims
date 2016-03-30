@@ -543,6 +543,14 @@ public class ImsManager {
      * @param force update
      */
     public static void updateImsServiceConfig(Context context, int phoneId, boolean force) {
+        if (!force) {
+            if (TelephonyManager.getDefault().getSimState() != TelephonyManager.SIM_STATE_READY) {
+                log("updateImsServiceConfig: SIM not ready");
+                // Don't disable IMS if SIM is not ready
+                return;
+            }
+        }
+
         final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
         if (imsManager != null && (!imsManager.mConfigUpdated || force)) {
             try {
