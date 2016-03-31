@@ -434,7 +434,7 @@ public class ImsManager {
                 SubscriptionManager.getDefaultVoicePhoneId());
         if (imsManager != null) {
             final int value = wfcMode;
-            QueuedWork.singleThreadExecutor().submit(new Runnable() {
+            Thread thread = new Thread(new Runnable() {
                 public void run() {
                     try {
                         imsManager.getConfigInterface().setProvisionedValue(
@@ -445,6 +445,7 @@ public class ImsManager {
                     }
                 }
             });
+            thread.start();
         }
     }
 
@@ -479,7 +480,7 @@ public class ImsManager {
             final int value = enabled
                     ? ImsConfig.FeatureValueConstants.ON
                     : ImsConfig.FeatureValueConstants.OFF;
-            QueuedWork.singleThreadExecutor().submit(new Runnable() {
+            Thread thread = new Thread(new Runnable() {
                 public void run() {
                     try {
                         imsManager.getConfigInterface().setProvisionedValue(
@@ -490,6 +491,7 @@ public class ImsManager {
                     }
                 }
             });
+            thread.start();
         }
     }
 
