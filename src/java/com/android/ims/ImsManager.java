@@ -17,10 +17,8 @@
 package com.android.ims;
 
 import android.app.PendingIntent;
-import android.app.QueuedWork;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.Message;
@@ -28,7 +26,6 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
-import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
@@ -172,7 +169,6 @@ public class ImsManager {
     // Interface to get/set ims config items
     private ImsConfig mConfig = null;
     private boolean mConfigUpdated = false;
-    private static final String PREF_ENABLE_VIDEO_CALLING_KEY = "enable_video_calling";
 
     private ImsConfigListener mImsConfigListener;
 
@@ -613,10 +609,8 @@ public class ImsManager {
      */
     private boolean updateVideoCallFeatureValue() throws ImsException {
         boolean available = isVtEnabledByPlatform(mContext);
-        SharedPreferences sharedPrefs =
-                PreferenceManager.getDefaultSharedPreferences(mContext);
         boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext) &&
-                sharedPrefs.getBoolean(PREF_ENABLE_VIDEO_CALLING_KEY, true);
+                isVtEnabledByUser(mContext);
         boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
         boolean isFeatureOn = available && enabled && isNonTty;
 
@@ -1199,15 +1193,6 @@ public class ImsManager {
             if (config != null && (turnOn || !isImsTurnOffAllowed())) {
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                         TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
-
-                if (isVtEnabledByPlatform(mContext)) {
-                    // TODO: once VT is available on platform:
-                    // - replace the '1' with the current user configuration of VT.
-                    // - separate exception checks for setFeatureValue() failures for VoLTE and VT.
-                    //   I.e. if VoLTE fails still try to configure VT.
-                    config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
-                            TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
-                }
             }
         } catch (ImsException e) {
             log("setAdvanced4GMode() : " + e);
@@ -1449,11 +1434,9 @@ public class ImsManager {
                         ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF);
 
         // Set VT to default
-        SharedPreferences sharedPrefs =
-                PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putBoolean(PREF_ENABLE_VIDEO_CALLING_KEY, true);
-        editor.commit();
+        android.provider.Settings.Global.putInt(context.getContentResolver(),
+                android.provider.Settings.Global.VT_IMS_ENABLED,
+                ImsConfig.FeatureValueConstants.ON);
 
         // Push settings to ImsConfig
         ImsManager.updateImsServiceConfig(context,
