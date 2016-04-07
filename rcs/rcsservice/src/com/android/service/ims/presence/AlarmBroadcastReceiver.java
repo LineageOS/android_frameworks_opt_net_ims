@@ -71,7 +71,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver{
             int sipCode = intent.getIntExtra("sipCode", 888);
             PresencePublication publication = PresencePublication.getPresencePublication();
             if(publication != null) {
-                publication.retryPublish(sipCode);
+                publication.retryPublish();
             }
         }
         else{
