@@ -275,150 +275,156 @@ public class ImsConfig {
          */
         public static final int VOICE_OVER_WIFI_MODE = 27;
         /**
+         * VOLTE Status for voice over wifi status of Enabled (1), or Disabled (0).
+         * Value is in Integer format.
+         */
+        public static final int VOICE_OVER_WIFI_SETTING_ENABLED = 28;
+        /**
          * Mobile data enabled.
          * Value is in Integer format. On (1), OFF(0).
          */
-        public static final int MOBILE_DATA_ENABLED = 28;
+        public static final int MOBILE_DATA_ENABLED = 29;
         /**
          * VoLTE user opted in status.
          * Value is in Integer format. Opted-in (1) Opted-out (0).
          */
-        public static final int VOLTE_USER_OPT_IN_STATUS = 29;
+        public static final int VOLTE_USER_OPT_IN_STATUS = 30;
         /**
          * Proxy for Call Session Control Function(P-CSCF) address for Local-BreakOut(LBO).
          * Value is in String format.
          */
-        public static final int LBO_PCSCF_ADDRESS = 30;
+        public static final int LBO_PCSCF_ADDRESS = 31;
         /**
          * Keep Alive Enabled for SIP.
          * Value is in Integer format. On(1), OFF(0).
          */
-        public static final int KEEP_ALIVE_ENABLED = 31;
+        public static final int KEEP_ALIVE_ENABLED = 32;
         /**
          * Registration retry Base Time value in seconds.
          * Value is in Integer format.
          */
-        public static final int REGISTRATION_RETRY_BASE_TIME_SEC = 32;
+        public static final int REGISTRATION_RETRY_BASE_TIME_SEC = 33;
         /**
          * Registration retry Max Time value in seconds.
          * Value is in Integer format.
          */
-        public static final int REGISTRATION_RETRY_MAX_TIME_SEC = 33;
+        public static final int REGISTRATION_RETRY_MAX_TIME_SEC = 34;
         /**
          * Smallest RTP port for speech codec.
          * Value is in integer format.
          */
-        public static final int SPEECH_START_PORT = 34;
+        public static final int SPEECH_START_PORT = 35;
         /**
          * Largest RTP port for speech code.
          * Value is in Integer format.
          */
-        public static final int SPEECH_END_PORT = 35;
+        public static final int SPEECH_END_PORT = 36;
         /**
          * SIP Timer A's value in milliseconds. Timer A is the INVITE request
          * retransmit interval, for UDP only.
          * Value is in Integer format.
          */
-        public static final int SIP_INVITE_REQ_RETX_INTERVAL_MSEC = 36;
+        public static final int SIP_INVITE_REQ_RETX_INTERVAL_MSEC = 37;
         /**
          * SIP Timer B's value in milliseconds. Timer B is the wait time for
          * INVITE message to be acknowledged.
          * Value is in Integer format.
          */
-        public static final int SIP_INVITE_RSP_WAIT_TIME_MSEC = 37;
+        public static final int SIP_INVITE_RSP_WAIT_TIME_MSEC = 38;
         /**
          * SIP Timer D's value in milliseconds. Timer D is the wait time for
          * response retransmits of the invite client transactions.
          * Value is in Integer format.
          */
-        public static final int SIP_INVITE_RSP_RETX_WAIT_TIME_MSEC = 38;
+        public static final int SIP_INVITE_RSP_RETX_WAIT_TIME_MSEC = 39;
         /**
          * SIP Timer E's value in milliseconds. Timer E is the value Non-INVITE
          * request retransmit interval, for UDP only.
          * Value is in Integer format.
          */
-        public static final int SIP_NON_INVITE_REQ_RETX_INTERVAL_MSEC = 39;
+        public static final int SIP_NON_INVITE_REQ_RETX_INTERVAL_MSEC = 40;
         /**
          * SIP Timer F's value in milliseconds. Timer F is the Non-INVITE transaction
          * timeout timer.
          * Value is in Integer format.
          */
-        public static final int SIP_NON_INVITE_TXN_TIMEOUT_TIMER_MSEC = 40;
+        public static final int SIP_NON_INVITE_TXN_TIMEOUT_TIMER_MSEC = 41;
         /**
          * SIP Timer G's value in milliseconds. Timer G is the value of INVITE response
          * retransmit interval.
          * Value is in Integer format.
          */
-        public static final int SIP_INVITE_RSP_RETX_INTERVAL_MSEC = 41;
+        public static final int SIP_INVITE_RSP_RETX_INTERVAL_MSEC = 42;
         /**
          * SIP Timer H's value in milliseconds. Timer H is the value of wait time for
          * ACK receipt.
          * Value is in Integer format.
          */
-        public static final int SIP_ACK_RECEIPT_WAIT_TIME_MSEC = 42;
+        public static final int SIP_ACK_RECEIPT_WAIT_TIME_MSEC = 43;
         /**
          * SIP Timer I's value in milliseconds. Timer I is the value of wait time for
          * ACK retransmits.
          * Value is in Integer format.
          */
-        public static final int SIP_ACK_RETX_WAIT_TIME_MSEC = 43;
+        public static final int SIP_ACK_RETX_WAIT_TIME_MSEC = 44;
         /**
          * SIP Timer J's value in milliseconds. Timer J is the value of wait time for
          * non-invite request retransmission.
          * Value is in Integer format.
          */
-        public static final int SIP_NON_INVITE_REQ_RETX_WAIT_TIME_MSEC = 44;
+        public static final int SIP_NON_INVITE_REQ_RETX_WAIT_TIME_MSEC = 45;
         /**
          * SIP Timer K's value in milliseconds. Timer K is the value of wait time for
          * non-invite response retransmits.
          * Value is in Integer format.
          */
-        public static final int SIP_NON_INVITE_RSP_RETX_WAIT_TIME_MSEC = 45;
+        public static final int SIP_NON_INVITE_RSP_RETX_WAIT_TIME_MSEC = 46;
         /**
          * AMR WB octet aligned dynamic payload type.
          * Value is in Integer format.
          */
-        public static final int AMR_WB_OCTET_ALIGNED_PT = 46;
+        public static final int AMR_WB_OCTET_ALIGNED_PT = 47;
         /**
          * AMR WB bandwidth efficient payload type.
          * Value is in Integer format.
          */
-        public static final int AMR_WB_BANDWIDTH_EFFICIENT_PT = 47;
+        public static final int AMR_WB_BANDWIDTH_EFFICIENT_PT = 48;
         /**
          * AMR octet aligned dynamic payload type.
          * Value is in Integer format.
          */
-        public static final int AMR_OCTET_ALIGNED_PT = 48;
+        public static final int AMR_OCTET_ALIGNED_PT = 49;
         /**
          * AMR bandwidth efficient payload type.
          * Value is in Integer format.
          */
-        public static final int AMR_BANDWIDTH_EFFICIENT_PT = 49;
+        public static final int AMR_BANDWIDTH_EFFICIENT_PT = 50;
         /**
          * DTMF WB payload type.
          * Value is in Integer format.
          */
-        public static final int DTMF_WB_PT = 50;
+        public static final int DTMF_WB_PT = 51;
         /**
          * DTMF NB payload type.
          * Value is in Integer format.
          */
-        public static final int DTMF_NB_PT = 51;
+        public static final int DTMF_NB_PT = 52;
         /**
          * AMR Default encoding mode.
          * Value is in Integer format.
          */
-        public static final int AMR_DEFAULT_MODE = 52;
+        public static final int AMR_DEFAULT_MODE = 53;
         /**
          * SMS Public Service Identity.
          * Value is in String format.
          */
-        public static final int SMS_PSI = 53;
+        public static final int SMS_PSI = 54;
         /**
          * Video Quality - VideoQualityFeatureValuesConstants.
          * Value is in Integer format.
          */
-        public static final int VIDEO_QUALITY = 54;
+        public static final int VIDEO_QUALITY = 55;
+
 
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
