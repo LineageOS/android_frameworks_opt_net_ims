@@ -49,61 +49,44 @@ public class RcsSettingUtils{
     public RcsSettingUtils() {
     }
 
-    public static boolean isVolteProvisioned(Context context) {
-        boolean volteProvisioned = false;
+    public static boolean isFeatureProvisioned(Context context,
+            int featureId, boolean defaultValue) {
+        // Don't need provision.
+        if (!context.getResources().getBoolean(
+                com.android.internal.R.bool.config_carrier_volte_provisioned)) {
+            return true;
+        }
+
+        boolean provisioned = defaultValue;
         ImsManager imsManager = ImsManager.getInstance(context, 0);
         if (imsManager != null) {
             try {
                 ImsConfig imsConfig = imsManager.getConfigInterface();
                 if (imsConfig != null) {
-                    volteProvisioned = imsConfig.getProvisionedValue(
-                            ImsConfig.ConfigConstants.VLT_SETTING_ENABLED)
+                    provisioned = imsConfig.getProvisionedValue(featureId)
                             == ImsConfig.FeatureValueConstants.ON;
                 }
             } catch (ImsException ex) {
             }
         }
 
-        logger.debug("volteProvisioned=" + volteProvisioned);
-        return volteProvisioned;
+        logger.debug("featureId=" + featureId + " provisioned=" + provisioned);
+        return provisioned;
+    }
+
+    public static boolean isVowifiProvisioned(Context context) {
+        return isFeatureProvisioned(context,
+                ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED, false);
     }
 
     public static boolean isLvcProvisioned(Context context) {
-        boolean lvcProvisioned = false;
-        ImsManager imsManager = ImsManager.getInstance(context, 0);
-        if (imsManager != null) {
-            try {
-                ImsConfig imsConfig = imsManager.getConfigInterface();
-                if (imsConfig != null) {
-                    lvcProvisioned = imsConfig.getProvisionedValue(
-                            ImsConfig.ConfigConstants.LVC_SETTING_ENABLED)
-                            == ImsConfig.FeatureValueConstants.ON;
-                }
-            } catch (ImsException ex) {
-            }
-        }
-
-        logger.debug("lvcProvisioned=" + lvcProvisioned);
-        return lvcProvisioned;
+        return isFeatureProvisioned(context,
+                ImsConfig.ConfigConstants.LVC_SETTING_ENABLED, false);
     }
 
     public static boolean isEabProvisioned(Context context) {
-        boolean eabProvisioned = false;
-        ImsManager imsManager = ImsManager.getInstance(context, 0);
-        if (imsManager != null) {
-            try {
-                ImsConfig imsConfig = imsManager.getConfigInterface();
-                if (imsConfig != null) {
-                    eabProvisioned = imsConfig.getProvisionedValue(
-                            ImsConfig.ConfigConstants.EAB_SETTING_ENABLED)
-                            == ImsConfig.FeatureValueConstants.ON;
-                }
-            } catch (ImsException ex) {
-            }
-        }
-
-        logger.debug("eabProvisioned=" + eabProvisioned);
-        return eabProvisioned;
+        return isFeatureProvisioned(context,
+                ImsConfig.ConfigConstants.EAB_SETTING_ENABLED, false);
     }
 
     public static int getSIPT1Timer(Context context) {
@@ -248,6 +231,25 @@ public class RcsSettingUtils{
                 logger.debug("ImsException", ex);
             }
         }
+    }
+
+    public static int getPublishThrottle(Context context) {
+        int publishThrottle = 60000;
+
+        ImsManager imsManager = ImsManager.getInstance(context, 0);
+        if (imsManager != null) {
+            try {
+                ImsConfig imsConfig = imsManager.getConfigInterface();
+                if (imsConfig != null) {
+                    publishThrottle = imsConfig.getProvisionedValue(
+                            ImsConfig.ConfigConstants.SOURCE_THROTTLE_PUBLISH);
+                }
+            } catch (ImsException ex) {
+            }
+        }
+
+        logger.debug("publishThrottle=" + publishThrottle);
+        return publishThrottle;
     }
 }
 

@@ -48,6 +48,7 @@ import android.net.ConnectivityManager;
 import com.android.ims.ImsConfig.FeatureValueConstants;
 import com.android.ims.ImsManager;
 import com.android.ims.ImsConfig;
+import com.android.ims.ImsReasonInfo;
 import com.android.ims.ImsConnectionStateListener;
 import com.android.ims.ImsServiceClass;
 import com.android.ims.ImsException;
@@ -80,6 +81,8 @@ public class RcsService extends Service{
     private PresencePublication mPublication = null;
     private PresenceSubscriber mSubscriber = null;
     private ImsManager mImsManager = null;
+
+    private BroadcastReceiver mReceiver = null;
 
     @Override
     public void onCreate() {
@@ -122,7 +125,55 @@ public class RcsService extends Service{
                 SubscriptionManager.from(this).getDefaultDataPhoneId());
 
         registerImsConnectionStateListener();
+
+        mReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                logger.print("onReceive intent=" + intent);
+                if(ImsManager.ACTION_IMS_SERVICE_UP.equalsIgnoreCase(
+                        intent.getAction())){
+                    handleImsServiceUp();
+                } else if(ImsManager.ACTION_IMS_SERVICE_DOWN.equalsIgnoreCase(
+                        intent.getAction())){
+                    handleImsServiceDown();
+                }
+            }
+        };
+
+        IntentFilter statusFilter = new IntentFilter();
+        statusFilter.addAction(ImsManager.ACTION_IMS_SERVICE_UP);
+        statusFilter.addAction(ImsManager.ACTION_IMS_SERVICE_DOWN);
+        registerReceiver(mReceiver, statusFilter);
     }
+
+    public void handleImsServiceUp() {
+        if(mImsManager == null) {
+            mImsManager = ImsManager.getInstance(this,
+                    SubscriptionManager.getDefaultVoiceSubscriptionId());
+        }
+
+        // Don't check mServiceId since it wasn't reset to INVALID_SERVICE_ID when
+        // got ACTION_IMS_SERVICE_DOWN
+        // This is phone crash case. Reset mServiceId to INVALID_SERVICE_ID
+        mServiceId = INVALID_SERVICE_ID;
+        if(mPublication != null) {
+            mPublication.handleImsServiceUp();
+        }
+
+        registerImsConnectionStateListener();
+    }
+
+    public void handleImsServiceDown() {
+        // Don't close since it could close the wrong one when phone crashed and restarted.
+        //if((mImsManager != null) && (mServiceId != INVALID_SERVICE_ID)) {
+        //    mImsManager.close(mServiceId);
+        //    mServiceId = INVALID_SERVICE_ID;
+        //}
+        if(mPublication != null) {
+            mPublication.handleImsServiceDown();
+        }
+    }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -138,6 +189,11 @@ public class RcsService extends Service{
     public void onDestroy() {
         getContentResolver().unregisterContentObserver(mObserver);
         getContentResolver().unregisterContentObserver(mVtSettingObserver);
+        if (mReceiver != null) {
+            unregisterReceiver(mReceiver);
+            mReceiver = null;
+        }
+
         mRcsStackAdaptor.finish();
         mPublication.finish();
         mPublication = null;
@@ -366,6 +422,27 @@ public class RcsService extends Service{
                 logger.debug("onImsConnected");
                 if(mRcsStackAdaptor != null) {
                     mRcsStackAdaptor.checkSubService();
+                }
+
+                if(mPublication != null) {
+                    mPublication.onImsConnected();
+                }
+            }
+
+            @Override
+            public void onImsDisconnected(ImsReasonInfo imsReasonInfo) {
+                logger.debug("onImsDisconnected");
+                if(mPublication != null) {
+                    mPublication.onImsDisconnected();
+                }
+            }
+
+            @Override
+            public void onFeatureCapabilityChanged(final int serviceClass,
+                    final int[] enabledFeatures, final int[] disabledFeatures) {
+                logger.debug("onFeatureCapabilityChanged");
+                if(mPublication != null) {
+                    mPublication.onFeatureCapabilityChanged(serviceClass, enabledFeatures, disabledFeatures);
                 }
             }
         };
