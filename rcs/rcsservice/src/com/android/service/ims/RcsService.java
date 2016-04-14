@@ -80,7 +80,6 @@ public class RcsService extends Service{
     private RcsStackAdaptor mRcsStackAdaptor = null;
     private PresencePublication mPublication = null;
     private PresenceSubscriber mSubscriber = null;
-    private ImsManager mImsManager = null;
 
     private BroadcastReceiver mReceiver = null;
 
@@ -121,9 +120,6 @@ public class RcsService extends Service{
                 Settings.Global.getUriFor(Settings.Global.VT_IMS_ENABLED),
                 false, mVtSettingObserver);
 
-        mImsManager = ImsManager.getInstance(this,
-                SubscriptionManager.from(this).getDefaultDataPhoneId());
-
         registerImsConnectionStateListener();
 
         mReceiver = new BroadcastReceiver() {
@@ -147,11 +143,6 @@ public class RcsService extends Service{
     }
 
     public void handleImsServiceUp() {
-        if(mImsManager == null) {
-            mImsManager = ImsManager.getInstance(this,
-                    SubscriptionManager.getDefaultVoiceSubscriptionId());
-        }
-
         // Don't check mServiceId since it wasn't reset to INVALID_SERVICE_ID when
         // got ACTION_IMS_SERVICE_DOWN
         // This is phone crash case. Reset mServiceId to INVALID_SERVICE_ID
@@ -379,14 +370,19 @@ public class RcsService extends Service{
     };
 
     void registerImsConnectionStateListener() {
+        final Context context = this;
         Thread t = new Thread() {
             @Override
             public void run() {
                 while (mServiceId == INVALID_SERVICE_ID) {
                     try {
-                        mServiceId = mImsManager.open(ImsServiceClass.MMTEL,
-                                createIncomingCallPendingIntent(),
-                                mImsConnectionStateListener);
+                        ImsManager imsManager = ImsManager.getInstance(context,
+                                SubscriptionManager.getDefaultVoicePhoneId());
+                        if (imsManager != null) {
+                            mServiceId = imsManager.open(ImsServiceClass.RCS,
+                                    createIncomingCallPendingIntent(),
+                                    mImsConnectionStateListener);
+                        }
                     } catch (ImsException e) {
                         logger.error("register exception=", e);
                     }
