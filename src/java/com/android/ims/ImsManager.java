@@ -36,6 +36,7 @@ import android.telephony.TelephonyManager;
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsEcbmListener;
+import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
@@ -174,6 +175,8 @@ public class ImsManager {
 
     // ECBM interface
     private ImsEcbm mEcbm = null;
+
+    private ImsMultiEndpoint mMultiEndpoint = null;
 
     /**
      * Gets a manager instance.
@@ -764,6 +767,7 @@ public class ImsManager {
             mUt = null;
             mConfig = null;
             mEcbm = null;
+            mMultiEndpoint = null;
         }
     }
 
@@ -1237,6 +1241,7 @@ public class ImsManager {
             mUt = null;
             mConfig = null;
             mEcbm = null;
+            mMultiEndpoint = null;
 
             if (mContext != null) {
                 Intent intent = new Intent(ACTION_IMS_SERVICE_DOWN);
@@ -1383,6 +1388,7 @@ public class ImsManager {
             }
         }
     }
+
     /**
      * Gets the ECBM interface to request ECBM exit.
      *
@@ -1408,6 +1414,34 @@ public class ImsManager {
             }
         }
         return mEcbm;
+    }
+
+    /**
+     * Gets the Multi-Endpoint interface to subscribe to multi-enpoint notifications..
+     *
+     * @param serviceId a service id which is obtained from {@link ImsManager#open}
+     * @return the multi-endpoint interface instance
+     * @throws ImsException if getting the multi-endpoint interface results in an error
+     */
+    public ImsMultiEndpoint getMultiEndpointInterface(int serviceId) throws ImsException {
+        if (mMultiEndpoint == null) {
+            checkAndThrowExceptionIfServiceUnavailable();
+
+            try {
+                IImsMultiEndpoint iImsMultiEndpoint = mImsService.getMultiEndpointInterface(
+                        serviceId);
+
+                if (iImsMultiEndpoint == null) {
+                    throw new ImsException("getMultiEndpointInterface()",
+                            ImsReasonInfo.CODE_MULTIENDPOINT_NOT_SUPPORTED);
+                }
+                mMultiEndpoint = new ImsMultiEndpoint(iImsMultiEndpoint);
+            } catch (RemoteException e) {
+                throw new ImsException("getMultiEndpointInterface()", e,
+                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+            }
+        }
+        return mMultiEndpoint;
     }
 
     /**
