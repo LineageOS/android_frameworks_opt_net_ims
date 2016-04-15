@@ -1193,6 +1193,14 @@ public class ImsManager {
             if (config != null && (turnOn || !isImsTurnOffAllowed())) {
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                         TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
+
+                if (isVtEnabledByPlatform(mContext)) {
+                    boolean enableViLte = turnOn && isVtEnabledByUser(mContext);
+                    config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
+                            TelephonyManager.NETWORK_TYPE_LTE,
+                            enableViLte ? 1 : 0,
+                            mImsConfigListener);
+                }
             }
         } catch (ImsException e) {
             log("setAdvanced4GMode() : " + e);
