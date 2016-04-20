@@ -72,11 +72,6 @@ public class RcsService extends Service{
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
 
-    final static String ACTION_IMS_FEATURE_STATUS_CHANGED =
-            "com.android.service.ims.presence.ims-feature-changed";
-    private static final int INVALID_SERVICE_ID = -1;
-    int mServiceId = INVALID_SERVICE_ID;
-
     private RcsStackAdaptor mRcsStackAdaptor = null;
     private PresencePublication mPublication = null;
     private PresenceSubscriber mSubscriber = null;
@@ -143,10 +138,6 @@ public class RcsService extends Service{
     }
 
     public void handleImsServiceUp() {
-        // Don't check mServiceId since it wasn't reset to INVALID_SERVICE_ID when
-        // got ACTION_IMS_SERVICE_DOWN
-        // This is phone crash case. Reset mServiceId to INVALID_SERVICE_ID
-        mServiceId = INVALID_SERVICE_ID;
         if(mPublication != null) {
             mPublication.handleImsServiceUp();
         }
@@ -155,11 +146,6 @@ public class RcsService extends Service{
     }
 
     public void handleImsServiceDown() {
-        // Don't close since it could close the wrong one when phone crashed and restarted.
-        //if((mImsManager != null) && (mServiceId != INVALID_SERVICE_ID)) {
-        //    mImsManager.close(mServiceId);
-        //    mServiceId = INVALID_SERVICE_ID;
-        //}
         if(mPublication != null) {
             mPublication.handleImsServiceDown();
         }
@@ -370,45 +356,16 @@ public class RcsService extends Service{
     };
 
     void registerImsConnectionStateListener() {
-        final Context context = this;
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                while (mServiceId == INVALID_SERVICE_ID) {
-                    try {
-                        ImsManager imsManager = ImsManager.getInstance(context,
-                                SubscriptionManager.getDefaultVoicePhoneId());
-                        if (imsManager != null) {
-                            mServiceId = imsManager.open(ImsServiceClass.RCS,
-                                    createIncomingCallPendingIntent(),
-                                    mImsConnectionStateListener);
-                        }
-                    } catch (ImsException e) {
-                        logger.error("register exception=", e);
-                    }
-
-                    if (mServiceId == INVALID_SERVICE_ID) {
-                        try {
-                            logger.print("register wait for imsservice");
-                            sleep(300);
-                        } catch (InterruptedException e) {
-                            logger.error("register exception=", e);
-                        }
-                    } else {
-                        logger.print("register imsservice ready mServiceId="+mServiceId);
-                    }
-                }
+        try {
+            ImsManager imsManager = ImsManager.getInstance(this,
+                    SubscriptionManager.getDefaultVoicePhoneId());
+            if (imsManager != null) {
+                imsManager.addRegistrationListener(ImsServiceClass.MMTEL,
+                        mImsConnectionStateListener);
             }
-        };
-
-        t.start();
-    }
-
-    private PendingIntent createIncomingCallPendingIntent() {
-        Intent intent = new Intent(ACTION_IMS_FEATURE_STATUS_CHANGED);
-        intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-        return PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+        } catch (ImsException e) {
+            logger.error("addRegistrationListener exception=", e);
+        }
     }
 
     private ImsConnectionStateListener mImsConnectionStateListener =

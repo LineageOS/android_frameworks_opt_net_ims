@@ -749,6 +749,32 @@ public class ImsManager {
     }
 
     /**
+     * Adds registration listener to the IMS service.
+     *
+     * @param serviceClass a service class specified in {@link ImsServiceClass}
+     *      For VoLTE service, it MUST be a {@link ImsServiceClass#MMTEL}.
+     * @param listener To listen to IMS registration events; It cannot be null
+     * @throws NullPointerException if {@code listener} is null
+     * @throws ImsException if calling the IMS service results in an error
+     */
+    public void addRegistrationListener(int serviceClass, ImsConnectionStateListener listener)
+            throws ImsException {
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        if (listener == null) {
+            throw new NullPointerException("listener can't be null");
+        }
+
+        try {
+            mImsService.addRegistrationListener(mPhoneId, serviceClass,
+                    createRegistrationListenerProxy(serviceClass, listener));
+        } catch (RemoteException e) {
+            throw new ImsException("addRegistrationListener()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
      * Closes the specified service ({@link ImsServiceClass}) not to make/receive calls.
      * All the resources that were allocated to the service are also released.
      *
