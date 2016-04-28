@@ -424,11 +424,65 @@ public class ImsConfig {
          * Value is in Integer format.
          */
         public static final int VIDEO_QUALITY = 55;
-
+        /**
+         * LTE threshold.
+         * Handover from LTE to WiFi if LTE < THLTE1 and WiFi >= VOWT_A.
+         */
+        public static final int TH_LTE1 = 56;
+        /**
+         * LTE threshold.
+         * Handover from WiFi to LTE if LTE >= THLTE3 or (WiFi < VOWT_B and LTE >= THLTE2).
+         */
+        public static final int TH_LTE2 = 57;
+        /**
+         * LTE threshold.
+         * Handover from WiFi to LTE if LTE >= THLTE3 or (WiFi < VOWT_B and LTE >= THLTE2).
+         */
+        public static final int TH_LTE3 = 58;
+        /**
+         * 1x threshold.
+         * Handover from 1x to WiFi if 1x < TH1x
+         */
+        public static final int TH_1x = 59;
+        /**
+         * WiFi threshold.
+         * Handover from LTE to WiFi if LTE < THLTE1 and WiFi >= VOWT_A.
+         */
+        public static final int VOWT_A = 60;
+        /**
+         * WiFi threshold.
+         * Handover from WiFi to LTE if LTE >= THLTE3 or (WiFi < VOWT_B and LTE >= THLTE2).
+         */
+        public static final int VOWT_B = 61;
+        /**
+         * LTE ePDG timer.
+         * Device shall not handover back to LTE until the T_ePDG_LTE timer expires.
+         */
+        public static final int T_EPDG_LTE = 62;
+        /**
+         * WiFi ePDG timer.
+         * Device shall not handover back to WiFi until the T_ePDG_WiFi timer expires.
+         */
+        public static final int T_EPDG_WIFI = 63;
+        /**
+         * 1x ePDG timer.
+         * Device shall not re-register on 1x until the T_ePDG_1x timer expires.
+         */
+        public static final int T_EPDG_1X = 64;
+        /**
+         * Voice over WiFi status: Enabled (1), or Disabled (0).
+         * Value is in Integer format.
+         */
+        public static final int VOICE_OVER_WIFI_SETTING_ENABLED = 65;
+        /**
+         * MultiEndpoint status: Enabled (1), or Disabled (0).
+         * Value is in Integer format.
+         */
+        public static final int VICE_SETTING_ENABLED = 66;
 
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
-        public static final int PROVISIONED_CONFIG_END = VIDEO_QUALITY;
+        public static final int PROVISIONED_CONFIG_END = VICE_SETTING_ENABLED;
 
         // Expand the operator config items as needed here.
     }
