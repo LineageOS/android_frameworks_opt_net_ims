@@ -470,15 +470,10 @@ public class ImsConfig {
          */
         public static final int T_EPDG_1X = 64;
         /**
-         * Voice over WiFi status: Enabled (1), or Disabled (0).
-         * Value is in Integer format.
-         */
-        public static final int VOICE_OVER_WIFI_SETTING_ENABLED = 65;
-        /**
          * MultiEndpoint status: Enabled (1), or Disabled (0).
          * Value is in Integer format.
          */
-        public static final int VICE_SETTING_ENABLED = 66;
+        public static final int VICE_SETTING_ENABLED = 65;
 
         // Expand the operator config items as needed here, need to change
         // PROVISIONED_CONFIG_END after that.
