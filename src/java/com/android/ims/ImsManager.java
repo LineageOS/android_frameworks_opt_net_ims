@@ -555,9 +555,14 @@ public class ImsManager {
         final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
         if (imsManager != null && (!imsManager.mConfigUpdated || force)) {
             try {
+                // TODO: Extend ImsConfig API and set all feature values in single function call.
+
+                // Note: currently the order of updates is set to produce different order of
+                // setFeatureValue() function calls from setAdvanced4GMode(). This is done to
+                // differentiate this code path from vendor code perspective.
                 boolean isImsUsed = imsManager.updateVolteFeatureValue();
-                isImsUsed |= imsManager.updateVideoCallFeatureValue();
                 isImsUsed |= imsManager.updateWfcFeatureAndProvisionedValues();
+                isImsUsed |= imsManager.updateVideoCallFeatureValue();
 
                 if (isImsUsed || !getBooleanCarrierConfig(context,
                       CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)) {
