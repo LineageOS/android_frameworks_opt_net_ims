@@ -20,6 +20,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PersistableBundle;
@@ -180,6 +181,10 @@ public class ImsManager {
 
     private ImsMultiEndpoint mMultiEndpoint = null;
 
+    private boolean mIsVoLteProvisioned = true;
+    private boolean mIsWfcProvisioned = true;
+    private boolean mIsVtProvisioned = true;
+
     /**
      * Gets a manager instance.
      *
@@ -268,29 +273,52 @@ public class ImsManager {
                 && isGbaValid(context);
     }
 
-    /*
+    /**
      * Indicates whether VoLTE is provisioned on device
      */
     public static boolean isVolteProvisionedOnDevice(Context context) {
-        boolean isProvisioned = true;
         if (getBooleanCarrierConfig(context,
                     CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
-            isProvisioned = false; // disable on any error
             ImsManager mgr = ImsManager.getInstance(context,
                     SubscriptionManager.getDefaultVoicePhoneId());
             if (mgr != null) {
-                try {
-                    ImsConfig config = mgr.getConfigInterface();
-                    if (config != null) {
-                        isProvisioned = config.getVolteProvisioned();
-                    }
-                } catch (ImsException ie) {
-                    // do nothing
-                }
+                return mgr.mIsVoLteProvisioned;
             }
         }
 
-        return isProvisioned;
+        return true;
+    }
+
+    /**
+     * Indicates whether VoWifi is provisioned on device
+     */
+    public static boolean isWfcProvisionedOnDevice(Context context) {
+        if (getBooleanCarrierConfig(context,
+                CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
+            ImsManager mgr = ImsManager.getInstance(context,
+                    SubscriptionManager.getDefaultVoicePhoneId());
+            if (mgr != null) {
+                return mgr.mIsWfcProvisioned;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Indicates whether VT is provisioned on device
+     */
+    public static boolean isVtProvisionedOnDevice(Context context) {
+        if (getBooleanCarrierConfig(context,
+                CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
+            ImsManager mgr = ImsManager.getInstance(context,
+                    SubscriptionManager.getDefaultVoicePhoneId());
+            if (mgr != null) {
+                return mgr.mIsVtProvisioned;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -550,6 +578,77 @@ public class ImsManager {
     }
 
     /**
+     * This function should be called when ImsConfig.ACTION_IMS_CONFIG_CHANGED is received.
+     *
+     * We cannot register receiver in ImsManager because this would lead to resource leak.
+     * ImsManager can be created in different processes and it is not notified when that process
+     * is about to be terminated.
+     *
+     * @hide
+     * */
+    public static void onProvisionedValueChanged(Context context, int item, String value) {
+        if (DBG) Rlog.d(TAG, "onProvisionecValueChanged: item=" + item + " val=" + value);
+        ImsManager mgr = ImsManager.getInstance(context,
+                SubscriptionManager.getDefaultVoicePhoneId());
+
+        switch (item) {
+            case ImsConfig.ConfigConstants.VLT_SETTING_ENABLED:
+                mgr.mIsVoLteProvisioned = value.equals("1");
+                if (DBG) Rlog.d(TAG,"mIsVoLteProvisioned = " + mgr.mIsVoLteProvisioned);
+                break;
+
+            case ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED:
+                mgr.mIsWfcProvisioned = value.equals("1");
+                if (DBG) Rlog.d(TAG,"mIsWfcProvisioned = " + mgr.mIsWfcProvisioned);
+                break;
+
+            // TODO: Update mIsVtProvisioned when VT provisioning become available
+        }
+    }
+
+    private class AsyncUpdateProvisionedValues extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... params) {
+            // disable on any error
+            mIsVoLteProvisioned = false;
+            mIsWfcProvisioned = false;
+            mIsVtProvisioned = false;
+
+            try {
+                ImsConfig config = getConfigInterface();
+                if (config != null) {
+                    mIsVoLteProvisioned = getProvisionedBool(config,
+                            ImsConfig.ConfigConstants.VLT_SETTING_ENABLED);
+                    if (DBG) Rlog.d(TAG, "mIsVoLteProvisioned = " + mIsVoLteProvisioned);
+
+                    mIsWfcProvisioned = getProvisionedBool(config,
+                            ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED);
+                    if (DBG) Rlog.d(TAG, "mIsWfcProvisioned = " + mIsWfcProvisioned);
+
+                    // TODO: Update mIsVtProvisioned when VT provisioning become available
+                }
+            } catch (ImsException ie) {
+                Rlog.e(TAG, "AsyncUpdateProvisionedValues error: " + ie);
+            }
+
+            return null;
+        }
+
+        private boolean getProvisionedBool(ImsConfig config, int item) throws ImsException {
+            return config.getProvisionedValue(item) == ImsConfig.FeatureValueConstants.ON;
+        }
+    }
+
+    /** Asynchronously get VoLTE, WFC, VT provisioning statuses */
+    private void updateProvisionedValues() {
+        if (getBooleanCarrierConfig(mContext,
+                CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
+
+            new AsyncUpdateProvisionedValues().execute();
+        }
+    }
+
+    /**
      * Sync carrier config and user settings with ImsConfig.
      *
      * @param context for the manager object
@@ -568,6 +667,8 @@ public class ImsManager {
         final ImsManager imsManager = ImsManager.getInstance(context, phoneId);
         if (imsManager != null && (!imsManager.mConfigUpdated || force)) {
             try {
+                imsManager.updateProvisionedValues();
+
                 // TODO: Extend ImsConfig API and set all feature values in single function call.
 
                 // Note: currently the order of updates is set to produce different order of
