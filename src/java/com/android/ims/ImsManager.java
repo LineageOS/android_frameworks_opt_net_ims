@@ -66,6 +66,8 @@ public class ImsManager {
     public static final int PROPERTY_DBG_VT_AVAIL_OVERRIDE_DEFAULT = 0;
     public static final String PROPERTY_DBG_WFC_AVAIL_OVERRIDE = "persist.dbg.wfc_avail_ovr";
     public static final int PROPERTY_DBG_WFC_AVAIL_OVERRIDE_DEFAULT = 0;
+    public static final String PROPERTY_DBG_ALLOW_IMS_OFF_OVERRIDE = "persist.dbg.allow_ims_off";
+    public static final int PROPERTY_DBG_ALLOW_IMS_OFF_OVERRIDE_DEFAULT = 0;
 
     /**
      * For accessing the IMS related service.
@@ -342,8 +344,7 @@ public class ImsManager {
 
                 if (enabled) {
                     imsManager.turnOnIms();
-                } else if (getBooleanCarrierConfig(context,
-                        CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
+                } else if (isTurnOffImsAllowedByPlatform(context)
                         && (!isVolteEnabledByPlatform(context)
                         || !isEnhanced4gLteModeSettingEnabledByUser(context))) {
                     log("setVtSetting() : imsServiceAllowTurnOff -> turnOffIms");
@@ -353,6 +354,19 @@ public class ImsManager {
                 loge("setVtSetting(): " + e);
             }
         }
+    }
+
+    /*
+     * Returns whether turning off ims is allowed by platform.
+     * The platform property may override the carrier config.
+     */
+    private static boolean isTurnOffImsAllowedByPlatform(Context context) {
+        if (SystemProperties.getInt(PROPERTY_DBG_ALLOW_IMS_OFF_OVERRIDE,
+                PROPERTY_DBG_ALLOW_IMS_OFF_OVERRIDE_DEFAULT) == 1) {
+            return true;
+        }
+        return getBooleanCarrierConfig(context,
+                CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL);
     }
 
     /**
@@ -388,8 +402,7 @@ public class ImsManager {
 
                 if (enabled) {
                     imsManager.turnOnIms();
-                } else if (getBooleanCarrierConfig(context,
-                        CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
+                } else if (isTurnOffImsAllowedByPlatform(context)
                         && (!isVolteEnabledByPlatform(context)
                         || !isEnhanced4gLteModeSettingEnabledByUser(context))) {
                     log("setWfcSetting() : imsServiceAllowTurnOff -> turnOffIms");
@@ -564,8 +577,7 @@ public class ImsManager {
                 isImsUsed |= imsManager.updateWfcFeatureAndProvisionedValues();
                 isImsUsed |= imsManager.updateVideoCallFeatureValue();
 
-                if (isImsUsed || !getBooleanCarrierConfig(context,
-                      CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)) {
+                if (isImsUsed || !isTurnOffImsAllowedByPlatform(context)) {
                     // Turn on IMS if it is used.
                     // Also, if turning off is not allowed for current carrier,
                     // we need to turn IMS on because it might be turned off before
@@ -1214,8 +1226,7 @@ public class ImsManager {
     }
 
     private boolean isImsTurnOffAllowed() {
-        return getBooleanCarrierConfig(mContext,
-                CarrierConfigManager.KEY_CARRIER_ALLOW_TURNOFF_IMS_BOOL)
+        return isTurnOffImsAllowedByPlatform(mContext)
                 && (!isWfcEnabledByPlatform(mContext)
                 || !isWfcEnabledByUser(mContext));
     }
