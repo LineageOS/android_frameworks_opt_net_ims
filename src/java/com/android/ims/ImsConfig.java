@@ -23,6 +23,7 @@ import android.telephony.Rlog;
 import com.android.ims.ImsConfigListener;
 import com.android.ims.ImsReasonInfo;
 import com.android.ims.internal.IImsConfig;
+
 /**
  * Provides APIs to get/set the IMS service feature/capability/parameters.
  * The config items include:
@@ -688,23 +689,6 @@ public class ImsConfig {
             miConfig.setFeatureValue(feature, network, value, listener);
         } catch (RemoteException e) {
             throw new ImsException("setFeatureValue()", e,
-                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-        }
-    }
-
-    /**
-     * Gets the value for IMS Volte provisioned.
-     * It should be the same as operator provisioned value if applies.
-     *
-     * @return boolean
-     *
-     * @throws ImsException if calling the IMS service results in an error.
-     */
-    public boolean getVolteProvisioned() throws ImsException {
-        try {
-           return miConfig.getVolteProvisioned();
-        } catch (RemoteException e) {
-            throw new ImsException("getVolteProvisioned()", e,
                     ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
     }
