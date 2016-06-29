@@ -31,6 +31,7 @@ import android.os.Message;
 import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import android.telephony.ServiceState;
 import android.util.Log;
@@ -546,6 +547,16 @@ public class ImsCall implements ICall {
     private boolean mWasVideoCall = false;
 
     /**
+     * Unique id generator used to generate call id.
+     */
+    private static final AtomicInteger sUniqueIdGenerator = new AtomicInteger();
+
+    /**
+     * Unique identifier.
+     */
+    public final int uniqueId;
+
+    /**
      * Create an IMS call object.
      *
      * @param context the context for accessing system services
@@ -554,6 +565,7 @@ public class ImsCall implements ICall {
     public ImsCall(Context context, ImsCallProfile profile) {
         mContext = context;
         setCallProfile(profile);
+        uniqueId = sUniqueIdGenerator.getAndIncrement();
     }
 
     /**
@@ -3295,5 +3307,4 @@ public class ImsCall implements ICall {
     private void loge(String s, Throwable t) {
         Log.e(TAG, appendImsCallInfoToString(s), t);
     }
-
 }

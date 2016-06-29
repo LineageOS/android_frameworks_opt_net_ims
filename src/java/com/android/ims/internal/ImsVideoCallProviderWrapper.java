@@ -21,10 +21,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.RegistrantList;
 import android.os.RemoteException;
 import android.telecom.Connection;
 import android.telecom.VideoProfile;
-import android.telecom.VideoProfile.CameraCapabilities;
 import android.view.Surface;
 
 import com.android.internal.os.SomeArgs;
@@ -51,6 +51,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
 
     private final IImsVideoCallProvider mVideoCallProvider;
     private final ImsVideoCallCallback mBinder;
+    private RegistrantList mDataUsageUpdateRegistrants = new RegistrantList();
 
     private IBinder.DeathRecipient mDeathRecipient = new IBinder.DeathRecipient() {
         @Override
@@ -110,6 +111,14 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         }
     }
 
+    public void registerForDataUsageUpdate(Handler h, int what, Object obj) {
+        mDataUsageUpdateRegistrants.addUnique(h, what, obj);
+    }
+
+    public void unregisterForDataUsageUpdate(Handler h) {
+        mDataUsageUpdateRegistrants.remove(h);
+    }
+
     /** Default handler used to consolidate binder method calls onto a single thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -145,7 +154,9 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                     }
                     break;
                 case MSG_CHANGE_CALL_DATA_USAGE:
-                    changeCallDataUsage((long) msg.obj);
+                    // TODO: We should use callback in the future.
+                    setCallDataUsage((long) msg.obj);
+                    mDataUsageUpdateRegistrants.notifyResult(msg.obj);
                     break;
                 case MSG_CHANGE_CAMERA_CAPABILITIES:
                     changeCameraCapabilities((VideoProfile.CameraCapabilities) msg.obj);
