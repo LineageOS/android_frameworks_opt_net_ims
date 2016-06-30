@@ -602,7 +602,11 @@ public class ImsManager {
                 if (DBG) Rlog.d(TAG,"mIsWfcProvisioned = " + mgr.mIsWfcProvisioned);
                 break;
 
-            // TODO: Update mIsVtProvisioned when VT provisioning become available
+            case ImsConfig.ConfigConstants.LVC_SETTING_ENABLED:
+                mgr.mIsVtProvisioned = value.equals("1");
+                if (DBG) Rlog.d(TAG,"mIsVtProvisioned = " + mgr.mIsVtProvisioned);
+                break;
+
         }
     }
 
@@ -625,7 +629,10 @@ public class ImsManager {
                             ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED);
                     if (DBG) Rlog.d(TAG, "mIsWfcProvisioned = " + mIsWfcProvisioned);
 
-                    // TODO: Update mIsVtProvisioned when VT provisioning become available
+                    mIsVtProvisioned = getProvisionedBool(config,
+                            ImsConfig.ConfigConstants.LVC_SETTING_ENABLED);
+                    if (DBG) Rlog.d(TAG, "mIsVtProvisioned = " + mIsVtProvisioned);
+
                 }
             } catch (ImsException ie) {
                 Rlog.e(TAG, "AsyncUpdateProvisionedValues error: " + ie);
