@@ -371,6 +371,7 @@ public class ImsManager {
                         imsManager.mImsConfigListener);
 
                 if (enabled) {
+                    log("setVtSetting() : turnOnIms");
                     imsManager.turnOnIms();
                 } else if (isTurnOffImsAllowedByPlatform(context)
                         && (!isVolteEnabledByPlatform(context)
@@ -379,7 +380,7 @@ public class ImsManager {
                     imsManager.turnOffIms();
                 }
             } catch (ImsException e) {
-                loge("setVtSetting(): " + e);
+                loge("setVtSetting(): ", e);
             }
         }
     }
@@ -429,6 +430,7 @@ public class ImsManager {
                         imsManager.mImsConfigListener);
 
                 if (enabled) {
+                    log("setWfcSetting() : turnOnIms");
                     imsManager.turnOnIms();
                 } else if (isTurnOffImsAllowedByPlatform(context)
                         && (!isVolteEnabledByPlatform(context)
@@ -442,7 +444,7 @@ public class ImsManager {
                         ? getWfcMode(context)
                         : ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED);
             } catch (ImsException e) {
-                loge("setWfcSetting(): " + e);
+                loge("setWfcSetting(): ", e);
             }
         }
     }
@@ -635,7 +637,7 @@ public class ImsManager {
 
                 }
             } catch (ImsException ie) {
-                Rlog.e(TAG, "AsyncUpdateProvisionedValues error: " + ie);
+                Rlog.e(TAG, "AsyncUpdateProvisionedValues error: ", ie);
             }
 
             return null;
@@ -690,15 +692,17 @@ public class ImsManager {
                     // Also, if turning off is not allowed for current carrier,
                     // we need to turn IMS on because it might be turned off before
                     // phone switched to current carrier.
+                    log("updateImsServiceConfig: turnOnIms");
                     imsManager.turnOnIms();
                 } else {
                     // Turn off IMS if it is not used AND turning off is allowed for carrier.
+                    log("updateImsServiceConfig: turnOffIms");
                     imsManager.turnOffIms();
                 }
 
                 imsManager.mConfigUpdated = true;
             } catch (ImsException e) {
-                loge("updateImsServiceConfig: " + e);
+                loge("updateImsServiceConfig: ", e);
                 imsManager.mConfigUpdated = false;
             }
         }
@@ -1357,9 +1361,10 @@ public class ImsManager {
                 }
             }
         } catch (ImsException e) {
-            log("setAdvanced4GMode() : " + e);
+            loge("setAdvanced4GMode() : ", e);
         }
         if (turnOn) {
+            log("setAdvanced4GMode() : turnOnIms");
             turnOnIms();
         } else if (isImsTurnOffAllowed()) {
             log("setAdvanced4GMode() : imsServiceAllowTurnOff -> turnOffIms");
