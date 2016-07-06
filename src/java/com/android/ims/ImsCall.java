@@ -1017,7 +1017,7 @@ public class ImsCall implements ICall {
      */
     public void start(ImsCallSession session, String callee)
             throws ImsException {
-        logi("start(1) :: session=" + session + ", callee=" + callee);
+        logi("start(1) :: session=" + session);
 
         synchronized(mLockObj) {
             mSession = session;
@@ -1042,7 +1042,7 @@ public class ImsCall implements ICall {
      */
     public void start(ImsCallSession session, String[] participants)
             throws ImsException {
-        logi("start(n) :: session=" + session + ", callee=" + participants);
+        logi("start(n) :: session=" + session);
 
         synchronized(mLockObj) {
             mSession = session;
