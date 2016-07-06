@@ -1047,7 +1047,7 @@ public class ImsManager {
             ImsCall.Listener listener) throws ImsException {
         if (DBG) {
             log("makeCall :: serviceId=" + serviceId
-                    + ", profile=" + profile + ", callees=" + callees);
+                    + ", profile=" + profile);
         }
 
         checkAndThrowExceptionIfServiceUnavailable();
