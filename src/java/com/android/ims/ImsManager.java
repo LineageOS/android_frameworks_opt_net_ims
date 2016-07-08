@@ -36,7 +36,6 @@ import android.telephony.TelephonyManager;
 
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsEcbm;
-import com.android.ims.internal.IImsEcbmListener;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
@@ -47,6 +46,7 @@ import com.android.ims.internal.IImsConfig;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Provides APIs for IMS services, such as initiating IMS calls, and provides access to
@@ -184,6 +184,10 @@ public class ImsManager {
     private boolean mIsVoLteProvisioned = true;
     private boolean mIsWfcProvisioned = true;
     private boolean mIsVtProvisioned = true;
+
+    // Flag indicating data enabled or not. This flag should be in sync with
+    // DcTracker.isDataEnabled(). The flag will be set later during boot up.
+    private AtomicBoolean mDataEnabled = new AtomicBoolean(true);
 
     /**
      * Gets a manager instance.
@@ -735,7 +739,7 @@ public class ImsManager {
     }
 
     /**
-     * Update VC config
+     * Update video call over LTE config
      * @return whether feature is On
      * @throws ImsException
      */
@@ -744,11 +748,13 @@ public class ImsManager {
         boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext) &&
                 isVtEnabledByUser(mContext);
         boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
-        boolean isFeatureOn = available && enabled && isNonTty;
+
+        boolean isFeatureOn = available && enabled && isNonTty && mDataEnabled.get();
 
         log("updateVideoCallFeatureValue: available = " + available
                 + ", enabled = " + enabled
-                + ", nonTTY = " + isNonTty);
+                + ", nonTTY = " + isNonTty
+                + ", data enabled = " + mDataEnabled.get());
 
         getConfigInterface().setFeatureValue(
                 ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
@@ -1353,7 +1359,8 @@ public class ImsManager {
                         TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
 
                 if (isVtEnabledByPlatform(mContext)) {
-                    boolean enableViLte = turnOn && isVtEnabledByUser(mContext);
+                    boolean enableViLte = turnOn && isVtEnabledByUser(mContext) &&
+                            mDataEnabled.get();
                     config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
                             TelephonyManager.NETWORK_TYPE_LTE,
                             enableViLte ? 1 : 0,
@@ -1640,11 +1647,21 @@ public class ImsManager {
                 SubscriptionManager.getDefaultVoicePhoneId(), true);
     }
 
+    /**
+     * Set data enabled/disabled flag.
+     * @param enabled True if data is enabled, otherwise disabled.
+     */
+    public void setDataEnabled(boolean enabled) {
+        log("setDataEnabled: " + enabled);
+        mDataEnabled.set(enabled);
+    }
+
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("ImsManager:");
         pw.println("  mPhoneId = " + mPhoneId);
         pw.println("  mConfigUpdated = " + mConfigUpdated);
         pw.println("  mImsService = " + mImsService);
+        pw.println("  mDataEnabled = " + mDataEnabled.get());
 
         pw.println("  isGbaValid = " + isGbaValid(mContext));
         pw.println("  isImsTurnOffAllowed = " + isImsTurnOffAllowed());
