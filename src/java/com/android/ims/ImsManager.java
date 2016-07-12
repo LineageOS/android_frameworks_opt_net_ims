@@ -1662,6 +1662,8 @@ public class ImsManager {
         pw.println("  getWfcMode = " + getWfcMode(mContext));
         pw.println("  isWfcRoamingEnabledByUser = " + isWfcRoamingEnabledByUser(mContext));
 
+        pw.println("  isVtProvisionedOnDevice = " + isVtProvisionedOnDevice(mContext));
+        pw.println("  isWfcProvisionedOnDevice = " + isWfcProvisionedOnDevice(mContext));
         pw.flush();
     }
 }
