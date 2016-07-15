@@ -3253,6 +3253,9 @@ public class ImsCall implements ICall {
                 return false;
             }
             String callType = mCallProfile.getCallExtra(ImsCallProfile.EXTRA_CALL_RAT_TYPE);
+            if (callType == null || callType.isEmpty()) {
+                callType = mCallProfile.getCallExtra(ImsCallProfile.EXTRA_CALL_RAT_TYPE_ALT);
+            }
 
             // The RIL (sadly) sends us the EXTRA_CALL_RAT_TYPE as a string extra, rather than an
             // integer extra, so we need to parse it.
