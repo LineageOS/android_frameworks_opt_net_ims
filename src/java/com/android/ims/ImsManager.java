@@ -46,7 +46,6 @@ import com.android.ims.internal.IImsConfig;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Provides APIs for IMS services, such as initiating IMS calls, and provides access to
@@ -181,13 +180,16 @@ public class ImsManager {
 
     private ImsMultiEndpoint mMultiEndpoint = null;
 
-    private boolean mIsVoLteProvisioned = true;
-    private boolean mIsWfcProvisioned = true;
-    private boolean mIsVtProvisioned = true;
-
+    // SystemProperties used as cache
+    private static final String VOLTE_PROVISIONED_PROP = "net.lte.ims.volte.provisioned";
+    private static final String WFC_PROVISIONED_PROP = "net.lte.ims.wfc.provisioned";
+    private static final String VT_PROVISIONED_PROP = "net.lte.ims.vt.provisioned";
     // Flag indicating data enabled or not. This flag should be in sync with
     // DcTracker.isDataEnabled(). The flag will be set later during boot up.
-    private AtomicBoolean mDataEnabled = new AtomicBoolean(true);
+    private static final String DATA_ENABLED_PROP = "net.lte.ims.data.enabled";
+
+    public static final String TRUE = "true";
+    public static final String FALSE = "false";
 
     /**
      * Gets a manager instance.
@@ -286,7 +288,7 @@ public class ImsManager {
             ImsManager mgr = ImsManager.getInstance(context,
                     SubscriptionManager.getDefaultVoicePhoneId());
             if (mgr != null) {
-                return mgr.mIsVoLteProvisioned;
+                return mgr.isVolteProvisioned();
             }
         }
 
@@ -302,7 +304,7 @@ public class ImsManager {
             ImsManager mgr = ImsManager.getInstance(context,
                     SubscriptionManager.getDefaultVoicePhoneId());
             if (mgr != null) {
-                return mgr.mIsWfcProvisioned;
+                return mgr.isWfcProvisioned();
             }
         }
 
@@ -318,7 +320,7 @@ public class ImsManager {
             ImsManager mgr = ImsManager.getInstance(context,
                     SubscriptionManager.getDefaultVoicePhoneId());
             if (mgr != null) {
-                return mgr.mIsVtProvisioned;
+                return mgr.isVtProvisioned();
             }
         }
 
@@ -593,24 +595,24 @@ public class ImsManager {
      * @hide
      * */
     public static void onProvisionedValueChanged(Context context, int item, String value) {
-        if (DBG) Rlog.d(TAG, "onProvisionecValueChanged: item=" + item + " val=" + value);
+        if (DBG) Rlog.d(TAG, "onProvisionedValueChanged: item=" + item + " val=" + value);
         ImsManager mgr = ImsManager.getInstance(context,
                 SubscriptionManager.getDefaultVoicePhoneId());
 
         switch (item) {
             case ImsConfig.ConfigConstants.VLT_SETTING_ENABLED:
-                mgr.mIsVoLteProvisioned = value.equals("1");
-                if (DBG) Rlog.d(TAG,"mIsVoLteProvisioned = " + mgr.mIsVoLteProvisioned);
+                mgr.setVolteProvisionedProperty(value.equals("1"));
+                if (DBG) Rlog.d(TAG,"isVoLteProvisioned = " + mgr.isVolteProvisioned());
                 break;
 
             case ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED:
-                mgr.mIsWfcProvisioned = value.equals("1");
-                if (DBG) Rlog.d(TAG,"mIsWfcProvisioned = " + mgr.mIsWfcProvisioned);
+                mgr.setWfcProvisionedProperty(value.equals("1"));
+                if (DBG) Rlog.d(TAG,"isWfcProvisioned = " + mgr.isWfcProvisioned());
                 break;
 
             case ImsConfig.ConfigConstants.LVC_SETTING_ENABLED:
-                mgr.mIsVtProvisioned = value.equals("1");
-                if (DBG) Rlog.d(TAG,"mIsVtProvisioned = " + mgr.mIsVtProvisioned);
+                mgr.setVtProvisionedProperty(value.equals("1"));
+                if (DBG) Rlog.d(TAG,"isVtProvisioned = " + mgr.isVtProvisioned());
                 break;
 
         }
@@ -620,24 +622,24 @@ public class ImsManager {
         @Override
         protected Void doInBackground(Void... params) {
             // disable on any error
-            mIsVoLteProvisioned = false;
-            mIsWfcProvisioned = false;
-            mIsVtProvisioned = false;
+            setVolteProvisionedProperty(false);
+            setWfcProvisionedProperty(false);
+            setVtProvisionedProperty(false);
 
             try {
                 ImsConfig config = getConfigInterface();
                 if (config != null) {
-                    mIsVoLteProvisioned = getProvisionedBool(config,
-                            ImsConfig.ConfigConstants.VLT_SETTING_ENABLED);
-                    if (DBG) Rlog.d(TAG, "mIsVoLteProvisioned = " + mIsVoLteProvisioned);
+                    setVolteProvisionedProperty(getProvisionedBool(config,
+                            ImsConfig.ConfigConstants.VLT_SETTING_ENABLED));
+                    if (DBG) Rlog.d(TAG, "isVoLteProvisioned = " + isVolteProvisioned());
 
-                    mIsWfcProvisioned = getProvisionedBool(config,
-                            ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED);
-                    if (DBG) Rlog.d(TAG, "mIsWfcProvisioned = " + mIsWfcProvisioned);
+                    setWfcProvisionedProperty(getProvisionedBool(config,
+                            ImsConfig.ConfigConstants.VOICE_OVER_WIFI_SETTING_ENABLED));
+                    if (DBG) Rlog.d(TAG, "isWfcProvisioned = " + isWfcProvisioned());
 
-                    mIsVtProvisioned = getProvisionedBool(config,
-                            ImsConfig.ConfigConstants.LVC_SETTING_ENABLED);
-                    if (DBG) Rlog.d(TAG, "mIsVtProvisioned = " + mIsVtProvisioned);
+                    setVtProvisionedProperty(getProvisionedBool(config,
+                            ImsConfig.ConfigConstants.LVC_SETTING_ENABLED));
+                    if (DBG) Rlog.d(TAG, "isVtProvisioned = " + isVtProvisioned());
 
                 }
             } catch (ImsException ie) {
@@ -748,13 +750,14 @@ public class ImsManager {
         boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext) &&
                 isVtEnabledByUser(mContext);
         boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
+        boolean isDataEnabled = isDataEnabled();
 
-        boolean isFeatureOn = available && enabled && isNonTty && mDataEnabled.get();
+        boolean isFeatureOn = available && enabled && isNonTty && isDataEnabled;
 
         log("updateVideoCallFeatureValue: available = " + available
                 + ", enabled = " + enabled
                 + ", nonTTY = " + isNonTty
-                + ", data enabled = " + mDataEnabled.get());
+                + ", data enabled = " + isDataEnabled);
 
         getConfigInterface().setFeatureValue(
                 ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
@@ -1360,7 +1363,7 @@ public class ImsManager {
 
                 if (isVtEnabledByPlatform(mContext)) {
                     boolean enableViLte = turnOn && isVtEnabledByUser(mContext) &&
-                            mDataEnabled.get();
+                            isDataEnabled();
                     config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_LTE,
                             TelephonyManager.NETWORK_TYPE_LTE,
                             enableViLte ? 1 : 0,
@@ -1647,13 +1650,41 @@ public class ImsManager {
                 SubscriptionManager.getDefaultVoicePhoneId(), true);
     }
 
+    private boolean isDataEnabled() {
+        return SystemProperties.getBoolean(DATA_ENABLED_PROP, true);
+    }
+
     /**
      * Set data enabled/disabled flag.
      * @param enabled True if data is enabled, otherwise disabled.
      */
     public void setDataEnabled(boolean enabled) {
         log("setDataEnabled: " + enabled);
-        mDataEnabled.set(enabled);
+        SystemProperties.set(DATA_ENABLED_PROP, enabled ? TRUE : FALSE);
+    }
+
+    private boolean isVolteProvisioned() {
+        return SystemProperties.getBoolean(VOLTE_PROVISIONED_PROP, true);
+    }
+
+    private void setVolteProvisionedProperty(boolean provisioned) {
+        SystemProperties.set(VOLTE_PROVISIONED_PROP, provisioned ? TRUE : FALSE);
+    }
+
+    private boolean isWfcProvisioned() {
+        return SystemProperties.getBoolean(WFC_PROVISIONED_PROP, true);
+    }
+
+    private void setWfcProvisionedProperty(boolean provisioned) {
+        SystemProperties.set(WFC_PROVISIONED_PROP, provisioned ? TRUE : FALSE);
+    }
+
+    private boolean isVtProvisioned() {
+        return SystemProperties.getBoolean(VT_PROVISIONED_PROP, true);
+    }
+
+    private void setVtProvisionedProperty(boolean provisioned) {
+        SystemProperties.set(VT_PROVISIONED_PROP, provisioned ? TRUE : FALSE);
     }
 
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
@@ -1661,7 +1692,7 @@ public class ImsManager {
         pw.println("  mPhoneId = " + mPhoneId);
         pw.println("  mConfigUpdated = " + mConfigUpdated);
         pw.println("  mImsService = " + mImsService);
-        pw.println("  mDataEnabled = " + mDataEnabled.get());
+        pw.println("  mDataEnabled = " + isDataEnabled());
 
         pw.println("  isGbaValid = " + isGbaValid(mContext));
         pw.println("  isImsTurnOffAllowed = " + isImsTurnOffAllowed());
