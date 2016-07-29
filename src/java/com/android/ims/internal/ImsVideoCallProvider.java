@@ -94,6 +94,12 @@ public abstract class ImsVideoCallProvider {
                 case MSG_SET_PAUSE_IMAGE:
                     onSetPauseImage((Uri) msg.obj);
                     break;
+                // MTK
+                /* M: ViLTE part start */
+                case MSG_SET_UI_MODE:
+                    onSetUIMode((int) msg.obj);
+                    break;
+                /* M: ViLTE part end */
                 default:
                     break;
             }
@@ -151,6 +157,14 @@ public abstract class ImsVideoCallProvider {
         public void setPauseImage(Uri uri) {
             mProviderHandler.obtainMessage(MSG_SET_PAUSE_IMAGE, uri).sendToTarget();
         }
+
+        // MTK
+
+        /* M: ViLTE part start */
+        public void setUIMode(int mode) {
+            mProviderHandler.obtainMessage(MSG_SET_UI_MODE, mode).sendToTarget();
+        }
+        /* M: ViLTE part end */
     }
 
     public ImsVideoCallProvider() {
@@ -265,4 +279,16 @@ public abstract class ImsVideoCallProvider {
             }
         }
     }
+
+    // MTK
+
+    /* M: ViLTE part start */
+    private static final int MSG_MTK_BASE = 100;
+    private static final int MSG_SET_UI_MODE = MSG_MTK_BASE;
+    /* M: ViLTE part end */
+
+    /* M: ViLTE part start */
+    /** @see Connection.VideoProvider#onSetUIMode */
+    public abstract void onSetUIMode(int mode);
+    /* M: ViLTE part end */
 }

@@ -110,6 +110,38 @@ public abstract class ImsServiceBase {
         public void setUiTTYMode(int serviceId, int uiTtyMode, Message onComplete) {
             onSetUiTTYMode(serviceId, uiTtyMode, onComplete);
         }
+
+        // xen0n
+
+        @Override
+        public void setCallIndication(String callId, int seqNum, boolean isAllow) {
+            onSetCallIndication(callId, seqNum, isAllow);
+        }
+
+        @Override
+        public int getImsState() {
+            return onGetImsState();
+        }
+
+        @Override
+        public boolean getImsRegInfo(int phoneId) {
+            return onGetImsRegInfo(phoneId);
+        }
+
+        @Override
+        public String getImsExtInfo() {
+            return onGetImsExtInfo();
+        }
+
+        @Override
+        public void hangupAllCall() {
+            onHangupAllCall();
+        }
+
+        @Override
+        public int getRegistrationStatus() {
+            return onGetRegistrationStatus();
+        }
     }
 
     private ImsServiceBinder mBinder;
@@ -196,6 +228,40 @@ public abstract class ImsServiceBase {
 
     protected void onSetUiTTYMode(int serviceId, int uiTtyMode, Message onComplete) {
         // no-op
+    }
+
+    // xen0n
+
+    protected void onSetCallIndication(String callId, int seqNum, boolean isAllow) {
+        // no-op
+    }
+
+    protected int onGetImsState() {
+        // no-op
+
+        return 0;  // DUMMY VALUE
+    }
+
+    protected boolean onGetImsRegInfo(int phoneId) {
+        // no-op
+
+        return false;  // DUMMY VALUE
+    }
+
+    protected String onGetImsExtInfo() {
+        // no-op
+
+        return "";  // DUMMY VALUE
+    }
+
+    protected void onHangupAllCall() {
+        // no-op
+    }
+
+    protected int onGetRegistrationStatus() {
+        // no-op
+
+        return 0;  // DUMMY VALUE
     }
 }
 
