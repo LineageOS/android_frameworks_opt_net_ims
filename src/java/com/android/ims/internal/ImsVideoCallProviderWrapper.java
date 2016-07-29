@@ -108,6 +108,20 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
             mHandler.obtainMessage(MSG_CHANGE_CAMERA_CAPABILITIES,
                     cameraCapabilities).sendToTarget();
         }
+
+        // MTK
+
+        /* M: ViLTE part start */
+        /* Different from AOSP, additional parameter "rotation" is added. */
+        @Override
+        public void changePeerDimensionsWithAngle(int width, int height, int rotation) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = width;
+            args.arg2 = height;
+            args.arg3 = rotation;
+            mHandler.obtainMessage(MSG_CHANGE_PEER_DIMENSIONS_WITH_ANGLE, args).sendToTarget();
+        }
+        /* M: ViLTE part end */
     }
 
     /** Default handler used to consolidate binder method calls onto a single thread. */
@@ -153,6 +167,22 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                 case MSG_CHANGE_VIDEO_QUALITY:
                     changeVideoQuality(msg.arg1);
                     break;
+                // MTK
+                /* M: ViLTE part start */
+                /* Different from AOSP, additional parameter "rotation" is added. */
+                case MSG_CHANGE_PEER_DIMENSIONS_WITH_ANGLE:
+                    args = (SomeArgs) msg.obj;
+                    try {
+                        int width = (int) args.arg1;
+                        int height = (int) args.arg2;
+                        int rotation = (int) args.arg3;
+                        // MTK TODO: wow this is wonderfully-hidden intrusive modification...
+                        // changePeerDimensionsWithAngle(width, height, rotation);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                /* M: ViLTE part end */
                 default:
                     break;
             }
@@ -253,4 +283,24 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         } catch (RemoteException e) {
         }
     }
+
+    // MTK
+
+    private static final int MSG_MTK_BASE = 100;
+    private static final int MSG_CHANGE_PEER_DIMENSIONS_WITH_ANGLE = MSG_MTK_BASE;
+
+    /* M: ViLTE part start */
+    /** @inheritDoc */
+    public void onSetUIMode(int mode) {
+        try {
+            mVideoCallProvider.setUIMode(mode);
+        } catch (RemoteException e) {
+        }
+    }
+
+    public IImsVideoCallProvider getProvider() {
+        return mVideoCallProvider;
+    }
+    /* M: ViLTE part end */
+
 }

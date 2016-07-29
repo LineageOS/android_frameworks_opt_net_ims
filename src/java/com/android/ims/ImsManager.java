@@ -44,7 +44,19 @@ import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.IImsConfig;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
+
+import com.mediatek.ims.WfcReasonInfo;
+
+import org.gsma.joyn.JoynServiceListener;
+import org.gsma.joyn.capability.CapabilityService;
+import org.gsma.joyn.chat.ChatService;
+import org.gsma.joyn.contacts.ContactsService;
+import org.gsma.joyn.ft.FileTransferService;
+import org.gsma.joyn.gsh.GeolocSharingService;
+import org.gsma.joyn.ish.ImageSharingService;
+import org.gsma.joyn.vsh.VideoSharingService;
 
 import java.util.HashMap;
 
@@ -74,7 +86,7 @@ public class ImsManager {
      * Internal use only.
      * @hide
      */
-    private static final String IMS_SERVICE = "ims";
+    public /* MTK */ static final String IMS_SERVICE = "ims";
 
     /**
      * The result code to be sent back with the incoming call {@link PendingIntent}.
@@ -677,6 +689,8 @@ public class ImsManager {
         mContext = context;
         mPhoneId = phoneId;
         createImsService(true);
+        // MTK
+        createTerminalApiServices();
     }
 
     /*
@@ -722,6 +736,8 @@ public class ImsManager {
             ImsConnectionStateListener listener) throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
+        if (DBG) log("ImsManager: open");  // MTK
+
         if (incomingCallPendingIntent == null) {
             throw new NullPointerException("incomingCallPendingIntent can't be null");
         }
@@ -759,6 +775,8 @@ public class ImsManager {
      */
     public void close(int serviceId) throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
+
+        if (DBG) log("ImsManager: close");  // MTK
 
         try {
             mImsService.close(serviceId);
@@ -909,6 +927,7 @@ public class ImsManager {
         boolean isConferenceUri = profile.getCallExtraBoolean(
                 TelephonyProperties.EXTRAS_IS_CONFERENCE_URI, false);
         if (!isConferenceUri && (callees != null) && (callees.length == 1)) {
+            // MTK TODO: !profile.getCallExtraBoolean(ImsCallProfile.EXTRA_CONFERENCE)
             call.start(session, callees[0]);
         } else {
             call.start(session, callees);
@@ -1097,6 +1116,8 @@ public class ImsManager {
             IBinder binder = ServiceManager.checkService(getImsServiceName(mPhoneId));
 
             if (binder == null) {
+                if (DBG) log("ImsManager: createImsService binder is null");  // MTK
+
                 return;
             }
         }
@@ -1111,6 +1132,8 @@ public class ImsManager {
         }
 
         mImsService = IImsService.Stub.asInterface(b);
+
+        if (DBG) log("ImsManager: mImsService = " + mImsService);  // MTK
     }
 
     /**
@@ -1422,5 +1445,316 @@ public class ImsManager {
         // Push settings to ImsConfig
         ImsManager.updateImsServiceConfig(context,
                 SubscriptionManager.getDefaultVoicePhoneId(), true);
+    }
+
+    // MTK
+
+    /// M: IMS VoLTE refactoring. @{
+    /**
+     * Key to retrieve the sequence number from an incoming call intent.
+     * @see #open(PendingIntent, ImsConnectionStateListener)
+     * @hide
+     */
+    public static final String EXTRA_SEQ_NUM = "android:imsSeqNum";
+
+    /*
+     * Key to retrieve the sequence number from an incoming call intent.
+     * @see #open(PendingIntent, ImsConnectionStateListener)
+     * @hide
+     */
+    public static final String EXTRA_DIAL_STRING = "android:imsDialString";
+    /// @}
+
+    /// M: ALPS02261962. For IMS registration state and capability informaion. @{
+    public static final String ACTION_IMS_STATE_CHANGED =
+            "com.android.ims.IMS_STATE_CHANGED";
+    /// @}
+
+    /**
+     * Action for the incoming call indication intent for the Phone app.
+     * Internal use only.
+     * @hide
+     */
+    public static final String ACTION_IMS_INCOMING_CALL_INDICATION =
+            "com.android.ims.IMS_INCOMING_CALL_INDICATION";
+
+    /* M WFC */
+    public static final String EXTRA_IMS_REG_STATE_KEY = "android:regState";
+    public static final String EXTRA_IMS_ENABLE_CAP_KEY = "android:enablecap";
+    public static final String EXTRA_IMS_DISABLE_CAP_KEY = "android:disablecap";
+    public static final String EXTRA_IMS_REG_ERROR_KEY = "android:regError";
+
+    // RCS Terminal API Services
+    private CapabilityService mCapabilitiesApi;
+    private ChatService mChatApi;
+    private ContactsService mContactsApi;
+    private FileTransferService mFileTransferApi;
+    private GeolocSharingService mGeolocSharingApi;
+    private VideoSharingService mVideoSharingApi;
+    private ImageSharingService mImageSharingApi;
+
+    private void createTerminalApiServices()
+    {
+        Rlog.d(TAG, "createTerminalApiServices entry");
+        mCapabilitiesApi = new CapabilityService(mContext,
+                new MyServiceListener());
+        mCapabilitiesApi.connect();
+        mChatApi = new ChatService(mContext,
+                new MyServiceListener());
+        mChatApi.connect();
+        mContactsApi = new ContactsService(mContext,
+                new MyServiceListener());
+        mContactsApi.connect();
+        mFileTransferApi = new FileTransferService(mContext,
+                new MyServiceListener());
+        mFileTransferApi.connect();
+        mGeolocSharingApi = new GeolocSharingService(mContext,
+                new MyServiceListener());
+        mGeolocSharingApi.connect();
+        mImageSharingApi = new ImageSharingService(mContext,
+                new MyServiceListener());
+        mImageSharingApi.connect();
+        mVideoSharingApi = new VideoSharingService(mContext,
+                new MyServiceListener());
+        mVideoSharingApi.connect();
+    }
+
+    /**
+     * Returns a Capabilities Service Terminal API to client.
+     */
+    public CapabilityService getCapabilitiesService() {
+        return mCapabilitiesApi;
+    }
+
+    /**
+     * Returns a Chat Service Terminal API to client.
+     */
+    public ChatService getChatService() {
+        return mChatApi;
+    }
+
+    /**
+     * Returns a File Sharing Terminal API to client.
+     */
+    public FileTransferService getFileTransferService() {
+        return mFileTransferApi;
+    }
+
+    /**
+     * Returns a Contacts Service Terminal API to client.
+     */
+    public ContactsService getContactsService() {
+        return mContactsApi;
+    }
+
+    /**
+     * Returns a Geoloc Sharing Terminal API to client.
+     */
+    public GeolocSharingService getGeolocSharingService() {
+        return mGeolocSharingApi;
+    }
+
+    /**
+     * Returns a Image Sharing Terminal API to client.
+     */
+    public ImageSharingService getImageSharingService() {
+        return mImageSharingApi;
+    }
+
+    /**
+     * Returns a Video Sharing Terminal API to client.
+     */
+    public VideoSharingService getVideoSharingService() {
+        return mVideoSharingApi;
+    }
+
+    /**
+     * MyServiceListener listen to connect/disconnect service events.
+     */
+    public class MyServiceListener implements JoynServiceListener {
+
+        /**
+         * On service connected.
+         */
+        @Override
+        public void onServiceConnected() {
+            Rlog.d(TAG, "onServiceConnected entry ");
+        }
+
+        /**
+         * On service disconnected.
+         *
+         * @param error the error
+         */
+        @Override
+        public void onServiceDisconnected(int error) {
+            Rlog.d(TAG, "onServiceDisconnected entry " + error);
+        }
+
+    }
+
+    /**
+     * Gets the sequence number from the specified incoming call broadcast intent.
+     *
+     * @param incomingCallIntent the incoming call broadcast intent
+     * @return the sequence number or null if the intent does not contain it
+     * @hide
+     */
+    private static int getSeqNum(Intent incomingCallIntent) {
+        if (incomingCallIntent == null) {
+            return (-1);
+        }
+
+        return incomingCallIntent.getIntExtra(EXTRA_SEQ_NUM, -1);
+    }
+
+    /**
+     * To Allow or refuse incoming call indication to send to App.
+     *
+     * @param serviceId a service id which is obtained from {@link ImsManager#open}
+     * @param incomingCallIndication the incoming call broadcast intent.
+     * @param isAllow to indication to allow or refuse the incoming call indication.
+     * @throws ImsException if set call indication results in an error.
+     * @hide
+     */
+    public void setCallIndication(int serviceId, Intent incomingCallIndication,
+            boolean isAllow) throws ImsException {
+        if (DBG) {
+            log("setCallIndication :: serviceId=" + serviceId
+                    + ", incomingCallIndication=" + incomingCallIndication);
+        }
+
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        if (incomingCallIndication == null) {
+            throw new ImsException("Can't retrieve session with null intent",
+                    ImsReasonInfo.CODE_LOCAL_ILLEGAL_ARGUMENT);
+        }
+
+        int incomingServiceId = getServiceId(incomingCallIndication);
+
+        if (serviceId != incomingServiceId) {
+            throw new ImsException("Service id is mismatched in the incoming call intent",
+                    ImsReasonInfo.CODE_LOCAL_ILLEGAL_ARGUMENT);
+        }
+
+        String callId = getCallId(incomingCallIndication);
+
+        if (callId == null) {
+            throw new ImsException("Call ID missing in the incoming call intent",
+                    ImsReasonInfo.CODE_LOCAL_ILLEGAL_ARGUMENT);
+        }
+
+        int seqNum = getSeqNum(incomingCallIndication);
+
+        if (seqNum == -1) {
+            throw new ImsException("seqNum missing in the incoming call intent",
+                    ImsReasonInfo.CODE_LOCAL_ILLEGAL_ARGUMENT);
+        }
+
+        try {
+            mImsService.setCallIndication(callId, seqNum, isAllow);
+        } catch (RemoteException e) {
+            throw new ImsException("setCallIndication()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
+     * To get IMS state.
+     *
+     * @return ims state - disabled, enabling, enable, disabling.
+     * @throws ImsException if getting the ims status result in an error.
+     * @hide
+     */
+    public int getImsState() throws ImsException {
+        int imsState = PhoneConstants.IMS_STATE_DISABLED;
+
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        try {
+            imsState = mImsService.getImsState();
+        } catch (RemoteException e) {
+            throw new ImsException("getImsState()", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+        return imsState;
+    }
+
+    /**
+    * To get IMS registration status.
+    *
+    * @return true if ims is registered or false if ims is unregistered.
+    * @throws ImsException if getting the ims registration result in an error.
+    * @hide
+    */
+    public boolean getImsRegInfo() throws ImsException {
+        boolean isImsReg = false;
+
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        try {
+            isImsReg = mImsService.getImsRegInfo(mPhoneId);
+        } catch (RemoteException e) {
+            throw new ImsException("getImsRegInfo", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+        return isImsReg;
+    }
+
+    /**
+    * To get IMS registration extension information.
+    *
+    * @return a string which is converted from the value of ims feature capability.
+    * @throws ImsException if getting the ims extension information result in an error.
+    * @hide
+    */
+    public String getImsExtInfo() throws ImsException {
+        String imsExtInfo = "0";
+
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        try {
+            imsExtInfo = mImsService.getImsExtInfo();
+        } catch (RemoteException e) {
+            throw new ImsException("getImsExtInfo()", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+        return imsExtInfo;
+    }
+
+    /**
+    * To hangup all calls.
+    * @throws ImsException if getting the ims status result in an error.
+    * @hide
+    */
+    public void hangupAllCall() throws ImsException {
+
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        try {
+            mImsService.hangupAllCall();
+        } catch (RemoteException e) {
+            throw new ImsException("hangupAll()", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
+    * To get WFC stat.
+    *
+    * @return a value for wfc status.
+    * @throws ImsException if getting the ims status result in an error.
+    * @hide
+    */
+    public int getWfcStatusCode() /*throws RemoteException*/ {
+        /*if (mImsNotificationController == null) {
+            throw new RemoteException ("getWfcStatusCode:ImsNotificationController not ready");
+            }
+            return mImsNotificationController.getRegistrationStatus(); */
+        if (mImsService == null) {
+            return WfcReasonInfo.CODE_WFC_DEFAULT;
+        }
+        try {
+            return mImsService.getRegistrationStatus();
+        } catch (RemoteException e) {
+            return WfcReasonInfo.CODE_WFC_DEFAULT;
+        }
     }
 }

@@ -28,6 +28,9 @@ import android.telephony.Rlog;
 import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.IImsUtListener;
 
+/// M: SS OP01 Ut
+import java.util.Arrays;
+
 /**
  * Provides APIs for the supplementary service settings using IMS (Ut interface).
  * It is created from 3GPP TS 24.623 (XCAP(XML Configuration Access Protocol)
@@ -681,5 +684,87 @@ public class ImsUt implements ImsUtInterface {
                 mPendingCmds.remove(key);
             }
         }
+
+        // MTK
+
+        /// M: SS OP01 Ut @{
+        /**
+         * Notifies the status of the call forwarding in a time slot supplementary service.
+         */
+        @Override
+        public void utConfigurationCallForwardInTimeSlotQueried(IImsUt ut,
+                int id, ImsCallForwardInfoEx[] cfInfo) {
+            Integer key = Integer.valueOf(id);
+
+            synchronized (mLockObj) {
+                sendSuccessReport(mPendingCmds.get(key), cfInfo);
+                mPendingCmds.remove(key);
+            }
+        }
+        /// @}
     }
+
+    // MTK
+
+    /// M: SS OP01 Ut @{
+    /**
+     * Retrieves the configuration of the call forward in a time slot.
+     * The return value of ((AsyncResult)result.obj) is an array of {@link ImsCallForwardInfoEx}.
+     */
+    @Override
+    public void queryCallForwardInTimeSlot(int condition, Message result) {
+        if (DBG) {
+            log("queryCallForwardInTimeSlot :: Ut = " + miUt + ", condition = " + condition);
+        }
+
+        synchronized (mLockObj) {
+            try {
+                int id = miUt.queryCallForwardInTimeSlot(condition);
+
+                if (id < 0) {
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
+            }
+        }
+    }
+
+    /**
+     * Modifies the configuration of the call forward in a time slot.
+     */
+    @Override
+    public void updateCallForwardInTimeSlot(int action, int condition, String number,
+            int timeSeconds, long[] timeSlot, Message result) {
+        if (DBG) {
+            log("updateCallForwardInTimeSlot :: Ut = " + miUt + ", action = " + action
+                    + ", condition = " + condition + ", number = " + number
+                    + ", timeSeconds = " + timeSeconds
+                    + ", timeSlot = " + Arrays.toString(timeSlot));
+        }
+
+        synchronized (mLockObj) {
+            try {
+                int id = miUt.updateCallForwardInTimeSlot(action,
+                        condition, number, timeSeconds, timeSlot);
+
+                if (id < 0) {
+                    sendFailureReport(result,
+                            new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
+                    return;
+                }
+
+                mPendingCmds.put(Integer.valueOf(id), result);
+            } catch (RemoteException e) {
+                sendFailureReport(result,
+                        new ImsReasonInfo(ImsReasonInfo.CODE_UT_SERVICE_UNAVAILABLE, 0));
+            }
+        }
+    }
+    /// @}
 }

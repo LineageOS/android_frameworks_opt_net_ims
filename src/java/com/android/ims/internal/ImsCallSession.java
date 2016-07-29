@@ -17,6 +17,7 @@
 package com.android.ims.internal;
 
 import android.os.Message;
+import android.os.Messenger;
 import android.os.RemoteException;
 import android.telecom.Connection;
 
@@ -402,6 +403,21 @@ public class ImsCallSession {
         public void callSessionSuppServiceReceived(ImsCallSession session,
                 ImsSuppServiceNotification suppServiceInfo) {
         }
+
+        // MTK
+
+        /// M: ALPS02256671. For PAU information changed. @{
+        /**
+         * Notifies of a change to the PAU information.
+         *
+         * @param session The call session.
+         * @param profile The call profile.
+         * @hide
+         */
+        public void callSessionPauInfoChanged(ImsCallSession session, ImsCallProfile profile) {
+            // no-op
+        }
+        /// @}
     }
 
     private final IImsCallSession miSession;
@@ -871,7 +887,17 @@ public class ImsCallSession {
         }
 
         try {
+            // MTK
+            /// M: ALPS02321477 @{
+            /// Google issue. Original sendDtmf could not pass Message.target to another process,
+            /// because Message.writeToParcel didn't write target. Workaround this issue by adding
+            /// a new API which passes target by Messenger.
+            if (result != null && result.getTarget() != null) {
+                Messenger target = new Messenger(result.getTarget());
+                miSession.sendDtmfbyTarget(c, result, target);
+            } else {
             miSession.sendDtmf(c, result);
+            }  // MTK
         } catch (RemoteException e) {
         }
     }
@@ -1265,6 +1291,23 @@ public class ImsCallSession {
             }
         }
 
+        // MTK
+
+        /// M: ALPS02256671. For PAU information changed. @{
+        /**
+         * Notifies of a change to the PAU information.
+         *
+         * @param session The call session.
+         * @param profile The call profile.
+         * @hide
+         */
+        public void callSessionPauInfoChanged(IImsCallSession session, ImsCallProfile profile) {
+            if (mListener != null) {
+                mListener.callSessionPauInfoChanged(ImsCallSession.this, profile);
+            }
+        }
+        /// @}
+
     }
 
     /**
@@ -1285,4 +1328,26 @@ public class ImsCallSession {
         sb.append("]");
         return sb.toString();
     }
+
+    // MTK
+
+    /// M: For one-key conference MT displayed as incoming conference call. @{
+    /**
+     * Determines if the incoming session is multiparty.
+     *
+     * @return {@code True} if the incoming session is multiparty.
+     * @hide
+     */
+    public boolean isIncomingCallMultiparty() {
+        if (mClosed) {
+            return false;
+        }
+
+        try {
+            return miSession.isIncomingCallMultiparty();
+        } catch (RemoteException e) {
+            return false;
+        }
+    }
+    /// @}
 }

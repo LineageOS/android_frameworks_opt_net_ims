@@ -183,4 +183,20 @@ public interface ImsUtInterface {
      * Updates the configuration of the COLP supplementary service.
      */
     public void updateCOLP(boolean enable, Message result);
+
+    // MTK
+
+    /// M: SS OP01 Ut @{
+    /**
+     * Retrieves the configuration of the call forward in a time slot.
+     * The return value of ((AsyncResult)result.obj) is an array of {@link ImsCallForwardInfoEx}.
+     */
+    public void queryCallForwardInTimeSlot(int condition, Message result);
+
+    /**
+     * Modifies the configuration of the call forward in a time slot.
+     */
+    public void updateCallForwardInTimeSlot(int action, int condition, String number,
+            int timeSeconds, long[] timeSlot, Message result);
+    /// @}
 }
