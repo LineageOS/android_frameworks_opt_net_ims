@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3fa7e38b_6c0f68e1",
+        "filename": "packages/Ims/src/com/mediatek/ims/ImsAdapter.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 848
+      },
+      "writtenOn": "2016-07-29T23:23:48Z",
+      "side": 1,
+      "message": "No proprietary code allowed",
+      "range": {
+        "startLine": 4,
+        "startChar": 44,
+        "endLine": 8,
+        "endChar": 87
+      },
+      "revId": "64d8140a938bc5308c942c882faea2a18c36cbaa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
