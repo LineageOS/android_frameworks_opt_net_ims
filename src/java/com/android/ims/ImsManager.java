@@ -747,8 +747,7 @@ public class ImsManager {
      */
     private boolean updateVideoCallFeatureValue() throws ImsException {
         boolean available = isVtEnabledByPlatform(mContext);
-        boolean enabled = isEnhanced4gLteModeSettingEnabledByUser(mContext) &&
-                isVtEnabledByUser(mContext);
+        boolean enabled = isVtEnabledByUser(mContext);
         boolean isNonTty = isNonTtyOrTtyOnVolteEnabled(mContext);
         boolean isDataEnabled = isDataEnabled();
 
