@@ -557,6 +557,11 @@ public class ImsCall implements ICall {
     public final int uniqueId;
 
     /**
+     * The current ImsCallSessionListenerProxy.
+     */
+    private ImsCallSessionListenerProxy mImsCallSessionListenerProxy;
+
+    /**
      * Create an IMS call object.
      *
      * @param context the context for accessing system services
@@ -1533,7 +1538,16 @@ public class ImsCall implements ICall {
      * Creates an IMS call session listener.
      */
     private ImsCallSession.Listener createCallSessionListener() {
-        return new ImsCallSessionListenerProxy();
+        mImsCallSessionListenerProxy = new ImsCallSessionListenerProxy();
+        return mImsCallSessionListenerProxy;
+    }
+
+    /**
+     * @return the current ImsCallSessionListenerProxy.  NOTE: ONLY FOR USE WITH TESTING.
+     */
+    @VisibleForTesting
+    public ImsCallSessionListenerProxy getImsCallSessionListenerProxy() {
+        return mImsCallSessionListenerProxy;
     }
 
     private ImsCall createNewCall(ImsCallSession session, ImsCallProfile profile) {
@@ -2089,7 +2103,8 @@ public class ImsCall implements ICall {
         return;
     }
 
-    private class ImsCallSessionListenerProxy extends ImsCallSession.Listener {
+    @VisibleForTesting
+    public class ImsCallSessionListenerProxy extends ImsCallSession.Listener {
         @Override
         public void callSessionProgressing(ImsCallSession session, ImsStreamMediaProfile profile) {
             logi("callSessionProgressing :: session=" + session + " profile=" + profile);
