@@ -3171,6 +3171,7 @@ public class ImsCall implements ICall {
         sb.append(" mute:");
         sb.append(isMuted() ? "Y" : "N");
         if (mCallProfile != null) {
+            sb.append(" mCallProfile:" + mCallProfile);
             sb.append(" tech:");
             sb.append(mCallProfile.getCallExtra(ImsCallProfile.EXTRA_CALL_RAT_TYPE));
         }
@@ -3195,8 +3196,12 @@ public class ImsCall implements ICall {
         sb.append(isConferenceHost() ? "Y" : "N");
         sb.append(" buried term:");
         sb.append(mSessionEndDuringMerge ? "Y" : "N");
+        sb.append(" isVideo: ");
+        sb.append(isVideoCall() ? "Y" : "N");
         sb.append(" wasVideo: ");
         sb.append(mWasVideoCall ? "Y" : "N");
+        sb.append(" isWifi: ");
+        sb.append(isWifiCall() ? "Y" : "N");
         sb.append(" session:");
         sb.append(mSession);
         sb.append(" transientSession:");
