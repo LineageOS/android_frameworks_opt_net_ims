@@ -1351,12 +1351,11 @@ public class ImsManager {
                 || !isWfcEnabledByUser(mContext));
     }
 
-    private void setAdvanced4GMode(boolean turnOn) throws ImsException {
-        checkAndThrowExceptionIfServiceUnavailable();
-
+    private void setLteFeatureValues(boolean turnOn) {
+        log("setLteFeatureValues: " + turnOn);
         try {
             ImsConfig config = getConfigInterface();
-            if (config != null && (turnOn || !isImsTurnOffAllowed())) {
+            if (config != null) {
                 config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_LTE,
                         TelephonyManager.NETWORK_TYPE_LTE, turnOn ? 1 : 0, mImsConfigListener);
 
@@ -1370,14 +1369,26 @@ public class ImsManager {
                 }
             }
         } catch (ImsException e) {
-            loge("setAdvanced4GMode() : ", e);
+            loge("setLteFeatureValues: exception ", e);
         }
+    }
+
+    private void setAdvanced4GMode(boolean turnOn) throws ImsException {
+        checkAndThrowExceptionIfServiceUnavailable();
+
+        // if turnOn: first set feature values then call turnOnIms()
+        // if turnOff: only set feature values if IMS turn off is not allowed. If turn off is
+        // allowed, first call turnOffIms() then set feature values
         if (turnOn) {
-            log("setAdvanced4GMode() : turnOnIms");
+            setLteFeatureValues(turnOn);
+            log("setAdvanced4GMode: turnOnIms");
             turnOnIms();
-        } else if (isImsTurnOffAllowed()) {
-            log("setAdvanced4GMode() : imsServiceAllowTurnOff -> turnOffIms");
-            turnOffIms();
+        } else {
+            if (isImsTurnOffAllowed()) {
+                log("setAdvanced4GMode: turnOffIms");
+                turnOffIms();
+            }
+            setLteFeatureValues(turnOn);
         }
     }
 
