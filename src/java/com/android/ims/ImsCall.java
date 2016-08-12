@@ -562,6 +562,15 @@ public class ImsCall implements ICall {
     private ImsCallSessionListenerProxy mImsCallSessionListenerProxy;
 
     /**
+     * When calling {@link #terminate(int, int)}, an override for the termination reason which the
+     * modem returns.
+     *
+     * Necessary because passing in an unexpected {@link ImsReasonInfo} reason code to
+     * {@link #terminate(int)} will cause the modem to ignore the terminate request.
+     */
+    private int mOverrideReason = ImsReasonInfo.CODE_UNSPECIFIED;
+
+    /**
      * Create an IMS call object.
      *
      * @param context the context for accessing system services
@@ -1143,6 +1152,12 @@ public class ImsCall implements ICall {
                 mUpdateRequest = UPDATE_NONE;
             }
         }
+    }
+
+    public void terminate(int reason, int overrideReason) throws ImsException {
+        logi("terminate :: reason=" + reason + " ; overrideReadon=" + overrideReason);
+        mOverrideReason = overrideReason;
+        terminate(reason);
     }
 
     /**
@@ -2205,6 +2220,12 @@ public class ImsCall implements ICall {
                 // termination of this session is effectively the end of the merge.
                 processMergeFailed(reasonInfo);
                 return;
+            }
+
+            if (mOverrideReason != ImsReasonInfo.CODE_UNSPECIFIED) {
+                logi("callSessionTerminated :: overrideReasonInfo=" + mOverrideReason);
+                reasonInfo = new ImsReasonInfo(mOverrideReason, reasonInfo.getExtraCode(),
+                        reasonInfo.getExtraMessage());
             }
 
             // Process the termination first.  If we are in the midst of establishing a conference
