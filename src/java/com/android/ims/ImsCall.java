@@ -731,6 +731,12 @@ public class ImsCall implements ICall {
         synchronized(mLockObj) {
             logi("getConferenceParticipants :: mConferenceParticipants"
                     + mConferenceParticipants);
+            if (mConferenceParticipants == null) {
+                return null;
+            }
+            if (mConferenceParticipants.isEmpty()) {
+                return new ArrayList<ConferenceParticipant>(0);
+            }
             return new ArrayList<ConferenceParticipant>(mConferenceParticipants);
         }
     }
