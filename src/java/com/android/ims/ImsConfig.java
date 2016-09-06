@@ -18,6 +18,7 @@ package com.android.ims;
 
 import android.content.Context;
 import android.os.RemoteException;
+import android.telephony.ImsFeatureCapability;
 import android.telephony.Rlog;
 
 import com.android.ims.ImsConfigListener;
@@ -74,43 +75,50 @@ public class ImsConfig {
     * Defines IMS service/capability feature constants.
     */
     public static class FeatureConstants {
-        public static final int FEATURE_TYPE_UNKNOWN = -1;
+        public static final int FEATURE_TYPE_UNKNOWN =
+                ImsFeatureCapability.FEATURE_TYPE_UNKNOWN;
 
         /**
          * FEATURE_TYPE_VOLTE supports features defined in 3GPP and
          * GSMA IR.92 over LTE.
          */
-        public static final int FEATURE_TYPE_VOICE_OVER_LTE = 0;
+        public static final int FEATURE_TYPE_VOICE_OVER_LTE =
+                ImsFeatureCapability.FEATURE_TYPE_VOICE_OVER_LTE;
 
         /**
          * FEATURE_TYPE_LVC supports features defined in 3GPP and
          * GSMA IR.94 over LTE.
          */
-        public static final int FEATURE_TYPE_VIDEO_OVER_LTE = 1;
+        public static final int FEATURE_TYPE_VIDEO_OVER_LTE =
+                ImsFeatureCapability.FEATURE_TYPE_VIDEO_OVER_LTE;
 
         /**
          * FEATURE_TYPE_VOICE_OVER_WIFI supports features defined in 3GPP and
          * GSMA IR.92 over WiFi.
          */
-        public static final int FEATURE_TYPE_VOICE_OVER_WIFI = 2;
+        public static final int FEATURE_TYPE_VOICE_OVER_WIFI =
+                ImsFeatureCapability.FEATURE_TYPE_VOICE_OVER_WIFI;
 
         /**
          * FEATURE_TYPE_VIDEO_OVER_WIFI supports features defined in 3GPP and
          * GSMA IR.94 over WiFi.
          */
-        public static final int FEATURE_TYPE_VIDEO_OVER_WIFI = 3;
+        public static final int FEATURE_TYPE_VIDEO_OVER_WIFI =
+                ImsFeatureCapability.FEATURE_TYPE_VIDEO_OVER_WIFI;
 
         /**
          * FEATURE_TYPE_UT supports features defined in 3GPP and
          * GSMA IR.92 over LTE.
          */
-        public static final int FEATURE_TYPE_UT_OVER_LTE = 4;
+        public static final int FEATURE_TYPE_UT_OVER_LTE =
+                ImsFeatureCapability.FEATURE_TYPE_UT_OVER_LTE;
 
        /**
          * FEATURE_TYPE_UT_OVER_WIFI supports features defined in 3GPP and
          * GSMA IR.92 over WiFi.
          */
-        public static final int FEATURE_TYPE_UT_OVER_WIFI = 5;
+        public static final int FEATURE_TYPE_UT_OVER_WIFI =
+                ImsFeatureCapability.FEATURE_TYPE_UT_OVER_WIFI;
     }
 
     /**
