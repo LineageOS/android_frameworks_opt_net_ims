@@ -445,9 +445,12 @@ public class ImsManager {
                     imsManager.turnOffIms();
                 }
 
-                // Force IMS to register over LTE when turning off WFC
+                TelephonyManager tm = (TelephonyManager) context
+                        .getSystemService(Context.TELEPHONY_SERVICE);
                 setWfcModeInternal(context, enabled
-                        ? getWfcMode(context)
+                        // Choose wfc mode per current roaming preference
+                        ? getWfcMode(context, tm.isNetworkRoaming())
+                        // Force IMS to register over LTE when turning off WFC
                         : ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED);
             } catch (ImsException e) {
                 loge("setWfcSetting(): ", e);
