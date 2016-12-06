@@ -493,7 +493,7 @@ public class ImsManager {
     }
 
     /**
-     * Returns the user configuration of WFC modem setting
+     * Returns the user configuration of WFC preference setting
      */
     public static int getWfcMode(Context context) {
         int setting = android.provider.Settings.Global.getInt(context.getContentResolver(),
@@ -504,7 +504,7 @@ public class ImsManager {
     }
 
     /**
-     * Returns the user configuration of WFC modem setting
+     * Change persistent WFC preference setting
      */
     public static void setWfcMode(Context context, int wfcMode) {
         if (DBG) log("setWfcMode - setting=" + wfcMode);
@@ -512,6 +512,51 @@ public class ImsManager {
                 android.provider.Settings.Global.WFC_IMS_MODE, wfcMode);
 
         setWfcModeInternal(context, wfcMode);
+    }
+
+    /**
+     * Returns the user configuration of WFC preference setting
+     *
+     * @param roaming {@code false} for home network setting, {@code true} for roaming  setting
+     */
+    public static int getWfcMode(Context context, boolean roaming) {
+        int setting = 0;
+        if (!roaming) {
+            setting = android.provider.Settings.Global.getInt(context.getContentResolver(),
+                    android.provider.Settings.Global.WFC_IMS_MODE, getIntCarrierConfig(context,
+                            CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT));
+            if (DBG) log("getWfcMode - setting=" + setting);
+        } else {
+            setting = android.provider.Settings.Global.getInt(context.getContentResolver(),
+                    android.provider.Settings.Global.WFC_IMS_ROAMING_MODE,
+                    getIntCarrierConfig(context,
+                            CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT));
+            if (DBG) log("getWfcMode (roaming) - setting=" + setting);
+        }
+        return setting;
+    }
+
+    /**
+     * Change persistent WFC preference setting
+     *
+     * @param roaming {@code false} for home network setting, {@code true} for roaming setting
+     */
+    public static void setWfcMode(Context context, int wfcMode, boolean roaming) {
+        if (!roaming) {
+            if (DBG) log("setWfcMode - setting=" + wfcMode);
+            android.provider.Settings.Global.putInt(context.getContentResolver(),
+                    android.provider.Settings.Global.WFC_IMS_MODE, wfcMode);
+        } else {
+            if (DBG) log("setWfcMode (roaming) - setting=" + wfcMode);
+            android.provider.Settings.Global.putInt(context.getContentResolver(),
+                    android.provider.Settings.Global.WFC_IMS_ROAMING_MODE, wfcMode);
+        }
+
+        TelephonyManager tm = (TelephonyManager)
+                context.getSystemService(Context.TELEPHONY_SERVICE);
+        if (roaming == tm.isNetworkRoaming()) {
+            setWfcModeInternal(context, wfcMode);
+        }
     }
 
     private static void setWfcModeInternal(Context context, int wfcMode) {
@@ -812,10 +857,11 @@ public class ImsManager {
      * @throws ImsException
      */
     private boolean updateWfcFeatureAndProvisionedValues() throws ImsException {
+        boolean isNetworkRoaming = TelephonyManager.getDefault().isNetworkRoaming();
         boolean available = isWfcEnabledByPlatform(mContext);
         boolean enabled = isWfcEnabledByUser(mContext);
         displayWfcMode(mContext, true);
-        int mode = getWfcMode(mContext);
+        int mode = getWfcMode(mContext, isNetworkRoaming);
         boolean roaming = isWfcRoamingEnabledByUser(mContext);
         boolean isFeatureOn = available && enabled;
 

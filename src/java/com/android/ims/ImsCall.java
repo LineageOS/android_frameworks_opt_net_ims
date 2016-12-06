@@ -725,13 +725,19 @@ public class ImsCall implements ICall {
      * Gets the list of conference participants currently
      * associated with this call.
      *
-     * @return The list of conference participants.
+     * @return Copy of the list of conference participants.
      */
     public List<ConferenceParticipant> getConferenceParticipants() {
         synchronized(mLockObj) {
             logi("getConferenceParticipants :: mConferenceParticipants"
                     + mConferenceParticipants);
-            return mConferenceParticipants;
+            if (mConferenceParticipants == null) {
+                return null;
+            }
+            if (mConferenceParticipants.isEmpty()) {
+                return new ArrayList<ConferenceParticipant>(0);
+            }
+            return new ArrayList<ConferenceParticipant>(mConferenceParticipants);
         }
     }
 
