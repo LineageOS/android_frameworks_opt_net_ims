@@ -1,4 +1,5 @@
-# Copyright 2013 The Android Open Source Project
+#
+# Copyright (C) 2016 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
 LOCAL_PATH := $(call my-dir)
-
 include $(CLEAR_VARS)
 
-LOCAL_AIDL_INCLUDES := $(LOCAL_PATH)/src/java
-LOCAL_SRC_FILES := \
-    $(call all-java-files-under, src/java)
+LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := ims-common
+LOCAL_PACKAGE_NAME := ImsCommonTests
+LOCAL_CERTIFICATE := platform
 
-include $(BUILD_JAVA_LIBRARY)
+LOCAL_MODULE_TAGS := tests
 
-include $(call all-makefiles-under,$(LOCAL_PATH))
+LOCAL_JAVA_LIBRARIES := ims-common android.test.runner
+
+LOCAL_STATIC_JAVA_LIBRARIES := \
+        android-support-test \
+        mockito-target-minus-junit4
+
+include $(BUILD_PACKAGE)
