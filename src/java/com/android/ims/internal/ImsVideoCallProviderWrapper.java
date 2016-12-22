@@ -24,6 +24,7 @@ import android.os.Message;
 import android.os.RegistrantList;
 import android.os.RemoteException;
 import android.telecom.Connection;
+import android.telecom.Log;
 import android.telecom.VideoProfile;
 import android.view.Surface;
 
@@ -64,6 +65,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     private RegistrantList mDataUsageUpdateRegistrants = new RegistrantList();
     private final Set<ImsVideoProviderWrapperCallback> mCallbacks = Collections.newSetFromMap(
             new ConcurrentHashMap<ImsVideoProviderWrapperCallback, Boolean>(8, 0.9f, 1));
+    private VideoPauseTracker mVideoPauseTracker = new VideoPauseTracker();
 
     private IBinder.DeathRecipient mDeathRecipient = new IBinder.DeathRecipient() {
         @Override
@@ -253,9 +255,29 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         }
     }
 
-    /** @inheritDoc */
+    /**
+     * Handles session modify requests received from the {@link android.telecom.InCallService}.
+     *
+     * @inheritDoc
+     **/
     public void onSendSessionModifyRequest(VideoProfile fromProfile, VideoProfile toProfile) {
+        if (fromProfile == null || toProfile == null) {
+            Log.w(this, "onSendSessionModifyRequest: null profile in request.");
+            return;
+        }
+
         try {
+            toProfile = maybeFilterPauseResume(fromProfile, toProfile,
+                    VideoPauseTracker.SOURCE_INCALL);
+
+            int fromVideoState = fromProfile.getVideoState();
+            int toVideoState = toProfile.getVideoState();
+            Log.i(this, "onSendSessionModifyRequest: fromVideoState=%s, toVideoState=%s; ",
+                    VideoProfile.videoStateToString(fromProfile.getVideoState()),
+                    VideoProfile.videoStateToString(toProfile.getVideoState()));
+            if (fromVideoState == toVideoState) {
+                return;
+            }
             mVideoCallProvider.sendSessionModifyRequest(fromProfile, toProfile);
         } catch (RemoteException e) {
         }
@@ -291,5 +313,155 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
             mVideoCallProvider.setPauseImage(uri);
         } catch (RemoteException e) {
         }
+    }
+
+    /**
+     * Determines if a session modify request represents a request to pause the video.
+     *
+     * @param from The from video state.
+     * @param to The to video state.
+     * @return {@code true} if a pause was requested.
+     */
+    private static boolean isPauseRequest(int from, int to) {
+        boolean fromPaused = VideoProfile.isPaused(from);
+        boolean toPaused = VideoProfile.isPaused(to);
+
+        return !fromPaused && toPaused;
+    }
+
+    /**
+     * Determines if a session modify request represents a request to resume the video.
+     *
+     * @param from The from video state.
+     * @param to The to video state.
+     * @return {@code true} if a resume was requested.
+     */
+    private static boolean isResumeRequest(int from, int to) {
+        boolean fromPaused = VideoProfile.isPaused(from);
+        boolean toPaused = VideoProfile.isPaused(to);
+
+        return fromPaused && !toPaused;
+    }
+
+    /**
+     * Filters incoming pause and resume requests based on whether there are other active pause or
+     * resume requests at the current time.
+     *
+     * Requests to pause the video stream using the {@link VideoProfile#STATE_PAUSED} bit can come
+     * from both the {@link android.telecom.InCallService}, as well as via the
+     * {@link #pauseVideo(int, int)} and {@link #resumeVideo(int, int)} methods.  As a result,
+     * multiple sources can potentially pause or resume the video stream.  This method ensures that
+     * providing any one request source has paused the video that the video will remain paused.
+     *
+     * @param fromProfile The request's from {@link VideoProfile}.
+     * @param toProfile The request's to {@link VideoProfile}.
+     * @param source The source of the request, as identified by a {@code VideoPauseTracker#SOURCE*}
+     *               constant.
+     * @return The new toProfile, with the pause bit set or unset based on whether we should
+     *      actually pause or resume the video at the current time.
+     */
+    private VideoProfile maybeFilterPauseResume(VideoProfile fromProfile, VideoProfile toProfile,
+            int source) {
+        int fromVideoState = fromProfile.getVideoState();
+        int toVideoState = toProfile.getVideoState();
+
+        // TODO: Remove the following workaround in favor of a new API.
+        // The current sendSessionModifyRequest API has a flaw.  If the video is already
+        // paused, it is not possible for the IncallService to inform the VideoProvider that
+        // it wishes to pause due to multi-tasking.
+        // In a future release we should add a new explicity pauseVideo and resumeVideo API
+        // instead of a difference between two video states.
+        // For now, we'll assume if the request is from pause to pause, we'll still try to
+        // pause.
+        boolean isPauseSpecialCase = (source == VideoPauseTracker.SOURCE_INCALL &&
+                VideoProfile.isPaused(fromVideoState) &&
+                VideoProfile.isPaused(toVideoState));
+
+        boolean isPauseRequest = isPauseRequest(fromVideoState, toVideoState) || isPauseSpecialCase;
+        boolean isResumeRequest = isResumeRequest(fromVideoState, toVideoState);
+        if (isPauseRequest) {
+            Log.i(this, "maybeFilterPauseResume: isPauseRequest");
+            // Check if we have already paused the video in the past.
+            if (!mVideoPauseTracker.shouldPauseVideoFor(source) && !isPauseSpecialCase) {
+                // Note: We don't want to remove the "pause" in the "special case" scenario. If we
+                // do the resulting request will be from PAUSED --> UNPAUSED, which would resume the
+                // video.
+
+                // Video was already paused, so remove the pause in the "to" profile.
+                toVideoState = toVideoState & ~VideoProfile.STATE_PAUSED;
+                toProfile = new VideoProfile(toVideoState, toProfile.getQuality());
+            }
+        } else if (isResumeRequest) {
+            Log.i(this, "maybeFilterPauseResume: isResumeRequest");
+            // Check if we should remain paused (other pause requests pending).
+            if (!mVideoPauseTracker.shouldResumeVideoFor(source)) {
+                // There are other pause requests from other sources which are still active, so we
+                // should remain paused.
+                toVideoState = toVideoState | VideoProfile.STATE_PAUSED;
+                toProfile = new VideoProfile(toVideoState, toProfile.getQuality());
+            }
+        }
+
+        return toProfile;
+    }
+
+    /**
+     * Issues a request to pause the video using {@link VideoProfile#STATE_PAUSED} from a source
+     * other than the InCall UI.
+     *
+     * @param fromVideoState The current video state (prior to issuing the pause).
+     * @param source The source of the pause request.
+     */
+    public void pauseVideo(int fromVideoState, int source) {
+        if (mVideoPauseTracker.shouldPauseVideoFor(source)) {
+            // We should pause the video (its not already paused).
+            VideoProfile fromProfile = new VideoProfile(fromVideoState);
+            VideoProfile toProfile = new VideoProfile(fromVideoState | VideoProfile.STATE_PAUSED);
+
+            try {
+                Log.i(this, "pauseVideo: fromVideoState=%s, toVideoState=%s",
+                        VideoProfile.videoStateToString(fromProfile.getVideoState()),
+                        VideoProfile.videoStateToString(toProfile.getVideoState()));
+                mVideoCallProvider.sendSessionModifyRequest(fromProfile, toProfile);
+            } catch (RemoteException e) {
+            }
+        } else {
+            Log.i(this, "pauseVideo: video already paused");
+        }
+    }
+
+    /**
+     * Issues a request to resume the video using {@link VideoProfile#STATE_PAUSED} from a source
+     * other than the InCall UI.
+     *
+     * @param fromVideoState The current video state (prior to issuing the resume).
+     * @param source The source of the resume request.
+     */
+    public void resumeVideo(int fromVideoState, int source) {
+        if (mVideoPauseTracker.shouldResumeVideoFor(source)) {
+            // We are the last source to resume, so resume now.
+            VideoProfile fromProfile = new VideoProfile(fromVideoState);
+            VideoProfile toProfile = new VideoProfile(fromVideoState & ~VideoProfile.STATE_PAUSED);
+
+            try {
+                Log.i(this, "resumeVideo: fromVideoState=%s, toVideoState=%s",
+                        VideoProfile.videoStateToString(fromProfile.getVideoState()),
+                        VideoProfile.videoStateToString(toProfile.getVideoState()));
+                mVideoCallProvider.sendSessionModifyRequest(fromProfile, toProfile);
+            } catch (RemoteException e) {
+            }
+        } else {
+            Log.i(this, "resumeVideo: remaining paused (paused from other sources)");
+        }
+    }
+
+    /**
+     * Determines if a specified source has issued a pause request.
+     *
+     * @param source The source.
+     * @return {@code true} if the source issued a pause request, {@code false} otherwise.
+     */
+    public boolean wasVideoPausedFromSource(int source) {
+        return mVideoPauseTracker.wasVideoPausedFromSource(source);
     }
 }
