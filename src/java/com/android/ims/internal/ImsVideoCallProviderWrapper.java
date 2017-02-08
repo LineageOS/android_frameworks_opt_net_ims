@@ -17,6 +17,7 @@
 package com.android.ims.internal;
 
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -218,7 +219,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     /** @inheritDoc */
     public void onSetCamera(String cameraId) {
         try {
-            mVideoCallProvider.setCamera(cameraId);
+            mVideoCallProvider.setCamera(cameraId, Binder.getCallingUid());
         } catch (RemoteException e) {
         }
     }
