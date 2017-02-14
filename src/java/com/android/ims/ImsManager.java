@@ -1525,7 +1525,7 @@ public class ImsManager {
     /**
      * Adapter class for {@link IImsRegistrationListener}.
      */
-    private static class ImsRegistrationListenerProxy extends IImsRegistrationListener.Stub {
+    private class ImsRegistrationListenerProxy extends IImsRegistrationListener.Stub {
         private int mServiceClass;
         private ImsConnectionStateListener mListener;
 
