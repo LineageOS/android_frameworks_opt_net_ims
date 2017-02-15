@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.Parcel;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -35,17 +36,19 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
 import com.android.ims.internal.IImsCallSession;
+import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
-import com.android.ims.internal.IImsConfig;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * Provides APIs for IMS services, such as initiating IMS calls, and provides access to
@@ -191,6 +194,11 @@ public class ImsManager {
     public static final String TRUE = "true";
     public static final String FALSE = "false";
 
+    // mRecentDisconnectReasons stores the last 16 disconnect reasons
+    private static final int MAX_RECENT_DISCONNECT_REASONS = 16;
+    private ConcurrentLinkedDeque<ImsReasonInfo> mRecentDisconnectReasons =
+            new ConcurrentLinkedDeque<>();
+
     /**
      * Gets a manager instance.
      *
@@ -200,8 +208,9 @@ public class ImsManager {
      */
     public static ImsManager getInstance(Context context, int phoneId) {
         synchronized (sImsManagerInstances) {
-            if (sImsManagerInstances.containsKey(phoneId))
+            if (sImsManagerInstances.containsKey(phoneId)) {
                 return sImsManagerInstances.get(phoneId);
+            }
 
             ImsManager mgr = new ImsManager(context, phoneId);
             sImsManagerInstances.put(phoneId, mgr);
@@ -1232,6 +1241,31 @@ public class ImsManager {
         }
     }
 
+    private ImsReasonInfo makeACopy(ImsReasonInfo imsReasonInfo) {
+        Parcel p = Parcel.obtain();
+        imsReasonInfo.writeToParcel(p, 0);
+        p.setDataPosition(0);
+        ImsReasonInfo clonedReasonInfo = ImsReasonInfo.CREATOR.createFromParcel(p);
+        p.recycle();
+        return clonedReasonInfo;
+    }
+
+    /**
+     * Get Recent IMS Disconnect Reasons.
+     *
+     * @return ArrayList of ImsReasonInfo objects. MAX size of the arraylist
+     * is MAX_RECENT_DISCONNECT_REASONS. The objects are in the
+     * chronological order.
+     */
+    public ArrayList<ImsReasonInfo> getRecentImsDisconnectReasons() {
+        ArrayList<ImsReasonInfo> disconnectReasons = new ArrayList<>();
+
+        for (ImsReasonInfo reason : mRecentDisconnectReasons) {
+            disconnectReasons.add(makeACopy(reason));
+        }
+        return disconnectReasons;
+    }
+
     /**
      * Get the boolean config from carrier config manager.
      *
@@ -1460,6 +1494,14 @@ public class ImsManager {
         }
     }
 
+    private void addToRecentDisconnectReasons(ImsReasonInfo reason) {
+        if (reason == null) return;
+        while (mRecentDisconnectReasons.size() >= MAX_RECENT_DISCONNECT_REASONS) {
+            mRecentDisconnectReasons.removeFirst();
+        }
+        mRecentDisconnectReasons.addLast(reason);
+    }
+
     /**
      * Death recipient class for monitoring IMS service.
      */
@@ -1551,6 +1593,8 @@ public class ImsManager {
             if (DBG) {
                 log("registrationDisconnected :: imsReasonInfo" + imsReasonInfo);
             }
+
+            addToRecentDisconnectReasons(imsReasonInfo);
 
             if (mListener != null) {
                 mListener.onImsDisconnected(imsReasonInfo);
