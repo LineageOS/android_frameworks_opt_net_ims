@@ -1004,37 +1004,6 @@ public class ImsManager {
      * @throws NullPointerException if {@code listener} is null
      * @throws ImsException if calling the IMS service results in an error
      */
-    public void addRegistrationListener(int sessionId, int serviceClass,
-            ImsConnectionStateListener listener)
-            throws ImsException {
-        checkAndThrowExceptionIfServiceUnavailable();
-
-        if (listener == null) {
-            throw new NullPointerException("listener can't be null");
-        }
-
-        try {
-            ImsRegistrationListenerProxy p = createRegistrationListenerProxy(serviceClass,
-                    listener);
-            mRegistrationListeners.add(p);
-            mImsServiceProxy.addRegistrationListener(sessionId, p);
-        } catch (RemoteException e) {
-            throw new ImsException("addRegistrationListener()", e,
-                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-        }
-    }
-
-    /**
-     * Adds registration listener to the IMS service.
-     *
-     * @param serviceClass a service class specified in {@link ImsServiceClass}
-     *      For VoLTE service, it MUST be a {@link ImsServiceClass#MMTEL}.
-     * @param listener To listen to IMS registration events; It cannot be null
-     * @throws NullPointerException if {@code listener} is null
-     * @throws ImsException if calling the IMS service results in an error
-     * @deprecated Use {@link #addRegistrationListener(int, int, ImsConnectionStateListener)}
-     * instead.
-     */
     public void addRegistrationListener(int serviceClass, ImsConnectionStateListener listener)
             throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
@@ -1046,9 +1015,8 @@ public class ImsManager {
         try {
             ImsRegistrationListenerProxy p = createRegistrationListenerProxy(serviceClass,
                     listener);
-            // Only add the listener if it doesn't already exist in the set.
             mRegistrationListeners.add(p);
-            mImsServiceProxy.addRegistrationListener(ImsFeature.MMTEL, p);
+            mImsServiceProxy.addRegistrationListener(p);
         } catch (RemoteException e) {
             throw new ImsException("addRegistrationListener()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1058,13 +1026,12 @@ public class ImsManager {
     /**
      * Removes the registration listener from the IMS service.
      *
-     * @param sessionId The session ID returned by open.
      * @param listener Previously registered listener that will be removed. Can not be null.
      * @throws NullPointerException if {@code listener} is null
      * @throws ImsException if calling the IMS service results in an error
      * instead.
      */
-    public void removeRegistrationListener(int sessionId, ImsConnectionStateListener listener)
+    public void removeRegistrationListener(ImsConnectionStateListener listener)
             throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
@@ -1078,7 +1045,7 @@ public class ImsManager {
             if(optionalProxy.isPresent()) {
                 ImsRegistrationListenerProxy p = optionalProxy.get();
                 mRegistrationListeners.remove(p);
-                mImsServiceProxy.removeRegistrationListener(sessionId, p);
+                mImsServiceProxy.removeRegistrationListener(p);
             }
         } catch (RemoteException e) {
             throw new ImsException("removeRegistrationListener()", e,
@@ -1112,18 +1079,17 @@ public class ImsManager {
     /**
      * Gets the configuration interface to provision / withdraw the supplementary service settings.
      *
-     * @param sessionId a session id which is obtained from {@link ImsManager#open}
      * @return the Ut interface instance
      * @throws ImsException if getting the Ut interface results in an error
      */
-    public ImsUtInterface getSupplementaryServiceConfiguration(int sessionId)
+    public ImsUtInterface getSupplementaryServiceConfiguration()
             throws ImsException {
         // FIXME: manage the multiple Ut interfaces based on the session id
         if (mUt == null || !mImsServiceProxy.isBinderAlive()) {
             checkAndThrowExceptionIfServiceUnavailable();
 
             try {
-                IImsUt iUt = mImsServiceProxy.getUtInterface(sessionId);
+                IImsUt iUt = mImsServiceProxy.getUtInterface();
 
                 if (iUt == null) {
                     throw new ImsException("getSupplementaryServiceConfiguration()",
@@ -1144,7 +1110,6 @@ public class ImsManager {
      * Checks if the IMS service has successfully registered to the IMS network
      * with the specified service & call type.
      *
-     * @param sessionId a session id which is obtained from {@link ImsManager#open}
      * @param serviceType a service type that is specified in {@link ImsCallProfile}
      *        {@link ImsCallProfile#SERVICE_TYPE_NORMAL}
      *        {@link ImsCallProfile#SERVICE_TYPE_EMERGENCY}
@@ -1157,12 +1122,12 @@ public class ImsManager {
      *        false otherwise
      * @throws ImsException if calling the IMS service results in an error
      */
-    public boolean isConnected(int sessionId, int serviceType, int callType)
+    public boolean isConnected(int serviceType, int callType)
             throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
         try {
-            return mImsServiceProxy.isConnected(sessionId, serviceType, callType);
+            return mImsServiceProxy.isConnected(serviceType, callType);
         } catch (RemoteException e) {
             throw new ImsException("isServiceConnected()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1172,15 +1137,14 @@ public class ImsManager {
     /**
      * Checks if the specified IMS service is opend.
      *
-     * @param sessionId a session id which is obtained from {@link ImsManager#open}
      * @return true if the specified service id is opened; false otherwise
      * @throws ImsException if calling the IMS service results in an error
      */
-    public boolean isOpened(int sessionId) throws ImsException {
+    public boolean isOpened() throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
         try {
-            return mImsServiceProxy.isOpened(sessionId);
+            return mImsServiceProxy.isOpened();
         } catch (RemoteException e) {
             throw new ImsException("isOpened()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1207,8 +1171,8 @@ public class ImsManager {
      * @return a {@link ImsCallProfile} object
      * @throws ImsException if calling the IMS service results in an error
      */
-    public ImsCallProfile createCallProfile(int sessionId,
-            int serviceType, int callType) throws ImsException {
+    public ImsCallProfile createCallProfile(int sessionId, int serviceType, int callType)
+            throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
         try {
@@ -1321,7 +1285,7 @@ public class ImsManager {
             checkAndThrowExceptionIfServiceUnavailable();
 
             try {
-                IImsConfig config = mImsServiceProxy.getConfigInterface(mPhoneId);
+                IImsConfig config = mImsServiceProxy.getConfigInterface();
                 if (config == null) {
                     throw new ImsException("getConfigInterface()",
                             ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
@@ -1336,13 +1300,13 @@ public class ImsManager {
         return mConfig;
     }
 
-    public void setUiTTYMode(Context context, int sessionId, int uiTtyMode, Message onComplete)
+    public void setUiTTYMode(Context context, int uiTtyMode, Message onComplete)
             throws ImsException {
 
         checkAndThrowExceptionIfServiceUnavailable();
 
         try {
-            mImsServiceProxy.setUiTTYMode(sessionId, uiTtyMode, onComplete);
+            mImsServiceProxy.setUiTTYMode(uiTtyMode, onComplete);
         } catch (RemoteException e) {
             throw new ImsException("setTTYMode()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1576,7 +1540,7 @@ public class ImsManager {
         checkAndThrowExceptionIfServiceUnavailable();
 
         try {
-            mImsServiceProxy.turnOnIms(mPhoneId);
+            mImsServiceProxy.turnOnIms();
         } catch (RemoteException e) {
             throw new ImsException("turnOnIms() ", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
@@ -1637,7 +1601,7 @@ public class ImsManager {
         checkAndThrowExceptionIfServiceUnavailable();
 
         try {
-            mImsServiceProxy.turnOffIms(mPhoneId);
+            mImsServiceProxy.turnOffIms();
         } catch (RemoteException e) {
             throw new ImsException("turnOffIms() ", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
@@ -1823,7 +1787,7 @@ public class ImsManager {
             checkAndThrowExceptionIfServiceUnavailable();
 
             try {
-                IImsEcbm iEcbm = mImsServiceProxy.getEcbmInterface(serviceId);
+                IImsEcbm iEcbm = mImsServiceProxy.getEcbmInterface();
 
                 if (iEcbm == null) {
                     throw new ImsException("getEcbmInterface()",
@@ -1850,8 +1814,7 @@ public class ImsManager {
             checkAndThrowExceptionIfServiceUnavailable();
 
             try {
-                IImsMultiEndpoint iImsMultiEndpoint = mImsServiceProxy.getMultiEndpointInterface(
-                        serviceId);
+                IImsMultiEndpoint iImsMultiEndpoint = mImsServiceProxy.getMultiEndpointInterface();
 
                 if (iImsMultiEndpoint == null) {
                     throw new ImsException("getMultiEndpointInterface()",
