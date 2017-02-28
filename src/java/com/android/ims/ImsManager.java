@@ -891,31 +891,8 @@ public class ImsManager {
         mPhoneId = phoneId;
         mConfigDynamicBind = mContext.getResources().getBoolean(
                 com.android.internal.R.bool.config_dynamic_bind_ims);
-        addNotifyStatusChangedCallback(this::sendImsServiceIntent);
         createImsService();
     }
-
-    /**
-     * Provide backwards compatibility using deprecated service UP/DOWN intents.
-     */
-    private void sendImsServiceIntent() {
-        int status = mImsServiceProxy.getFeatureStatus();
-        Intent intent;
-        switch (status) {
-            case ImsFeature.STATE_NOT_AVAILABLE:
-            case ImsFeature.STATE_INITIALIZING:
-                intent = new Intent(ACTION_IMS_SERVICE_DOWN);
-                break;
-            case ImsFeature.STATE_READY:
-                intent = new Intent(ACTION_IMS_SERVICE_UP);
-                break;
-            default:
-                intent = new Intent(ACTION_IMS_SERVICE_DOWN);
-        }
-        intent.putExtra(EXTRA_PHONE_ID, mPhoneId);
-        mContext.sendBroadcast(new Intent(intent));
-    }
-
 
     /**
      * @return Whether or not ImsManager is configured to Dynamically bind or not to support legacy
@@ -1488,15 +1465,6 @@ public class ImsManager {
                             ImsServiceProxy.INotifyStatusChanged::notifyStatusChanged));
             // Trigger the cache to be updated for feature status.
             serviceProxy.getFeatureStatus();
-            // In order to keep backwards compatibility with other services such as RcsService,
-            // we must broadcast the IMS_SERVICE_UP intent here. If it is not ready, IMS_SERVICE_UP
-            // will be called in this::sendImsServiceIntent. IMS_SERVICE_UP is sent by ImsService
-            // in the old ImsService implementation.
-            if (serviceProxy.isBinderAlive()) {
-                Intent intent = new Intent(ACTION_IMS_SERVICE_UP);
-                intent.putExtra(EXTRA_PHONE_ID, mPhoneId);
-                mContext.sendBroadcast(new Intent(intent));
-            }
         } else {
             Rlog.w(TAG, "getServiceProxy: b is null! Phone Id: " + mPhoneId);
         }
@@ -1634,12 +1602,6 @@ public class ImsManager {
             mConfig = null;
             mEcbm = null;
             mMultiEndpoint = null;
-
-            if (mContext != null && !isDynamicBinding()) {
-                Intent intent = new Intent(ACTION_IMS_SERVICE_DOWN);
-                intent.putExtra(EXTRA_PHONE_ID, mPhoneId);
-                mContext.sendBroadcast(new Intent(intent));
-            }
         }
     }
 
