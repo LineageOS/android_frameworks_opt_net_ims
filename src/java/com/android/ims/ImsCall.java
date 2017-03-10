@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.Message;
 import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
+import android.telephony.Rlog;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -1677,10 +1678,10 @@ public class ImsCall implements ICall {
             String endpoint = confInfo.getString(ImsConferenceState.ENDPOINT);
 
             if (CONF_DBG) {
-                logi("notifyConferenceStateUpdated :: key=" + key +
+                logi("notifyConferenceStateUpdated :: key=" + Rlog.pii(TAG, key) +
                         ", status=" + status +
-                        ", user=" + user +
-                        ", displayName= " + displayName +
+                        ", user=" + Rlog.pii(TAG, user) +
+                        ", displayName= " + Rlog.pii(TAG, displayName) +
                         ", endpoint=" + endpoint);
             }
 
