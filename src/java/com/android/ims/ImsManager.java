@@ -732,12 +732,26 @@ public class ImsManager {
         android.provider.Settings.Global.putInt(mContext.getContentResolver(),
                 android.provider.Settings.Global.WFC_IMS_ENABLED, value);
 
+        setWfcNonPersistentForSlot(enabled, getWfcModeForSlot());
+    }
+
+    /**
+     * Non-persistently change WFC enabled setting and WFC mode for slot
+     *
+     * @param wfcMode The WFC preference if WFC is enabled
+     */
+    public void setWfcNonPersistentForSlot(boolean enabled, int wfcMode) {
+        int imsFeatureValue =
+                enabled ? ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF;
+        // Force IMS to register over LTE when turning off WFC
+        int imsWfcModeFeatureValue =
+                enabled ? wfcMode : ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED;
+
         try {
             ImsConfig config = getConfigInterface();
             config.setFeatureValue(ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_WIFI,
                     TelephonyManager.NETWORK_TYPE_IWLAN,
-                    enabled ? ImsConfig.FeatureValueConstants.ON
-                            : ImsConfig.FeatureValueConstants.OFF,
+                    imsFeatureValue,
                     mImsConfigListener);
 
             if (enabled) {
@@ -750,10 +764,7 @@ public class ImsManager {
                 turnOffIms();
             }
 
-            // Force IMS to register over LTE when turning off WFC
-            setWfcModeInternalForSlot(enabled
-                    ? getWfcModeForSlot()
-                    : ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED);
+            setWfcModeInternalForSlot(imsWfcModeFeatureValue);
         } catch (ImsException e) {
             loge("setWfcSettingForSlot(): ", e);
         }
