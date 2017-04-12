@@ -431,12 +431,22 @@ public class ImsManager {
     }
 
     /**
-     * Indicates whether VoWifi is provisioned on device
+     * Indicates whether VoWifi is provisioned on device.
+     *
+     * When CarrierConfig KEY_CARRIER_VOLTE_OVERRIDE_WFC_PROVISIONING_BOOL is true, and VoLTE is not
+     * provisioned on device, this method returns false.
      *
      * @deprecated Does not support MSIM devices. Please use
      * {@link #isWfcProvisionedOnDeviceForSlot()} instead.
      */
     public static boolean isWfcProvisionedOnDevice(Context context) {
+        if (getBooleanCarrierConfig(context,
+                CarrierConfigManager.KEY_CARRIER_VOLTE_OVERRIDE_WFC_PROVISIONING_BOOL)) {
+            if (!isVolteProvisionedOnDevice(context)) {
+                return false;
+            }
+        }
+
         if (getBooleanCarrierConfig(context,
                 CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
             ImsManager mgr = ImsManager.getInstance(context,
@@ -451,11 +461,21 @@ public class ImsManager {
 
     /**
      * Indicates whether VoWifi is provisioned on slot.
+     *
+     * When CarrierConfig KEY_CARRIER_VOLTE_OVERRIDE_WFC_PROVISIONING_BOOL is true, and VoLTE is not
+     * provisioned on device, this method returns false.
      */
     public boolean isWfcProvisionedOnDeviceForSlot() {
         if (getBooleanCarrierConfigForSlot(
+                CarrierConfigManager.KEY_CARRIER_VOLTE_OVERRIDE_WFC_PROVISIONING_BOOL)) {
+            if (!isVolteProvisionedOnDeviceForSlot()) {
+                return false;
+            }
+        }
+
+        if (getBooleanCarrierConfigForSlot(
                 CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
-                return isWfcProvisioned();
+            return isWfcProvisioned();
         }
 
         return true;
