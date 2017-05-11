@@ -29,6 +29,7 @@ import android.telecom.Log;
 import android.telecom.VideoProfile;
 import android.view.Surface;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.SomeArgs;
 
 import java.util.Collections;
@@ -67,6 +68,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     private final Set<ImsVideoProviderWrapperCallback> mCallbacks = Collections.newSetFromMap(
             new ConcurrentHashMap<ImsVideoProviderWrapperCallback, Boolean>(8, 0.9f, 1));
     private VideoPauseTracker mVideoPauseTracker = new VideoPauseTracker();
+    private boolean mUseVideoPauseWorkaround = false;
 
     private IBinder.DeathRecipient mDeathRecipient = new IBinder.DeathRecipient() {
         @Override
@@ -207,13 +209,26 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
      *
      * @param VideoProvider
      */
-    public ImsVideoCallProviderWrapper(IImsVideoCallProvider VideoProvider)
+    public ImsVideoCallProviderWrapper(IImsVideoCallProvider videoProvider)
             throws RemoteException {
-        mVideoCallProvider = VideoProvider;
-        mVideoCallProvider.asBinder().linkToDeath(mDeathRecipient, 0);
 
-        mBinder = new ImsVideoCallCallback();
-        mVideoCallProvider.setCallback(mBinder);
+        mVideoCallProvider = videoProvider;
+        if (videoProvider != null) {
+            mVideoCallProvider.asBinder().linkToDeath(mDeathRecipient, 0);
+
+            mBinder = new ImsVideoCallCallback();
+            mVideoCallProvider.setCallback(mBinder);
+        } else {
+            mBinder = null;
+        }
+    }
+
+    @VisibleForTesting
+    public ImsVideoCallProviderWrapper(IImsVideoCallProvider videoProvider,
+            VideoPauseTracker videoPauseTracker)
+            throws RemoteException {
+        this(videoProvider);
+        mVideoPauseTracker = videoPauseTracker;
     }
 
     /** @inheritDoc */
@@ -323,7 +338,8 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
      * @param to The to video state.
      * @return {@code true} if a pause was requested.
      */
-    private static boolean isPauseRequest(int from, int to) {
+    @VisibleForTesting
+    public static boolean isPauseRequest(int from, int to) {
         boolean fromPaused = VideoProfile.isPaused(from);
         boolean toPaused = VideoProfile.isPaused(to);
 
@@ -337,11 +353,36 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
      * @param to The to video state.
      * @return {@code true} if a resume was requested.
      */
-    private static boolean isResumeRequest(int from, int to) {
+    @VisibleForTesting
+    public static boolean isResumeRequest(int from, int to) {
         boolean fromPaused = VideoProfile.isPaused(from);
         boolean toPaused = VideoProfile.isPaused(to);
 
         return fromPaused && !toPaused;
+    }
+
+    /**
+     * Determines if this request includes turning the camera off (ie turning off transmission).
+     * @param from the from video state.
+     * @param to the to video state.
+     * @return true if the state change disables the user's camera.
+     */
+    @VisibleForTesting
+    public static boolean isTurnOffCameraRequest(int from, int to) {
+        return VideoProfile.isTransmissionEnabled(from)
+                && !VideoProfile.isTransmissionEnabled(to);
+    }
+
+    /**
+     * Determines if this request includes turning the camera on (ie turning on transmission).
+     * @param from the from video state.
+     * @param to the to video state.
+     * @return true if the state change enables the user's camera.
+     */
+    @VisibleForTesting
+    public static boolean isTurnOnCameraRequest(int from, int to) {
+        return !VideoProfile.isTransmissionEnabled(from)
+                && VideoProfile.isTransmissionEnabled(to);
     }
 
     /**
@@ -361,7 +402,8 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
      * @return The new toProfile, with the pause bit set or unset based on whether we should
      *      actually pause or resume the video at the current time.
      */
-    private VideoProfile maybeFilterPauseResume(VideoProfile fromProfile, VideoProfile toProfile,
+    @VisibleForTesting
+    public VideoProfile maybeFilterPauseResume(VideoProfile fromProfile, VideoProfile toProfile,
             int source) {
         int fromVideoState = fromProfile.getVideoState();
         int toVideoState = toProfile.getVideoState();
@@ -381,7 +423,9 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         boolean isPauseRequest = isPauseRequest(fromVideoState, toVideoState) || isPauseSpecialCase;
         boolean isResumeRequest = isResumeRequest(fromVideoState, toVideoState);
         if (isPauseRequest) {
-            Log.i(this, "maybeFilterPauseResume: isPauseRequest");
+            Log.i(this, "maybeFilterPauseResume: isPauseRequest (from=%s, to=%s)",
+                    VideoProfile.videoStateToString(fromVideoState),
+                    VideoProfile.videoStateToString(toVideoState));
             // Check if we have already paused the video in the past.
             if (!mVideoPauseTracker.shouldPauseVideoFor(source) && !isPauseSpecialCase) {
                 // Note: We don't want to remove the "pause" in the "special case" scenario. If we
@@ -393,7 +437,29 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                 toProfile = new VideoProfile(toVideoState, toProfile.getQuality());
             }
         } else if (isResumeRequest) {
-            Log.i(this, "maybeFilterPauseResume: isResumeRequest");
+            boolean isTurnOffCameraRequest = isTurnOffCameraRequest(fromVideoState, toVideoState);
+            boolean isTurnOnCameraRequest = isTurnOnCameraRequest(fromVideoState, toVideoState);
+            // TODO: Fix vendor code so that this isn't required.
+            // Some vendors do not properly handle turning the camera on/off when the video is
+            // in paused state.
+            // If the request is to turn on/off the camera, it might be in the unfortunate format:
+            // FROM: Audio Tx Rx Pause TO: Audio Rx
+            // FROM: Audio Rx Pause TO: Audio Rx Tx
+            // If this is the case, we should not treat this request as a resume request as well.
+            // Ideally the IMS stack should treat a turn off camera request as:
+            // FROM: Audio Tx Rx Pause TO: Audio Rx Pause
+            // FROM: Audio Rx Pause TO: Audio Rx Tx Pause
+            // Unfortunately, it does not. ¯\_(ツ)_/¯
+            if (mUseVideoPauseWorkaround && (isTurnOffCameraRequest || isTurnOnCameraRequest)) {
+                Log.i(this, "maybeFilterPauseResume: isResumeRequest, but camera turning on/off so "
+                        + "skipping (from=%s, to=%s)",
+                        VideoProfile.videoStateToString(fromVideoState),
+                        VideoProfile.videoStateToString(toVideoState));
+                return toProfile;
+            }
+            Log.i(this, "maybeFilterPauseResume: isResumeRequest (from=%s, to=%s)",
+                    VideoProfile.videoStateToString(fromVideoState),
+                    VideoProfile.videoStateToString(toVideoState));
             // Check if we should remain paused (other pause requests pending).
             if (!mVideoPauseTracker.shouldResumeVideoFor(source)) {
                 // There are other pause requests from other sources which are still active, so we
@@ -464,5 +530,9 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
      */
     public boolean wasVideoPausedFromSource(int source) {
         return mVideoPauseTracker.wasVideoPausedFromSource(source);
+    }
+
+    public void setUseVideoPauseWorkaround(boolean useVideoPauseWorkaround) {
+        mUseVideoPauseWorkaround = useVideoPauseWorkaround;
     }
 }
