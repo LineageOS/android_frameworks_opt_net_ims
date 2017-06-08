@@ -200,7 +200,15 @@ public class ImsManager {
 
     // Keep track of the ImsRegistrationListenerProxys that have been created so that we can
     // remove them from the ImsService.
-    private Set<ImsRegistrationListenerProxy> mRegistrationListeners = new HashSet<>();
+    private final Set<ImsConnectionStateListener> mRegistrationListeners = new HashSet<>();
+
+    private final ImsRegistrationListenerProxy mRegistrationListenerProxy =
+            new ImsRegistrationListenerProxy();
+
+    // When true, we have registered the mRegistrationListenerProxy with the ImsService. Don't do
+    // it again.
+    private boolean mHasRegisteredForProxy = false;
+    private final Object mHasRegisteredLock = new Object();
 
     // SystemProperties used as cache
     private static final String VOLTE_PROVISIONED_PROP = "net.lte.ims.volte.provisioned";
@@ -1497,7 +1505,11 @@ public class ImsManager {
 
         try {
             result = mImsServiceProxy.startSession(incomingCallPendingIntent,
-                    createRegistrationListenerProxy(serviceClass, listener));
+                    mRegistrationListenerProxy);
+            synchronized (mHasRegisteredLock) {
+                mHasRegisteredForProxy = true;
+                addRegistrationListener(listener);
+            }
         } catch (RemoteException e) {
             throw new ImsException("open()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1521,23 +1533,43 @@ public class ImsManager {
      * @param listener To listen to IMS registration events; It cannot be null
      * @throws NullPointerException if {@code listener} is null
      * @throws ImsException if calling the IMS service results in an error
+     *
+     * @deprecated Use {@link #addRegistrationListener(ImsConnectionStateListener)} instead.
      */
     public void addRegistrationListener(int serviceClass, ImsConnectionStateListener listener)
+            throws ImsException {
+        addRegistrationListener(listener);
+    }
+
+    /**
+     * Adds registration listener to the IMS service.
+     *
+     * @param listener To listen to IMS registration events; It cannot be null
+     * @throws NullPointerException if {@code listener} is null
+     * @throws ImsException if calling the IMS service results in an error
+     */
+    public void addRegistrationListener(ImsConnectionStateListener listener)
             throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
         if (listener == null) {
             throw new NullPointerException("listener can't be null");
         }
-
-        try {
-            ImsRegistrationListenerProxy p = createRegistrationListenerProxy(serviceClass,
-                    listener);
-            mRegistrationListeners.add(p);
-            mImsServiceProxy.addRegistrationListener(p);
-        } catch (RemoteException e) {
-            throw new ImsException("addRegistrationListener()", e,
-                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        // We only want this Proxy registered once. It can either happen here or in open().
+        synchronized (mHasRegisteredLock) {
+            if (!mHasRegisteredForProxy) {
+                try {
+                    mImsServiceProxy.addRegistrationListener(mRegistrationListenerProxy);
+                    // Only record if there isn't a RemoteException.
+                    mHasRegisteredForProxy = true;
+                } catch (RemoteException e) {
+                    throw new ImsException("addRegistrationListener()", e,
+                            ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+                }
+            }
+        }
+        synchronized (mRegistrationListeners) {
+            mRegistrationListeners.add(listener);
         }
     }
 
@@ -1551,23 +1583,12 @@ public class ImsManager {
      */
     public void removeRegistrationListener(ImsConnectionStateListener listener)
             throws ImsException {
-        checkAndThrowExceptionIfServiceUnavailable();
-
         if (listener == null) {
             throw new NullPointerException("listener can't be null");
         }
 
-        try {
-            Optional<ImsRegistrationListenerProxy> optionalProxy = mRegistrationListeners.stream()
-                    .filter(l -> listener.equals(l.mListener)).findFirst();
-            if(optionalProxy.isPresent()) {
-                ImsRegistrationListenerProxy p = optionalProxy.get();
-                mRegistrationListeners.remove(p);
-                mImsServiceProxy.removeRegistrationListener(p);
-            }
-        } catch (RemoteException e) {
-            throw new ImsException("removeRegistrationListener()", e,
-                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        synchronized (mRegistrationListeners) {
+            mRegistrationListeners.remove(listener);
         }
     }
 
@@ -2024,6 +2045,10 @@ public class ImsManager {
             Rlog.i(TAG, "Creating ImsService using ImsResolver");
             mImsServiceProxy = getServiceProxy();
         }
+        // We have created a new ImsService connection, signal for re-registration
+        synchronized (mHasRegisteredLock) {
+            mHasRegisteredForProxy = false;
+        }
     }
 
     // Deprecated method of binding with the ImsService defined in the ServiceManager.
@@ -2079,13 +2104,6 @@ public class ImsManager {
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
 
         }
-    }
-
-    private ImsRegistrationListenerProxy createRegistrationListenerProxy(int serviceClass,
-            ImsConnectionStateListener listener) {
-        ImsRegistrationListenerProxy proxy =
-                new ImsRegistrationListenerProxy(serviceClass, listener);
-        return proxy;
     }
 
     private static void log(String s) {
@@ -2202,18 +2220,6 @@ public class ImsManager {
      * Adapter class for {@link IImsRegistrationListener}.
      */
     private class ImsRegistrationListenerProxy extends IImsRegistrationListener.Stub {
-        private int mServiceClass;
-        private ImsConnectionStateListener mListener;
-
-        public ImsRegistrationListenerProxy(int serviceClass,
-                ImsConnectionStateListener listener) {
-            mServiceClass = serviceClass;
-            mListener = listener;
-        }
-
-        public boolean isSameProxy(int serviceClass) {
-            return (mServiceClass == serviceClass);
-        }
 
         @Deprecated
         public void registrationConnected() {
@@ -2221,8 +2227,9 @@ public class ImsManager {
                 log("registrationConnected ::");
             }
 
-            if (mListener != null) {
-                mListener.onImsConnected(ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onImsConnected(
+                        ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN));
             }
         }
 
@@ -2232,8 +2239,9 @@ public class ImsManager {
                 log("registrationProgressing ::");
             }
 
-            if (mListener != null) {
-                mListener.onImsProgressing(ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onImsProgressing(
+                        ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN));
             }
         }
 
@@ -2245,8 +2253,8 @@ public class ImsManager {
                 log("registrationConnectedWithRadioTech :: imsRadioTech=" + imsRadioTech);
             }
 
-            if (mListener != null) {
-                mListener.onImsConnected(imsRadioTech);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onImsConnected(imsRadioTech));
             }
         }
 
@@ -2258,8 +2266,8 @@ public class ImsManager {
                 log("registrationProgressingWithRadioTech :: imsRadioTech=" + imsRadioTech);
             }
 
-            if (mListener != null) {
-                mListener.onImsProgressing(imsRadioTech);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onImsProgressing(imsRadioTech));
             }
         }
 
@@ -2270,9 +2278,8 @@ public class ImsManager {
             }
 
             addToRecentDisconnectReasons(imsReasonInfo);
-
-            if (mListener != null) {
-                mListener.onImsDisconnected(imsReasonInfo);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onImsDisconnected(imsReasonInfo));
             }
         }
 
@@ -2282,8 +2289,8 @@ public class ImsManager {
                 log("registrationResumed ::");
             }
 
-            if (mListener != null) {
-                mListener.onImsResumed();
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(ImsConnectionStateListener::onImsResumed);
             }
         }
 
@@ -2293,8 +2300,8 @@ public class ImsManager {
                 log("registrationSuspended ::");
             }
 
-            if (mListener != null) {
-                mListener.onImsSuspended();
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(ImsConnectionStateListener::onImsSuspended);
             }
         }
 
@@ -2303,8 +2310,9 @@ public class ImsManager {
             log("registrationServiceCapabilityChanged :: serviceClass=" +
                     serviceClass + ", event=" + event);
 
-            if (mListener != null) {
-                mListener.onImsConnected(ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onImsConnected(
+                        ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN));
             }
         }
 
@@ -2313,9 +2321,10 @@ public class ImsManager {
                 int[] enabledFeatures, int[] disabledFeatures) {
             log("registrationFeatureCapabilityChanged :: serviceClass=" +
                     serviceClass);
-            if (mListener != null) {
-                mListener.onFeatureCapabilityChanged(serviceClass,
-                        enabledFeatures, disabledFeatures);
+
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onFeatureCapabilityChanged(serviceClass,
+                        enabledFeatures, disabledFeatures));
             }
         }
 
@@ -2323,8 +2332,8 @@ public class ImsManager {
         public void voiceMessageCountUpdate(int count) {
             log("voiceMessageCountUpdate :: count=" + count);
 
-            if (mListener != null) {
-                mListener.onVoiceMessageCountChanged(count);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onVoiceMessageCountChanged(count));
             }
         }
 
@@ -2332,8 +2341,8 @@ public class ImsManager {
         public void registrationAssociatedUriChanged(Uri[] uris) {
             if (DBG) log("registrationAssociatedUriChanged ::");
 
-            if (mListener != null) {
-                mListener.registrationAssociatedUriChanged(uris);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.registrationAssociatedUriChanged(uris));
             }
         }
 
@@ -2342,8 +2351,9 @@ public class ImsManager {
             if (DBG) log("registrationChangeFailed :: targetAccessTech=" + targetAccessTech +
                     ", imsReasonInfo=" + imsReasonInfo);
 
-            if (mListener != null) {
-                mListener.onRegistrationChangeFailed(targetAccessTech, imsReasonInfo);
+            synchronized (mRegistrationListeners) {
+                mRegistrationListeners.forEach(l -> l.onRegistrationChangeFailed(targetAccessTech,
+                        imsReasonInfo));
             }
         }
     }
