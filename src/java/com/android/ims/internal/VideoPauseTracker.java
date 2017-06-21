@@ -150,6 +150,15 @@ public class VideoPauseTracker {
     }
 
     /**
+     * Clears pending pause requests for the tracker.
+     */
+    public void clearPauseRequests() {
+        synchronized (mPauseRequestsLock) {
+            mPauseRequests.clear();
+        }
+    }
+
+    /**
      * Returns a string equivalent of a {@code SOURCE_*} constant.
      *
      * @param source A {@code SOURCE_*} constant.
