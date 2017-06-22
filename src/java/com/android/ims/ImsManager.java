@@ -1517,12 +1517,14 @@ public class ImsManager {
         int result = 0;
 
         try {
+            // Register a stub implementation of the ImsRegistrationListener. There is the
+            // possibility that if we use the real implementation of the ImsRegistrationListener,
+            // it will be added twice.
+            // TODO: Remove ImsRegistrationListener from startSession API (b/62588776)
             result = mImsServiceProxy.startSession(incomingCallPendingIntent,
-                    mRegistrationListenerProxy);
-            synchronized (mHasRegisteredLock) {
-                mHasRegisteredForProxy = true;
-                addRegistrationListener(listener);
-            }
+                    new ImsRegistrationListenerBase());
+            addRegistrationListener(listener);
+            log("open: Session started and registration listener added.");
         } catch (RemoteException e) {
             throw new ImsException("open()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1563,16 +1565,17 @@ public class ImsManager {
      */
     public void addRegistrationListener(ImsConnectionStateListener listener)
             throws ImsException {
-        checkAndThrowExceptionIfServiceUnavailable();
 
         if (listener == null) {
             throw new NullPointerException("listener can't be null");
         }
-        // We only want this Proxy registered once. It can either happen here or in open().
+        // We only want this Proxy registered once.
         synchronized (mHasRegisteredLock) {
             if (!mHasRegisteredForProxy) {
                 try {
+                    checkAndThrowExceptionIfServiceUnavailable();
                     mImsServiceProxy.addRegistrationListener(mRegistrationListenerProxy);
+                    log("RegistrationListenerProxy registered.");
                     // Only record if there isn't a RemoteException.
                     mHasRegisteredForProxy = true;
                 } catch (RemoteException e) {
@@ -1582,6 +1585,7 @@ public class ImsManager {
             }
         }
         synchronized (mRegistrationListeners) {
+            log("Local registration listener added: " + listener);
             mRegistrationListeners.add(listener);
         }
     }
@@ -1601,6 +1605,7 @@ public class ImsManager {
         }
 
         synchronized (mRegistrationListeners) {
+            log("Local registration listener removed: " + listener);
             mRegistrationListeners.remove(listener);
         }
     }
@@ -2226,6 +2231,63 @@ public class ImsManager {
             mConfig = null;
             mEcbm = null;
             mMultiEndpoint = null;
+        }
+    }
+
+    /**
+     * Stub implementation of the Registration listener that provides no functionality.
+     */
+    private class ImsRegistrationListenerBase extends IImsRegistrationListener.Stub {
+
+        @Override
+        public void registrationConnected() throws RemoteException {
+        }
+
+        @Override
+        public void registrationProgressing() throws RemoteException {
+        }
+
+        @Override
+        public void registrationConnectedWithRadioTech(int imsRadioTech) throws RemoteException {
+        }
+
+        @Override
+        public void registrationProgressingWithRadioTech(int imsRadioTech) throws RemoteException {
+        }
+
+        @Override
+        public void registrationDisconnected(ImsReasonInfo imsReasonInfo) throws RemoteException {
+        }
+
+        @Override
+        public void registrationResumed() throws RemoteException {
+        }
+
+        @Override
+        public void registrationSuspended() throws RemoteException {
+        }
+
+        @Override
+        public void registrationServiceCapabilityChanged(int serviceClass, int event)
+                throws RemoteException {
+        }
+
+        @Override
+        public void registrationFeatureCapabilityChanged(int serviceClass, int[] enabledFeatures,
+                int[] disabledFeatures) throws RemoteException {
+        }
+
+        @Override
+        public void voiceMessageCountUpdate(int count) throws RemoteException {
+        }
+
+        @Override
+        public void registrationAssociatedUriChanged(Uri[] uris) throws RemoteException {
+        }
+
+        @Override
+        public void registrationChangeFailed(int targetAccessTech, ImsReasonInfo imsReasonInfo)
+                throws RemoteException {
         }
     }
 
