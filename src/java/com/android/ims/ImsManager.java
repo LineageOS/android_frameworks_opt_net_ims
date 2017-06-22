@@ -228,7 +228,12 @@ public class ImsManager {
     public static ImsManager getInstance(Context context, int phoneId) {
         synchronized (sImsManagerInstances) {
             if (sImsManagerInstances.containsKey(phoneId)) {
-                return sImsManagerInstances.get(phoneId);
+                ImsManager m = sImsManagerInstances.get(phoneId);
+                // May be null for some tests
+                if (m != null) {
+                    m.connectIfServiceIsAvailable();
+                }
+                return m;
             }
 
             ImsManager mgr = new ImsManager(context, phoneId);
@@ -1428,14 +1433,22 @@ public class ImsManager {
     }
 
     /*
-     * Returns a flag indicating whether the IMS service is available.
+     * Returns a flag indicating whether the IMS service is available. If it is not available,
+     * it will try to connect before reporting failure.
      */
     public boolean isServiceAvailable() {
-        if (mImsServiceProxy == null) {
-            createImsService();
-        }
+        connectIfServiceIsAvailable();
         // mImsServiceProxy will always create an ImsServiceProxy.
         return mImsServiceProxy.isBinderAlive();
+    }
+
+    /**
+     * If the service is available, try to reconnect.
+     */
+    public void connectIfServiceIsAvailable() {
+        if (mImsServiceProxy == null || !mImsServiceProxy.isBinderAlive()) {
+            createImsService();
+        }
     }
 
     public void setImsConfigListener(ImsConfigListener listener) {
