@@ -535,4 +535,19 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     public void setUseVideoPauseWorkaround(boolean useVideoPauseWorkaround) {
         mUseVideoPauseWorkaround = useVideoPauseWorkaround;
     }
+
+    /**
+     * Called by {@code ImsPhoneConnection} when there is a change to the video state of the call.
+     * Informs the video pause tracker that the video is no longer paused.  This ensures that
+     * subsequent pause requests are not filtered out.
+     *
+     * @param newVideoState The new video state.
+     */
+    public void onVideoStateChanged(int newVideoState) {
+        if (mVideoPauseTracker.isPaused() && !VideoProfile.isPaused(newVideoState)) {
+            Log.i(this, "onVideoStateChanged: newVideoState=%s, clearing pending pause requests.",
+                    VideoProfile.videoStateToString(newVideoState));
+            mVideoPauseTracker.clearPauseRequests();
+        }
+    }
 }
