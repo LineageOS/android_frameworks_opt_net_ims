@@ -1642,24 +1642,24 @@ public class ImsManager {
     public ImsUtInterface getSupplementaryServiceConfiguration()
             throws ImsException {
         // FIXME: manage the multiple Ut interfaces based on the session id
-        if (mUt == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
-
-            try {
-                IImsUt iUt = mImsServiceProxy.getUtInterface();
-
-                if (iUt == null) {
-                    throw new ImsException("getSupplementaryServiceConfiguration()",
-                            ImsReasonInfo.CODE_UT_NOT_SUPPORTED);
-                }
-
-                mUt = new ImsUt(iUt);
-            } catch (RemoteException e) {
-                throw new ImsException("getSupplementaryServiceConfiguration()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-            }
+        if (mUt != null && mUt.isBinderAlive()) {
+            return mUt;
         }
 
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsUt iUt = mImsServiceProxy.getUtInterface();
+
+            if (iUt == null) {
+                throw new ImsException("getSupplementaryServiceConfiguration()",
+                        ImsReasonInfo.CODE_UT_NOT_SUPPORTED);
+            }
+
+            mUt = new ImsUt(iUt);
+        } catch (RemoteException e) {
+            throw new ImsException("getSupplementaryServiceConfiguration()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
         return mUt;
     }
 
@@ -1837,23 +1837,22 @@ public class ImsManager {
      * @throws ImsException if getting the setting interface results in an error.
      */
     public ImsConfig getConfigInterface() throws ImsException {
-
-        if (mConfig == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
-
-            try {
-                IImsConfig config = mImsServiceProxy.getConfigInterface();
-                if (config == null) {
-                    throw new ImsException("getConfigInterface()",
-                            ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-                }
-                mConfig = new ImsConfig(config, mContext);
-            } catch (RemoteException e) {
-                throw new ImsException("getConfigInterface()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-            }
+        if (mConfig != null && mConfig.isBinderAlive()) {
+            return mConfig;
         }
-        if (DBG) log("getConfigInterface(), mConfig= " + mConfig);
+
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsConfig config = mImsServiceProxy.getConfigInterface();
+            if (config == null) {
+                throw new ImsException("getConfigInterface()",
+                        ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+            }
+            mConfig = new ImsConfig(config, mContext);
+        } catch (RemoteException e) {
+            throw new ImsException("getConfigInterface()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
         return mConfig;
     }
 
@@ -2441,21 +2440,22 @@ public class ImsManager {
      * @throws ImsException if getting the ECBM interface results in an error
      */
     public ImsEcbm getEcbmInterface(int serviceId) throws ImsException {
-        if (mEcbm == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
+        if (mEcbm != null && mEcbm.isBinderAlive()) {
+            return mEcbm;
+        }
 
-            try {
-                IImsEcbm iEcbm = mImsServiceProxy.getEcbmInterface();
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsEcbm iEcbm = mImsServiceProxy.getEcbmInterface();
 
-                if (iEcbm == null) {
-                    throw new ImsException("getEcbmInterface()",
-                            ImsReasonInfo.CODE_ECBM_NOT_SUPPORTED);
-                }
-                mEcbm = new ImsEcbm(iEcbm);
-            } catch (RemoteException e) {
-                throw new ImsException("getEcbmInterface()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+            if (iEcbm == null) {
+                throw new ImsException("getEcbmInterface()",
+                        ImsReasonInfo.CODE_ECBM_NOT_SUPPORTED);
             }
+            mEcbm = new ImsEcbm(iEcbm);
+        } catch (RemoteException e) {
+            throw new ImsException("getEcbmInterface()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
         return mEcbm;
     }
@@ -2468,22 +2468,24 @@ public class ImsManager {
      * @throws ImsException if getting the multi-endpoint interface results in an error
      */
     public ImsMultiEndpoint getMultiEndpointInterface(int serviceId) throws ImsException {
-        if (mMultiEndpoint == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
-
-            try {
-                IImsMultiEndpoint iImsMultiEndpoint = mImsServiceProxy.getMultiEndpointInterface();
-
-                if (iImsMultiEndpoint == null) {
-                    throw new ImsException("getMultiEndpointInterface()",
-                            ImsReasonInfo.CODE_MULTIENDPOINT_NOT_SUPPORTED);
-                }
-                mMultiEndpoint = new ImsMultiEndpoint(iImsMultiEndpoint);
-            } catch (RemoteException e) {
-                throw new ImsException("getMultiEndpointInterface()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-            }
+        if (mMultiEndpoint != null && mMultiEndpoint.isBinderAlive()) {
+            return mMultiEndpoint;
         }
+
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsMultiEndpoint iImsMultiEndpoint = mImsServiceProxy.getMultiEndpointInterface();
+
+            if (iImsMultiEndpoint == null) {
+                throw new ImsException("getMultiEndpointInterface()",
+                        ImsReasonInfo.CODE_MULTIENDPOINT_NOT_SUPPORTED);
+            }
+            mMultiEndpoint = new ImsMultiEndpoint(iImsMultiEndpoint);
+        } catch (RemoteException e) {
+            throw new ImsException("getMultiEndpointInterface()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+
         return mMultiEndpoint;
     }
 
