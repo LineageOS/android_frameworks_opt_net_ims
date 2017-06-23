@@ -3238,7 +3238,7 @@ public class ImsCall implements ICall {
      *
      * @return {@code true} if a merge into a conference is pending, {@code false} otherwise.
      */
-    private boolean isCallSessionMergePending() {
+    public boolean isCallSessionMergePending() {
         return mCallSessionMergePending;
     }
 
