@@ -236,7 +236,12 @@ public class ImsManager {
     public static ImsManager getInstance(Context context, int phoneId) {
         synchronized (sImsManagerInstances) {
             if (sImsManagerInstances.containsKey(phoneId)) {
-                return sImsManagerInstances.get(phoneId);
+                ImsManager m = sImsManagerInstances.get(phoneId);
+                // May be null for some tests
+                if (m != null) {
+                    m.connectIfServiceIsAvailable();
+                }
+                return m;
             }
 
             ImsManager mgr = new ImsManager(context, phoneId);
@@ -1436,14 +1441,22 @@ public class ImsManager {
     }
 
     /*
-     * Returns a flag indicating whether the IMS service is available.
+     * Returns a flag indicating whether the IMS service is available. If it is not available,
+     * it will try to connect before reporting failure.
      */
     public boolean isServiceAvailable() {
-        if (mImsServiceProxy == null) {
-            createImsService();
-        }
+        connectIfServiceIsAvailable();
         // mImsServiceProxy will always create an ImsServiceProxy.
         return mImsServiceProxy.isBinderAlive();
+    }
+
+    /**
+     * If the service is available, try to reconnect.
+     */
+    public void connectIfServiceIsAvailable() {
+        if (mImsServiceProxy == null || !mImsServiceProxy.isBinderAlive()) {
+            createImsService();
+        }
     }
 
     public void setImsConfigListener(ImsConfigListener listener) {
@@ -1504,12 +1517,14 @@ public class ImsManager {
         int result = 0;
 
         try {
+            // Register a stub implementation of the ImsRegistrationListener. There is the
+            // possibility that if we use the real implementation of the ImsRegistrationListener,
+            // it will be added twice.
+            // TODO: Remove ImsRegistrationListener from startSession API (b/62588776)
             result = mImsServiceProxy.startSession(incomingCallPendingIntent,
-                    mRegistrationListenerProxy);
-            synchronized (mHasRegisteredLock) {
-                mHasRegisteredForProxy = true;
-                addRegistrationListener(listener);
-            }
+                    new ImsRegistrationListenerBase());
+            addRegistrationListener(listener);
+            log("open: Session started and registration listener added.");
         } catch (RemoteException e) {
             throw new ImsException("open()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
@@ -1550,16 +1565,17 @@ public class ImsManager {
      */
     public void addRegistrationListener(ImsConnectionStateListener listener)
             throws ImsException {
-        checkAndThrowExceptionIfServiceUnavailable();
 
         if (listener == null) {
             throw new NullPointerException("listener can't be null");
         }
-        // We only want this Proxy registered once. It can either happen here or in open().
+        // We only want this Proxy registered once.
         synchronized (mHasRegisteredLock) {
             if (!mHasRegisteredForProxy) {
                 try {
+                    checkAndThrowExceptionIfServiceUnavailable();
                     mImsServiceProxy.addRegistrationListener(mRegistrationListenerProxy);
+                    log("RegistrationListenerProxy registered.");
                     // Only record if there isn't a RemoteException.
                     mHasRegisteredForProxy = true;
                 } catch (RemoteException e) {
@@ -1569,6 +1585,7 @@ public class ImsManager {
             }
         }
         synchronized (mRegistrationListeners) {
+            log("Local registration listener added: " + listener);
             mRegistrationListeners.add(listener);
         }
     }
@@ -1588,6 +1605,7 @@ public class ImsManager {
         }
 
         synchronized (mRegistrationListeners) {
+            log("Local registration listener removed: " + listener);
             mRegistrationListeners.remove(listener);
         }
     }
@@ -1624,24 +1642,24 @@ public class ImsManager {
     public ImsUtInterface getSupplementaryServiceConfiguration()
             throws ImsException {
         // FIXME: manage the multiple Ut interfaces based on the session id
-        if (mUt == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
-
-            try {
-                IImsUt iUt = mImsServiceProxy.getUtInterface();
-
-                if (iUt == null) {
-                    throw new ImsException("getSupplementaryServiceConfiguration()",
-                            ImsReasonInfo.CODE_UT_NOT_SUPPORTED);
-                }
-
-                mUt = new ImsUt(iUt);
-            } catch (RemoteException e) {
-                throw new ImsException("getSupplementaryServiceConfiguration()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-            }
+        if (mUt != null && mUt.isBinderAlive()) {
+            return mUt;
         }
 
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsUt iUt = mImsServiceProxy.getUtInterface();
+
+            if (iUt == null) {
+                throw new ImsException("getSupplementaryServiceConfiguration()",
+                        ImsReasonInfo.CODE_UT_NOT_SUPPORTED);
+            }
+
+            mUt = new ImsUt(iUt);
+        } catch (RemoteException e) {
+            throw new ImsException("getSupplementaryServiceConfiguration()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
         return mUt;
     }
 
@@ -1819,23 +1837,22 @@ public class ImsManager {
      * @throws ImsException if getting the setting interface results in an error.
      */
     public ImsConfig getConfigInterface() throws ImsException {
-
-        if (mConfig == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
-
-            try {
-                IImsConfig config = mImsServiceProxy.getConfigInterface();
-                if (config == null) {
-                    throw new ImsException("getConfigInterface()",
-                            ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-                }
-                mConfig = new ImsConfig(config, mContext);
-            } catch (RemoteException e) {
-                throw new ImsException("getConfigInterface()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-            }
+        if (mConfig != null && mConfig.isBinderAlive()) {
+            return mConfig;
         }
-        if (DBG) log("getConfigInterface(), mConfig= " + mConfig);
+
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsConfig config = mImsServiceProxy.getConfigInterface();
+            if (config == null) {
+                throw new ImsException("getConfigInterface()",
+                        ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
+            }
+            mConfig = new ImsConfig(config, mContext);
+        } catch (RemoteException e) {
+            throw new ImsException("getConfigInterface()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
         return mConfig;
     }
 
@@ -2217,6 +2234,63 @@ public class ImsManager {
     }
 
     /**
+     * Stub implementation of the Registration listener that provides no functionality.
+     */
+    private class ImsRegistrationListenerBase extends IImsRegistrationListener.Stub {
+
+        @Override
+        public void registrationConnected() throws RemoteException {
+        }
+
+        @Override
+        public void registrationProgressing() throws RemoteException {
+        }
+
+        @Override
+        public void registrationConnectedWithRadioTech(int imsRadioTech) throws RemoteException {
+        }
+
+        @Override
+        public void registrationProgressingWithRadioTech(int imsRadioTech) throws RemoteException {
+        }
+
+        @Override
+        public void registrationDisconnected(ImsReasonInfo imsReasonInfo) throws RemoteException {
+        }
+
+        @Override
+        public void registrationResumed() throws RemoteException {
+        }
+
+        @Override
+        public void registrationSuspended() throws RemoteException {
+        }
+
+        @Override
+        public void registrationServiceCapabilityChanged(int serviceClass, int event)
+                throws RemoteException {
+        }
+
+        @Override
+        public void registrationFeatureCapabilityChanged(int serviceClass, int[] enabledFeatures,
+                int[] disabledFeatures) throws RemoteException {
+        }
+
+        @Override
+        public void voiceMessageCountUpdate(int count) throws RemoteException {
+        }
+
+        @Override
+        public void registrationAssociatedUriChanged(Uri[] uris) throws RemoteException {
+        }
+
+        @Override
+        public void registrationChangeFailed(int targetAccessTech, ImsReasonInfo imsReasonInfo)
+                throws RemoteException {
+        }
+    }
+
+    /**
      * Adapter class for {@link IImsRegistrationListener}.
      */
     private class ImsRegistrationListenerProxy extends IImsRegistrationListener.Stub {
@@ -2366,21 +2440,22 @@ public class ImsManager {
      * @throws ImsException if getting the ECBM interface results in an error
      */
     public ImsEcbm getEcbmInterface(int serviceId) throws ImsException {
-        if (mEcbm == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
+        if (mEcbm != null && mEcbm.isBinderAlive()) {
+            return mEcbm;
+        }
 
-            try {
-                IImsEcbm iEcbm = mImsServiceProxy.getEcbmInterface();
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsEcbm iEcbm = mImsServiceProxy.getEcbmInterface();
 
-                if (iEcbm == null) {
-                    throw new ImsException("getEcbmInterface()",
-                            ImsReasonInfo.CODE_ECBM_NOT_SUPPORTED);
-                }
-                mEcbm = new ImsEcbm(iEcbm);
-            } catch (RemoteException e) {
-                throw new ImsException("getEcbmInterface()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+            if (iEcbm == null) {
+                throw new ImsException("getEcbmInterface()",
+                        ImsReasonInfo.CODE_ECBM_NOT_SUPPORTED);
             }
+            mEcbm = new ImsEcbm(iEcbm);
+        } catch (RemoteException e) {
+            throw new ImsException("getEcbmInterface()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
         return mEcbm;
     }
@@ -2393,22 +2468,24 @@ public class ImsManager {
      * @throws ImsException if getting the multi-endpoint interface results in an error
      */
     public ImsMultiEndpoint getMultiEndpointInterface(int serviceId) throws ImsException {
-        if (mMultiEndpoint == null || !mImsServiceProxy.isBinderAlive()) {
-            checkAndThrowExceptionIfServiceUnavailable();
-
-            try {
-                IImsMultiEndpoint iImsMultiEndpoint = mImsServiceProxy.getMultiEndpointInterface();
-
-                if (iImsMultiEndpoint == null) {
-                    throw new ImsException("getMultiEndpointInterface()",
-                            ImsReasonInfo.CODE_MULTIENDPOINT_NOT_SUPPORTED);
-                }
-                mMultiEndpoint = new ImsMultiEndpoint(iImsMultiEndpoint);
-            } catch (RemoteException e) {
-                throw new ImsException("getMultiEndpointInterface()", e,
-                        ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-            }
+        if (mMultiEndpoint != null && mMultiEndpoint.isBinderAlive()) {
+            return mMultiEndpoint;
         }
+
+        checkAndThrowExceptionIfServiceUnavailable();
+        try {
+            IImsMultiEndpoint iImsMultiEndpoint = mImsServiceProxy.getMultiEndpointInterface();
+
+            if (iImsMultiEndpoint == null) {
+                throw new ImsException("getMultiEndpointInterface()",
+                        ImsReasonInfo.CODE_MULTIENDPOINT_NOT_SUPPORTED);
+            }
+            mMultiEndpoint = new ImsMultiEndpoint(iImsMultiEndpoint);
+        } catch (RemoteException e) {
+            throw new ImsException("getMultiEndpointInterface()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+
         return mMultiEndpoint;
     }
 
