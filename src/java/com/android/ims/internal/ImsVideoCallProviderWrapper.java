@@ -291,9 +291,6 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
             Log.i(this, "onSendSessionModifyRequest: fromVideoState=%s, toVideoState=%s; ",
                     VideoProfile.videoStateToString(fromProfile.getVideoState()),
                     VideoProfile.videoStateToString(toProfile.getVideoState()));
-            if (fromVideoState == toVideoState) {
-                return;
-            }
             mVideoCallProvider.sendSessionModifyRequest(fromProfile, toProfile);
         } catch (RemoteException e) {
         }
