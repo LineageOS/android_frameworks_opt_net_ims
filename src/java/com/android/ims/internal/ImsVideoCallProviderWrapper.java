@@ -284,6 +284,16 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         }
 
         try {
+            if (isResumeRequest(fromProfile.getVideoState(), toProfile.getVideoState()) &&
+                    !VideoProfile.isPaused(mCurrentVideoState)) {
+                // Request is to resume, but we're already resumed so ignore the request.
+                Log.i(this, "onSendSessionModifyRequest: fromVideoState=%s, toVideoState=%s; "
+                                + "skipping resume request - already resumed.",
+                        VideoProfile.videoStateToString(fromProfile.getVideoState()),
+                        VideoProfile.videoStateToString(toProfile.getVideoState()));
+                return;
+            }
+
             toProfile = maybeFilterPauseResume(fromProfile, toProfile,
                     VideoPauseTracker.SOURCE_INCALL);
 
