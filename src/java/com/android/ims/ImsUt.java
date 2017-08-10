@@ -508,6 +508,13 @@ public class ImsUt implements ImsUtInterface {
         }
     }
 
+    /**
+     * @return returns true if the binder is alive, false otherwise.
+     */
+    public boolean isBinderAlive() {
+        return miUt.asBinder().isBinderAlive();
+    }
+
     public void transact(Bundle ssInfo, Message result) {
         if (DBG) {
             log("transact :: Ut=" + miUt + ", ssInfo=" + ssInfo);
