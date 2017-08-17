@@ -3447,6 +3447,20 @@ public class ImsCall implements ICall {
             if (mCallProfile == null) {
                 return false;
             }
+            int radioTechnology = getRadioTechnology();
+            return radioTechnology == ServiceState.RIL_RADIO_TECHNOLOGY_IWLAN;
+        }
+    }
+
+    /**
+     * Determines the radio access technology for the {@link ImsCall}.
+     * @return The {@link ServiceState} {@code RIL_RADIO_TECHNOLOGY_*} code in use.
+     */
+    public int getRadioTechnology() {
+        synchronized(mLockObj) {
+            if (mCallProfile == null) {
+                return ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN;
+            }
             String callType = mCallProfile.getCallExtra(ImsCallProfile.EXTRA_CALL_RAT_TYPE);
             if (callType == null || callType.isEmpty()) {
                 callType = mCallProfile.getCallExtra(ImsCallProfile.EXTRA_CALL_RAT_TYPE_ALT);
@@ -3461,7 +3475,7 @@ public class ImsCall implements ICall {
                 radioTechnology = ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN;
             }
 
-            return radioTechnology == ServiceState.RIL_RADIO_TECHNOLOGY_IWLAN;
+            return radioTechnology;
         }
     }
 
