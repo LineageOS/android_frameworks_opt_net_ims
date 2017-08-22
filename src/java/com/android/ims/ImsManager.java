@@ -38,6 +38,7 @@ import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsServiceProxy;
 import android.telephony.ims.ImsServiceProxyCompat;
 import android.telephony.ims.feature.ImsFeature;
+import android.util.Log;
 
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsConfig;
@@ -358,9 +359,12 @@ public class ImsManager {
             return true;
         }
 
-        return Settings.Secure.getInt(context.getContentResolver(),
-                Settings.Secure.PREFERRED_TTY_MODE, TelecomManager.TTY_MODE_OFF)
-                == TelecomManager.TTY_MODE_OFF;
+        TelecomManager tm = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
+        if (tm == null) {
+            Log.w(TAG, "isNonTtyOrTtyOnVolteEnabled: telecom not available");
+            return true;
+        }
+        return tm.getCurrentTtyMode() == TelecomManager.TTY_MODE_OFF;
     }
 
     /**
@@ -373,9 +377,12 @@ public class ImsManager {
             return true;
         }
 
-        return Settings.Secure.getInt(mContext.getContentResolver(),
-                Settings.Secure.PREFERRED_TTY_MODE, TelecomManager.TTY_MODE_OFF)
-                == TelecomManager.TTY_MODE_OFF;
+        TelecomManager tm = (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
+        if (tm == null) {
+            Log.w(TAG, "isNonTtyOrTtyOnVolteEnabledForSlot: telecom not available");
+            return true;
+        }
+        return tm.getCurrentTtyMode() == TelecomManager.TTY_MODE_OFF;
     }
 
     /**
@@ -1856,6 +1863,21 @@ public class ImsManager {
         return mConfig;
     }
 
+    /**
+     * Set the TTY mode. This is the actual tty mode (varies depending on peripheral status)
+     */
+    public void setTtyMode(int ttyMode) throws ImsException {
+        if (!getBooleanCarrierConfigForSlot(
+                CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
+            setAdvanced4GMode((ttyMode == TelecomManager.TTY_MODE_OFF) &&
+                    isEnhanced4gLteModeSettingEnabledByUserForSlot());
+        }
+    }
+
+    /**
+     * Sets the UI TTY mode. This is the preferred TTY mode that the user sets in the call
+     * settings screen.
+     */
     public void setUiTTYMode(Context context, int uiTtyMode, Message onComplete)
             throws ImsException {
 
@@ -1866,12 +1888,6 @@ public class ImsManager {
         } catch (RemoteException e) {
             throw new ImsException("setTTYMode()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
-        }
-
-        if (!getBooleanCarrierConfigForSlot(
-                CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL)) {
-            setAdvanced4GMode((uiTtyMode == TelecomManager.TTY_MODE_OFF) &&
-                    isEnhanced4gLteModeSettingEnabledByUserForSlot());
         }
     }
 
