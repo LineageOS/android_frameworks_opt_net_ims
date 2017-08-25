@@ -21,7 +21,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Parcel;
 import android.os.PersistableBundle;
@@ -50,6 +52,7 @@ import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
 import com.android.ims.internal.IImsConfig;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.telephony.ExponentialBackoff;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -218,6 +221,17 @@ public class ImsManager {
     private static final int MAX_RECENT_DISCONNECT_REASONS = 16;
     private ConcurrentLinkedDeque<ImsReasonInfo> mRecentDisconnectReasons =
             new ConcurrentLinkedDeque<>();
+
+    // Exponential backoff for provisioning cache update. May be null for instances of ImsManager
+    // that are not on a thread supporting a looper.
+    private ExponentialBackoff mProvisionBackoff;
+    // Initial Provisioning check delay in ms
+    private static final long BACKOFF_INITIAL_DELAY_MS = 500;
+    // Max Provisioning check delay in ms (5 Minutes)
+    private static final long BACKOFF_MAX_DELAY_MS = 300000;
+    // Multiplier for exponential delay
+    private static final int BACKOFF_MULTIPLIER = 2;
+
 
     /**
      * Gets a manager instance.
@@ -1175,9 +1189,9 @@ public class ImsManager {
         }
     }
 
-    private class AsyncUpdateProvisionedValues extends AsyncTask<Void, Void, Void> {
+    private class AsyncUpdateProvisionedValues extends AsyncTask<Void, Void, Boolean> {
         @Override
-        protected Void doInBackground(Void... params) {
+        protected Boolean doInBackground(Void... params) {
             // disable on any error
             setVolteProvisionedProperty(false);
             setWfcProvisionedProperty(false);
@@ -1201,22 +1215,58 @@ public class ImsManager {
                 }
             } catch (ImsException ie) {
                 Rlog.e(TAG, "AsyncUpdateProvisionedValues error: ", ie);
+                return false;
             }
 
-            return null;
+            return true;
         }
 
+        @Override
+        protected void onPostExecute(Boolean completed) {
+            if (mProvisionBackoff == null) {
+                return;
+            }
+            if (!completed) {
+                mProvisionBackoff.notifyFailed();
+            } else {
+                mProvisionBackoff.stop();
+            }
+        }
+
+        /**
+         * Will return with config value or throw an ImsException if we receive an error from
+         * ImsConfig for that value.
+         */
         private boolean getProvisionedBool(ImsConfig config, int item) throws ImsException {
+            int value = config.getProvisionedValue(item);
+            if (value == ImsConfig.FeatureValueConstants.ERROR) {
+                throw new ImsException("getProvisionedBool failed with error for item: " + item,
+                        ImsReasonInfo.CODE_LOCAL_INTERNAL_ERROR);
+            }
             return config.getProvisionedValue(item) == ImsConfig.FeatureValueConstants.ON;
         }
     }
 
-    /** Asynchronously get VoLTE, WFC, VT provisioning statuses */
-    private void updateProvisionedValues() {
+    // used internally only, use #updateProvisionedValues instead.
+    private void handleUpdateProvisionedValues() {
         if (getBooleanCarrierConfigForSlot(
                 CarrierConfigManager.KEY_CARRIER_VOLTE_PROVISIONING_REQUIRED_BOOL)) {
 
             new AsyncUpdateProvisionedValues().execute();
+        }
+    }
+
+    /**
+     * Asynchronously get VoLTE, WFC, VT provisioning statuses. If ImsConfig is not available, we
+     * will retry with exponential backoff.
+     */
+    private void updateProvisionedValues() {
+        // Start trying to receive provisioning status after BACKOFF_INITIAL_DELAY_MS.
+        if (mProvisionBackoff != null) {
+            mProvisionBackoff.start();
+        } else {
+            // bypass and launch async thread once without backoff.
+            handleUpdateProvisionedValues();
         }
     }
 
@@ -1428,6 +1478,11 @@ public class ImsManager {
                 com.android.internal.R.bool.config_dynamic_bind_ims);
         mConfigManager = (CarrierConfigManager) context.getSystemService(
                 Context.CARRIER_CONFIG_SERVICE);
+        if (Looper.getMainLooper() != null) {
+            mProvisionBackoff = new ExponentialBackoff(BACKOFF_INITIAL_DELAY_MS,
+                    BACKOFF_MAX_DELAY_MS, BACKOFF_MULTIPLIER,
+                    new Handler(Looper.getMainLooper()), this::handleUpdateProvisionedValues);
+        }
         createImsService();
     }
 
