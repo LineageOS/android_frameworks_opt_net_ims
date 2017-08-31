@@ -70,6 +70,7 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
     private VideoPauseTracker mVideoPauseTracker = new VideoPauseTracker();
     private boolean mUseVideoPauseWorkaround = false;
     private int mCurrentVideoState;
+    private boolean mIsVideoEnabled = true;
 
     private IBinder.DeathRecipient mDeathRecipient = new IBinder.DeathRecipient() {
         @Override
@@ -151,9 +152,25 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
         public void handleMessage(Message msg) {
             SomeArgs args;
             switch (msg.what) {
-                case MSG_RECEIVE_SESSION_MODIFY_REQUEST:
-                    receiveSessionModifyRequest((VideoProfile) msg.obj);
-                    break;
+                case MSG_RECEIVE_SESSION_MODIFY_REQUEST: {
+                    VideoProfile videoProfile = (VideoProfile) msg.obj;
+                    if (!VideoProfile.isVideo(mCurrentVideoState) && VideoProfile.isVideo(
+                            videoProfile.getVideoState()) && !mIsVideoEnabled) {
+                        // Video is disabled, reject the request.
+                        Log.i(ImsVideoCallProviderWrapper.this,
+                                "receiveSessionModifyRequest: requestedVideoState=%s; rejecting "
+                                        + "as video is disabled.",
+                                videoProfile.getVideoState());
+                        try {
+                            mVideoCallProvider.sendSessionModifyResponse(
+                                    new VideoProfile(VideoProfile.STATE_AUDIO_ONLY));
+                        } catch (RemoteException e) {
+                        }
+                        return;
+                    }
+                    receiveSessionModifyRequest(videoProfile);
+                }
+                break;
                 case MSG_RECEIVE_SESSION_MODIFY_RESPONSE:
                     args = (SomeArgs) msg.obj;
                     try {
@@ -565,5 +582,15 @@ public class ImsVideoCallProviderWrapper extends Connection.VideoProvider {
                     VideoProfile.videoStateToString(newVideoState));
         }
         mCurrentVideoState = newVideoState;
+    }
+
+    /**
+     * Sets whether video is enabled locally or not.
+     * Used to reject incoming video requests when video is disabled locally due to data being
+     * disabled on a call where video calls are metered.
+     * @param isVideoEnabled {@code true} if video is locally enabled, {@code false} otherwise.
+     */
+    public void setIsVideoEnabled(boolean isVideoEnabled) {
+        mIsVideoEnabled = isVideoEnabled;
     }
 }
