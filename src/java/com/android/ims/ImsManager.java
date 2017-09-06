@@ -873,6 +873,18 @@ public class ImsManager {
     }
 
     /**
+     * Changes the WFC mode to its default value for Carriers with non-editable WFC settings.
+     */
+    private void updateDefaultWfcMode() {
+        if (DBG) log("updateDefaultWfcMode");
+        if (!getBooleanCarrierConfigForSlot(
+                CarrierConfigManager.KEY_EDITABLE_WFC_MODE_BOOL)) {
+            setWfcModeForSlot(getIntCarrierConfigForSlot(
+                    CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT));
+        }
+    }
+
+    /**
      * Returns the user configuration of WFC preference setting
      *
      * @param roaming {@code false} for home network setting, {@code true} for roaming  setting
@@ -1448,6 +1460,7 @@ public class ImsManager {
         boolean isNetworkRoaming = TelephonyManager.getDefault().isNetworkRoaming();
         boolean available = isWfcEnabledByPlatformForSlot();
         boolean enabled = isWfcEnabledByUserForSlot();
+        updateDefaultWfcMode();
         int mode = getWfcModeForSlot(isNetworkRoaming);
         boolean roaming = isWfcRoamingEnabledByUserForSlot();
         boolean isFeatureOn = available && enabled;
