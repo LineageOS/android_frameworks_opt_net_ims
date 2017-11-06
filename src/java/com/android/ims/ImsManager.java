@@ -37,8 +37,6 @@ import android.telephony.Rlog;
 import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
-import android.telephony.ims.ImsServiceProxy;
-import android.telephony.ims.ImsServiceProxyCompat;
 import android.telephony.ims.feature.ImsFeature;
 import android.util.Log;
 
