@@ -1361,6 +1361,14 @@ public class ImsManager {
         return mImsServiceProxy.isBinderAlive();
     }
 
+    /*
+     * Returns a flag indicating whether the IMS service is ready to send requests to lower layers.
+     */
+    public boolean isServiceReady() {
+        connectIfServiceIsAvailable();
+        return mImsServiceProxy.isBinderReady();
+    }
+
     /**
      * If the service is available, try to reconnect.
      */
