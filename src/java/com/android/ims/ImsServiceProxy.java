@@ -20,8 +20,6 @@ import android.app.PendingIntent;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
-import android.telephony.ims.feature.IMMTelFeature;
-import android.telephony.ims.feature.IRcsFeature;
 import android.telephony.ims.feature.ImsFeature;
 import android.util.Log;
 
@@ -41,7 +39,7 @@ import com.android.ims.internal.IImsUt;
  * @hide
  */
 
-public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
+public class ImsServiceProxy {
 
     protected String LOG_TAG = "ImsServiceProxy";
     protected final int mSlotId;
@@ -118,7 +116,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         mBinder = binder;
     }
 
-    @Override
     public int startSession(PendingIntent incomingCallIntent, IImsRegistrationListener listener)
             throws RemoteException {
         synchronized (mLock) {
@@ -128,7 +125,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public void endSession(int sessionId) throws RemoteException {
         synchronized (mLock) {
             // Only check to make sure the binder connection still exists. This method should
@@ -138,7 +134,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public boolean isConnected(int callServiceType, int callType)
             throws RemoteException {
         synchronized (mLock) {
@@ -148,7 +143,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public boolean isOpened() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
@@ -156,7 +150,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public void addRegistrationListener(IImsRegistrationListener listener)
     throws RemoteException {
         synchronized (mLock) {
@@ -166,7 +159,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public void removeRegistrationListener(IImsRegistrationListener listener)
             throws RemoteException {
         synchronized (mLock) {
@@ -176,7 +168,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public ImsCallProfile createCallProfile(int sessionId, int callServiceType, int callType)
             throws RemoteException {
         synchronized (mLock) {
@@ -186,7 +177,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public IImsCallSession createCallSession(int sessionId, ImsCallProfile profile,
             IImsCallSessionListener listener) throws RemoteException {
         synchronized (mLock) {
@@ -196,7 +186,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public IImsCallSession getPendingCallSession(int sessionId, String callId)
             throws RemoteException {
         synchronized (mLock) {
@@ -206,7 +195,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public IImsUt getUtInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
@@ -214,7 +202,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public IImsConfig getConfigInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
@@ -222,7 +209,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public void turnOnIms() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
@@ -230,7 +216,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public void turnOffIms() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
@@ -238,7 +223,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public IImsEcbm getEcbmInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
@@ -246,7 +230,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public void setUiTTYMode(int uiTtyMode, Message onComplete)
             throws RemoteException {
         synchronized (mLock) {
@@ -256,7 +239,6 @@ public class ImsServiceProxy implements IMMTelFeature, IRcsFeature {
         }
     }
 
-    @Override
     public IImsMultiEndpoint getMultiEndpointInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
