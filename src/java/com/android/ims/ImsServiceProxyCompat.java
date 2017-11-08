@@ -32,7 +32,7 @@ import com.android.ims.internal.IImsService;
 import com.android.ims.internal.IImsUt;
 
 /**
- * Compatibility class that implements the new ImsService IMMTelFeature interface, but
+ * Compatibility class that implements the new ImsService MMTelFeature interface, but
  * uses the old IImsService interface to support older devices that implement the deprecated
  * opt/net/ims interface.
  * @hide
