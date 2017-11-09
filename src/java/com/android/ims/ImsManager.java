@@ -43,6 +43,7 @@ import android.util.Log;
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
+import com.android.ims.internal.IImsMMTelFeature;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsServiceController;
@@ -1980,8 +1981,8 @@ public class ImsManager {
         serviceProxy.setStatusCallback(() ->  mStatusCallbacks.forEach(
                 ImsServiceProxy.INotifyStatusChanged::notifyStatusChanged));
         // Returns null if the service is not available.
-        IImsServiceController b = tm.getImsServiceControllerAndListen(mPhoneId,
-                ImsFeature.MMTEL, serviceProxy.getListener());
+        IImsMMTelFeature b = tm.getImsMMTelFeatureAndListen(mPhoneId,
+                serviceProxy.getListener());
         if (b != null) {
             serviceProxy.setBinder(b.asBinder());
             // Trigger the cache to be updated for feature status.
