@@ -279,20 +279,27 @@ public class ImsManager {
     }
 
     /**
-     * Returns the user configuration of Enhanced 4G LTE Mode setting for slot.
+     * Returns the user configuration of Enhanced 4G LTE Mode setting for slot. If the option is
+     * not editable ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false),
+     * this method will return default value specified by
+     * {@link CarrierConfigManager#KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL}.
      */
     public boolean isEnhanced4gLteModeSettingEnabledByUser() {
-        // If user can't edit Enhanced 4G LTE Mode, it assumes Enhanced 4G LTE Mode is always true.
-        // If user changes SIM from editable mode to uneditable mode, need to return true.
+        // If user can't edit Enhanced 4G LTE Mode, it assumes Enhanced 4G LTE Mode is default
+        // value.
+        // If user changes SIM from editable mode to uneditable mode, need to return default value.
+        int defaultValue = getBooleanCarrierConfig(
+                CarrierConfigManager.KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL) ?
+                ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF;
         if (!getBooleanCarrierConfig(
                 CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL)) {
-            return true;
+            return (defaultValue == ImsConfig.FeatureValueConstants.ON);
         }
         int enabled = android.provider.Settings.Global.getInt(
                 mContext.getContentResolver(),
                 android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED,
-                ImsConfig.FeatureValueConstants.ON);
-        return (enabled == 1);
+                defaultValue);
+        return (enabled == ImsConfig.FeatureValueConstants.ON);
     }
 
     /**
@@ -311,15 +318,21 @@ public class ImsManager {
     }
 
     /**
-     * Change persistent Enhanced 4G LTE Mode setting. If the the option is not editable
+     * Change persistent Enhanced 4G LTE Mode setting. If the option is not editable
      * ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false), this method will
-     * always set the setting to true.
+     * set the setting to the default value specified by
+     * {@link CarrierConfigManager#KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL}.
      *
      */
     public void setEnhanced4gLteModeSetting(boolean enabled) {
-        // If false, we must always keep advanced 4G mode set to true (1).
-        int value = getBooleanCarrierConfig(
-                CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL) ? (enabled ? 1: 0) : 1;
+        int value = enabled ? ImsConfig.FeatureValueConstants.ON :
+                ImsConfig.FeatureValueConstants.OFF;
+        // If editable=false, we must keep default advanced 4G mode.
+        if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL)) {
+            value = getBooleanCarrierConfig(
+                    CarrierConfigManager.KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL) ?
+                    ImsConfig.FeatureValueConstants.ON : ImsConfig.FeatureValueConstants.OFF;
+        }
 
         try {
             int prevSetting = android.provider.Settings.Global.getInt(mContext.getContentResolver(),
@@ -336,7 +349,7 @@ public class ImsManager {
                 android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED, value);
         if (isNonTtyOrTtyOnVolteEnabled()) {
             try {
-                setAdvanced4GMode(enabled);
+                setAdvanced4GMode(value == ImsConfig.FeatureValueConstants.ON);
             } catch (ImsException ie) {
                 // do nothing
             }
@@ -2388,10 +2401,10 @@ public class ImsManager {
      * @hide
      */
     public void factoryReset() {
-        // Set VoLTE to default
-        android.provider.Settings.Global.putInt(mContext.getContentResolver(),
-                android.provider.Settings.Global.ENHANCED_4G_MODE_ENABLED,
-                ImsConfig.FeatureValueConstants.ON);
+        // Delete VoLTE row to retrieve the default value.
+        mContext.getContentResolver().delete(
+                Settings.Global.getUriFor(Settings.Global.ENHANCED_4G_MODE_ENABLED),
+                null, null);
 
         // Set VoWiFi to default
         android.provider.Settings.Global.putInt(mContext.getContentResolver(),
