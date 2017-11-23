@@ -27,10 +27,10 @@ import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsCallSessionListener;
 import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
+import com.android.ims.internal.IImsMMTelFeature;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
-import com.android.ims.internal.IImsServiceController;
-import com.android.ims.internal.IImsServiceFeatureListener;
+import com.android.ims.internal.IImsServiceFeatureCallback;
 import com.android.ims.internal.IImsUt;
 
 /**
@@ -57,8 +57,8 @@ public class ImsServiceProxy {
         void notifyStatusChanged();
     }
 
-    private final IImsServiceFeatureListener mListenerBinder =
-            new IImsServiceFeatureListener.Stub() {
+    private final IImsServiceFeatureCallback mListenerBinder =
+            new IImsServiceFeatureCallback.Stub() {
 
         @Override
         public void imsFeatureCreated(int slotId, int feature) throws RemoteException {
@@ -108,7 +108,7 @@ public class ImsServiceProxy {
         this(slotId, null, featureType);
     }
 
-    public IImsServiceFeatureListener getListener() {
+    public IImsServiceFeatureCallback getListener() {
         return mListenerBinder;
     }
 
@@ -120,8 +120,7 @@ public class ImsServiceProxy {
             throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).startSession(mSlotId, mSupportedFeature,
-                    incomingCallIntent, listener);
+            return getServiceInterface(mBinder).startSession(incomingCallIntent, listener);
         }
     }
 
@@ -130,7 +129,7 @@ public class ImsServiceProxy {
             // Only check to make sure the binder connection still exists. This method should
             // still be able to be called when the state is STATE_NOT_AVAILABLE.
             checkBinderConnection();
-            getServiceInterface(mBinder).endSession(mSlotId, mSupportedFeature, sessionId);
+            getServiceInterface(mBinder).endSession(sessionId);
         }
     }
 
@@ -138,15 +137,14 @@ public class ImsServiceProxy {
             throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).isConnected(mSlotId, mSupportedFeature,
-                    callServiceType, callType);
+            return getServiceInterface(mBinder).isConnected(callServiceType, callType);
         }
     }
 
     public boolean isOpened() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).isOpened(mSlotId, mSupportedFeature);
+            return getServiceInterface(mBinder).isOpened();
         }
     }
 
@@ -154,8 +152,7 @@ public class ImsServiceProxy {
     throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            getServiceInterface(mBinder).addRegistrationListener(mSlotId, mSupportedFeature,
-                    listener);
+            getServiceInterface(mBinder).addRegistrationListener(listener);
         }
     }
 
@@ -163,8 +160,7 @@ public class ImsServiceProxy {
             throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            getServiceInterface(mBinder).removeRegistrationListener(mSlotId, mSupportedFeature,
-                    listener);
+            getServiceInterface(mBinder).removeRegistrationListener(listener);
         }
     }
 
@@ -172,8 +168,8 @@ public class ImsServiceProxy {
             throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).createCallProfile(mSlotId, mSupportedFeature,
-                    sessionId, callServiceType, callType);
+            return getServiceInterface(mBinder).createCallProfile(sessionId, callServiceType,
+                    callType);
         }
     }
 
@@ -181,8 +177,7 @@ public class ImsServiceProxy {
             IImsCallSessionListener listener) throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).createCallSession(mSlotId, mSupportedFeature,
-                    sessionId, profile, listener);
+            return getServiceInterface(mBinder).createCallSession(sessionId, profile, listener);
         }
     }
 
@@ -190,43 +185,42 @@ public class ImsServiceProxy {
             throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).getPendingCallSession(mSlotId, mSupportedFeature,
-                    sessionId, callId);
+            return getServiceInterface(mBinder).getPendingCallSession(sessionId, callId);
         }
     }
 
     public IImsUt getUtInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).getUtInterface(mSlotId, mSupportedFeature);
+            return getServiceInterface(mBinder).getUtInterface();
         }
     }
 
     public IImsConfig getConfigInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).getConfigInterface(mSlotId, mSupportedFeature);
+            return getServiceInterface(mBinder).getConfigInterface();
         }
     }
 
     public void turnOnIms() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            getServiceInterface(mBinder).turnOnIms(mSlotId, mSupportedFeature);
+            getServiceInterface(mBinder).turnOnIms();
         }
     }
 
     public void turnOffIms() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            getServiceInterface(mBinder).turnOffIms(mSlotId, mSupportedFeature);
+            getServiceInterface(mBinder).turnOffIms();
         }
     }
 
     public IImsEcbm getEcbmInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).getEcbmInterface(mSlotId, mSupportedFeature);
+            return getServiceInterface(mBinder).getEcbmInterface();
         }
     }
 
@@ -234,16 +228,14 @@ public class ImsServiceProxy {
             throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            getServiceInterface(mBinder).setUiTTYMode(mSlotId, mSupportedFeature, uiTtyMode,
-                    onComplete);
+            getServiceInterface(mBinder).setUiTTYMode(uiTtyMode, onComplete);
         }
     }
 
     public IImsMultiEndpoint getMultiEndpointInterface() throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).getMultiEndpointInterface(mSlotId,
-                    mSupportedFeature);
+            return getServiceInterface(mBinder).getMultiEndpointInterface();
         }
     }
 
@@ -277,7 +269,7 @@ public class ImsServiceProxy {
     private Integer retrieveFeatureStatus() {
         if (mBinder != null) {
             try {
-                return getServiceInterface(mBinder).getFeatureStatus(mSlotId, mSupportedFeature);
+                return getServiceInterface(mBinder).getFeatureStatus();
             } catch (RemoteException e) {
                 // Status check failed, don't update cache
             }
@@ -318,8 +310,8 @@ public class ImsServiceProxy {
         }
     }
 
-    private IImsServiceController getServiceInterface(IBinder b) {
-        return IImsServiceController.Stub.asInterface(b);
+    private IImsMMTelFeature getServiceInterface(IBinder b) {
+        return IImsMMTelFeature.Stub.asInterface(b);
     }
 
     protected void checkBinderConnection() throws RemoteException {
