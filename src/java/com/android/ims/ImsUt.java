@@ -67,6 +67,10 @@ public class ImsUt implements ImsUtInterface {
     private static final String TAG = "ImsUt";
     private static final boolean DBG = true;
 
+    //These service class values are same as the one in CommandsInterface.java
+    private static final int SERVICE_CLASS_NONE = 0;
+    private static final int SERVICE_CLASS_VOICE = (1 << 0);
+
     // For synchronization of private variables
     private Object mLockObj = new Object();
     private final IImsUt miUt;
@@ -117,16 +121,31 @@ public class ImsUt implements ImsUtInterface {
      * @param cbType type of call barring to be queried; ImsUtInterface#CB_XXX
      * @param result message to pass the result of this operation
      *      The return value of ((AsyncResult)result.obj) is an array of {@link ImsSsInfo}.
+     * @deprecated Use {@link #queryCallBarring(int, Message, int)} instead.
      */
     @Override
     public void queryCallBarring(int cbType, Message result) {
+        queryCallBarring(cbType, result, SERVICE_CLASS_NONE);
+    }
+
+    /**
+     * Retrieves the configuration of the call barring for specified service class.
+     *
+     * @param cbType type of call barring to be queried; ImsUtInterface#CB_XXX
+     * @param result message to pass the result of this operation
+     *      The return value of ((AsyncResult)result.obj) is an array of {@link ImsSsInfo}.
+     * @param serviceClass service class for e.g. voice/video
+     */
+    @Override
+    public void queryCallBarring(int cbType, Message result, int serviceClass) {
         if (DBG) {
-            log("queryCallBarring :: Ut=" + miUt + ", cbType=" + cbType);
+            log("queryCallBarring :: Ut=" + miUt + ", cbType=" + cbType + ", serviceClass="
+                    + serviceClass);
         }
 
         synchronized(mLockObj) {
             try {
-                int id = miUt.queryCallBarring(cbType);
+                int id = miUt.queryCallBarringForServiceClass(cbType, serviceClass);
 
                 if (id < 0) {
                     sendFailureReport(result,
@@ -306,9 +325,19 @@ public class ImsUt implements ImsUtInterface {
 
     /**
      * Modifies the configuration of the call barring.
+     * @deprecated Use {@link #updateCallBarring(int, int, Message, String[], int)} instead.
      */
     @Override
     public void updateCallBarring(int cbType, int action, Message result, String[] barrList) {
+        updateCallBarring(cbType, action, result, barrList, SERVICE_CLASS_NONE);
+    }
+
+    /**
+     * Modifies the configuration of the call barring for specified service class.
+     */
+    @Override
+    public void updateCallBarring(int cbType, int action, Message result,
+            String[] barrList, int serviceClass) {
         if (DBG) {
             if (barrList != null) {
                 String bList = new String();
@@ -316,17 +345,19 @@ public class ImsUt implements ImsUtInterface {
                     bList.concat(barrList[i] + " ");
                 }
                 log("updateCallBarring :: Ut=" + miUt + ", cbType=" + cbType
-                        + ", action=" + action + ", barrList=" + bList);
+                        + ", action=" + action + ", serviceClass=" + serviceClass
+                        + ", barrList=" + bList);
             }
             else {
                 log("updateCallBarring :: Ut=" + miUt + ", cbType=" + cbType
-                        + ", action=" + action);
+                        + ", action=" + action + ", serviceClass=" + serviceClass);
             }
         }
 
         synchronized(mLockObj) {
             try {
-                int id = miUt.updateCallBarring(cbType, action, barrList);
+                int id = miUt.updateCallBarringForServiceClass(cbType, action,
+                        barrList, serviceClass);
 
                 if (id < 0) {
                     sendFailureReport(result,
