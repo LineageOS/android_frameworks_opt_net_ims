@@ -686,7 +686,8 @@ public class ImsCall implements ICall {
      *
      * @param profile The new call profile.
      */
-    private void setCallProfile(ImsCallProfile profile) {
+    @VisibleForTesting
+    public void setCallProfile(ImsCallProfile profile) {
         synchronized(mLockObj) {
             mCallProfile = profile;
             trackVideoStateHistory(mCallProfile);
@@ -2419,6 +2420,12 @@ public class ImsCall implements ICall {
             }
         }
 
+        /**
+         * Indicates that an {@link ImsCallSession} has been remotely held.  This can be due to the
+         * remote party holding the current call, or swapping between calls.
+         * @param session the session which was held.
+         * @param profile the profile for the held call.
+         */
         @Override
         public void callSessionHoldReceived(ImsCallSession session, ImsCallProfile profile) {
             logi("callSessionHoldReceived :: session=" + session + "profile=" + profile);
@@ -2446,6 +2453,12 @@ public class ImsCall implements ICall {
             }
         }
 
+        /**
+         * Indicates that an {@link ImsCallSession} has been remotely resumed.  This can be due to
+         * the remote party un-holding the current call, or swapping back to this call.
+         * @param session the session which was resumed.
+         * @param profile the profile for the held call.
+         */
         @Override
         public void callSessionResumed(ImsCallSession session, ImsCallProfile profile) {
             logi("callSessionResumed :: session=" + session + "profile=" + profile);
