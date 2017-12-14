@@ -17,15 +17,42 @@
 package com.android.ims;
 
 import android.net.Uri;
+import android.telephony.ims.stub.ImsRegistrationImplBase;
 
 /**
  * Listener for receiving notifications about changes to the IMS connection.
  * It provides a state of IMS registration between UE and IMS network, the service
  * availability of the local device during IMS registered.
- *
+ * @Deprecated Use {@link ImsRegistrationImplBase.Callback} instead.
  * @hide
  */
-public class ImsConnectionStateListener {
+public class ImsConnectionStateListener extends ImsRegistrationImplBase.Callback {
+
+    @Override
+    public final void onRegistered(@ImsRegistrationImplBase.ImsRegistrationTech int imsRadioTech) {
+        onImsConnected(imsRadioTech);
+    }
+
+    @Override
+    public final void onRegistering(@ImsRegistrationImplBase.ImsRegistrationTech int imsRadioTech) {
+        onImsProgressing(imsRadioTech);
+    }
+
+    @Override
+    public final void onDeregistered(ImsReasonInfo info) {
+        onImsDisconnected(info);
+    }
+
+    @Override
+    public final void onTechnologyChangeFailed(
+            @ImsRegistrationImplBase.ImsRegistrationTech int imsRadioTech, ImsReasonInfo info) {
+        onRegistrationChangeFailed(imsRadioTech, info);
+    }
+
+    @Override
+    public void onSubscriberAssociatedUriChanged(Uri[] uris) {
+        registrationAssociatedUriChanged(uris);
+    }
     /**
      * Called when the device is connected to the IMS network with {@param imsRadioTech}.
      */
@@ -50,6 +77,7 @@ public class ImsConnectionStateListener {
     /**
      * Called when its suspended IMS connection is resumed, meaning the connection
      * now allows throughput.
+     * @deprecated not used in newer IMS provider implementations.
      */
     public void onImsResumed() {
         // no-op
@@ -57,6 +85,7 @@ public class ImsConnectionStateListener {
 
     /**
      * Called when its current IMS connection is suspended, meaning there is no data throughput.
+     * @deprecated not used in newer IMS provider implementations.
      */
     public void onImsSuspended() {
         // no-op
@@ -64,6 +93,7 @@ public class ImsConnectionStateListener {
 
     /**
      * Called when its current IMS connection feature capability changes.
+     * @deprecated Not used in newer IMS provider implementations.
      */
     public void onFeatureCapabilityChanged(int serviceClass,
                 int[] enabledFeatures, int[] disabledFeatures) {
@@ -72,6 +102,7 @@ public class ImsConnectionStateListener {
 
     /**
      * Called when waiting voice message count changes.
+     * @deprecated not used in newer IMS provider implementations.
      */
     public void onVoiceMessageCountChanged(int count) {
         // no-op
