@@ -17,15 +17,20 @@
 package com.android.ims;
 
 import android.app.PendingIntent;
+import android.content.Context;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.ServiceManager;
+import android.telephony.Rlog;
+import android.telephony.TelephonyManager;
 import android.telephony.ims.feature.ImsFeature;
 
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsCallSessionListener;
 import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
+import com.android.ims.internal.IImsMMTelFeature;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsService;
@@ -41,6 +46,28 @@ import com.android.ims.internal.IImsUt;
 public class ImsServiceProxyCompat extends ImsServiceProxy {
 
     private static final int SERVICE_ID = ImsFeature.MMTEL;
+
+    /**
+     * For accessing the IMS related service.
+     * Internal use only.
+     * @hide
+     */
+    private static final String IMS_SERVICE = "ims";
+
+    public static ImsServiceProxyCompat create(int slotId, IBinder.DeathRecipient recipient) {
+        IBinder binder = ServiceManager.checkService(IMS_SERVICE);
+
+        if (binder != null) {
+            try {
+                binder.linkToDeath(recipient, 0);
+            } catch (RemoteException e) {
+            }
+        }
+
+        // If the proxy is created with a null binder, subsequent calls that depend on a live
+        // binder will fail, causing this structure to be torn down and created again.
+        return new ImsServiceProxyCompat(slotId, binder);
+    }
 
     public ImsServiceProxyCompat(int slotId, IBinder binder) {
         super(slotId, binder, SERVICE_ID);
