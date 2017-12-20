@@ -194,10 +194,6 @@ public class ImsManager {
     private Set<MmTelFeatureConnection.IFeatureUpdate> mStatusCallbacks =
             new CopyOnWriteArraySet<>();
 
-    // Flag indicating data enabled or not. This flag should be in sync with
-    // DcTracker.isDataEnabled(). The flag will be set later during boot up.
-    private static final String DATA_ENABLED_PROP = "net.lte.ims.data.enabled";
-
     public static final String TRUE = "true";
     public static final String FALSE = "false";
 
@@ -2094,16 +2090,7 @@ public class ImsManager {
     }
 
     private boolean isDataEnabled() {
-        return SystemProperties.getBoolean(DATA_ENABLED_PROP, true);
-    }
-
-    /**
-     * Set data enabled/disabled flag.
-     * @param enabled True if data is enabled, otherwise disabled.
-     */
-    public void setDataEnabled(boolean enabled) {
-        log("setDataEnabled: " + enabled);
-        SystemProperties.set(DATA_ENABLED_PROP, enabled ? TRUE : FALSE);
+        return new TelephonyManager(mContext, getSubId()).isMobileDataEnabled();
     }
 
     private boolean isVolteProvisioned() {
