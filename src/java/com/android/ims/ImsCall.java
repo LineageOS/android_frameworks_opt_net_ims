@@ -1166,6 +1166,30 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Deflects a call.
+     *
+     * @param number number to be deflected to.
+     * @throws ImsException if the IMS service fails to deflect the call
+     */
+    public void deflect(String number) throws ImsException {
+        logi("deflect :: session=" + mSession + ", number=" + Rlog.pii(TAG, number));
+
+        synchronized(mLockObj) {
+            if (mSession == null) {
+                throw new ImsException("No call to deflect",
+                        ImsReasonInfo.CODE_LOCAL_CALL_TERMINATED);
+            }
+
+            try {
+                mSession.deflect(number);
+            } catch (Throwable t) {
+                loge("deflect :: ", t);
+                throw new ImsException("deflect()", t, 0);
+            }
+        }
+    }
+
+    /**
      * Rejects a call.
      *
      * @param reason reason code to reject an incoming call
