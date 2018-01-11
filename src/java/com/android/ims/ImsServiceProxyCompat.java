@@ -123,10 +123,10 @@ public class ImsServiceProxyCompat extends ImsServiceProxy {
     }
 
     @Override
-    public IImsCallSession createCallSession(int sessionId, ImsCallProfile profile,
-            IImsCallSessionListener listener) throws RemoteException {
+    public IImsCallSession createCallSession(int sessionId, ImsCallProfile profile)
+            throws RemoteException {
         checkBinderConnection();
-        return getServiceInterface(mBinder).createCallSession(sessionId, profile, listener);
+        return getServiceInterface(mBinder).createCallSession(sessionId, profile, null);
     }
 
     @Override
