@@ -2006,7 +2006,7 @@ public class ImsManager {
             ImsCallProfile profile) throws ImsException {
         try {
             // Throws an exception if the ImsService Feature is not ready to accept commands.
-            return new ImsCallSession(mImsServiceProxy.createCallSession(serviceId, profile, null));
+            return new ImsCallSession(mImsServiceProxy.createCallSession(serviceId, profile));
         } catch (RemoteException e) {
             Rlog.w(TAG, "CreateCallSession: Error, remote exception: " + e.getMessage());
             throw new ImsException("createCallSession()", e,
