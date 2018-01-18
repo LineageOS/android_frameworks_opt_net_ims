@@ -41,6 +41,8 @@ import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistrationCallback;
 import com.android.ims.internal.IImsRegistrationListener;
+import com.android.ims.internal.IImsServiceController;
+import com.android.ims.internal.IImsSmsListener;
 import com.android.ims.internal.IImsUt;
 import com.android.ims.internal.ImsCallSession;
 import com.android.internal.annotations.VisibleForTesting;
@@ -2301,6 +2303,50 @@ public class ImsManager {
         return mEcbm;
     }
 
+    public void sendSms(int token, int messageRef, String format, String smsc, boolean isRetry,
+            byte[] pdu) throws ImsException {
+        try {
+            mImsServiceProxy.sendSms(token, messageRef, format, smsc, isRetry, pdu);
+        } catch (RemoteException e) {
+            throw new ImsException("sendSms()", e, ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    public void acknowledgeSms(int token, int messageRef, int result) throws ImsException {
+        try {
+            mImsServiceProxy.acknowledgeSms(token, messageRef, result);
+        } catch (RemoteException e) {
+            throw new ImsException("acknowledgeSms()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    public void acknowledgeSmsReport(int token, int messageRef, int result) throws  ImsException{
+        try {
+            mImsServiceProxy.acknowledgeSmsReport(token, messageRef, result);
+        } catch (RemoteException e) {
+            throw new ImsException("acknowledgeSmsReport()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    public String getSmsFormat() throws ImsException{
+        try {
+            return mImsServiceProxy.getSmsFormat();
+        } catch (RemoteException e) {
+            throw new ImsException("getSmsFormat()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    public void setSmsListener(IImsSmsListener listener) throws ImsException {
+        try {
+            mImsServiceProxy.setSmsListener(listener);
+        } catch (RemoteException e) {
+            throw new ImsException("setSmsListener()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
     /**
      * Gets the Multi-Endpoint interface to subscribe to multi-enpoint notifications..
      *
