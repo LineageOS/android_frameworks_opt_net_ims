@@ -42,6 +42,7 @@ import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsMultiEndpoint;
+import com.android.ims.internal.IImsRegistration;
 import com.android.ims.internal.IImsRegistrationCallback;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsUt;
@@ -1520,8 +1521,10 @@ public class ImsManager {
                     checkAndThrowExceptionIfServiceUnavailable();
                     // TODO: Remove once new MmTelFeature is merged in
                     mImsServiceProxy.addRegistrationListener(mImsRegistrationListenerProxy);
-                    mImsServiceProxy.getRegistration().addRegistrationCallback(
-                            mRegistrationCallback);
+                    IImsRegistration regBinder = mImsServiceProxy.getRegistration();
+                    if (regBinder != null) {
+                        regBinder.addRegistrationCallback(mRegistrationCallback);
+                    }
                     log("Registration Callback/Listener registered.");
                     // Only record if there isn't a RemoteException.
                     mHasRegisteredForProxy = true;
@@ -1964,7 +1967,7 @@ public class ImsManager {
         if (!mConfigDynamicBind) {
             // Deprecated method of binding
             Rlog.i(TAG, "Creating ImsService using ServiceManager");
-            mImsServiceProxy = ImsServiceProxyCompat.create(mPhoneId, mDeathRecipient);
+            mImsServiceProxy = ImsServiceProxyCompat.create(mContext, mPhoneId, mDeathRecipient);
         } else {
             Rlog.i(TAG, "Creating ImsService using ImsResolver");
             mImsServiceProxy = ImsServiceProxy.create(mContext, mPhoneId);
