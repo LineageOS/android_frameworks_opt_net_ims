@@ -144,15 +144,15 @@ public class ImsServiceProxy {
         }
     };
 
-    public ImsServiceProxy(int slotId, IBinder binder, int featureType) {
+    public ImsServiceProxy(Context context, int slotId, IBinder binder, int featureType) {
         mSlotId = slotId;
         mBinder = binder;
         mSupportedFeature = featureType;
+        mContext = context;
     }
 
     public ImsServiceProxy(Context context, int slotId, int featureType) {
-        this(slotId, null, featureType);
-        mContext = context;
+        this(context, slotId, null, featureType);
     }
 
     public @Nullable IImsRegistration getRegistration() {
