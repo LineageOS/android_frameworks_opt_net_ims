@@ -54,7 +54,8 @@ public class ImsServiceProxyCompat extends ImsServiceProxy {
      */
     private static final String IMS_SERVICE = "ims";
 
-    public static ImsServiceProxyCompat create(int slotId, IBinder.DeathRecipient recipient) {
+    public static ImsServiceProxyCompat create(Context context, int slotId,
+            IBinder.DeathRecipient recipient) {
         IBinder binder = ServiceManager.checkService(IMS_SERVICE);
 
         if (binder != null) {
@@ -66,11 +67,11 @@ public class ImsServiceProxyCompat extends ImsServiceProxy {
 
         // If the proxy is created with a null binder, subsequent calls that depend on a live
         // binder will fail, causing this structure to be torn down and created again.
-        return new ImsServiceProxyCompat(slotId, binder);
+        return new ImsServiceProxyCompat(context, slotId, binder);
     }
 
-    public ImsServiceProxyCompat(int slotId, IBinder binder) {
-        super(slotId, binder, SERVICE_ID);
+    public ImsServiceProxyCompat(Context context, int slotId, IBinder binder) {
+        super(context, slotId, binder, SERVICE_ID);
     }
 
     @Override
