@@ -26,7 +26,7 @@ import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.SmsMessage;
-import android.telephony.ims.internal.SmsImplBase;
+import android.telephony.ims.internal.stub.SmsImplBase;
 import android.util.Log;
 
 import com.android.ims.internal.IImsCallSession;
