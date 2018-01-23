@@ -1628,6 +1628,7 @@ public class ImsCall implements ICall {
             // Make a copy of the current ImsCallProfile and modify it to enable RTT
             Parcel p = Parcel.obtain();
             mCallProfile.writeToParcel(p, 0);
+            p.setDataPosition(0);
             ImsCallProfile requestedProfile = new ImsCallProfile(p);
             requestedProfile.mMediaProfile.setRttMode(ImsStreamMediaProfile.RTT_MODE_FULL);
 
@@ -3077,6 +3078,7 @@ public class ImsCall implements ICall {
         public void callSessionRttModifyRequestReceived(ImsCallSession session,
                 ImsCallProfile callProfile) {
             ImsCall.Listener listener;
+            logi("callSessionRttModifyRequestReceived");
 
             synchronized(ImsCall.this) {
                 listener = mListener;
@@ -3101,6 +3103,7 @@ public class ImsCall implements ICall {
         public void callSessionRttModifyResponseReceived(int status) {
             ImsCall.Listener listener;
 
+            logi("callSessionRttModifyResponseReceived");
             synchronized(ImsCall.this) {
                 listener = mListener;
             }
