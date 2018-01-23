@@ -29,6 +29,8 @@ import android.os.SystemProperties;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
+import android.telephony.ims.internal.feature.ImsFeature;
+import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.telephony.Rlog;
 import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
@@ -2350,6 +2352,15 @@ public class ImsManager {
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
     }
+
+    public void addRegistrationCallback(ImsRegistrationImplBase.Callback callback) {
+        // TODO: implement (coming in ag/3472519)
+    }
+
+    public void addCapabilitiesCallback(ImsFeature.CapabilityCallback callback) {
+        // TODO: implement (coming in ag/3472519)
+    }
+
     /**
      * Gets the Multi-Endpoint interface to subscribe to multi-enpoint notifications..
      *
