@@ -2353,6 +2353,15 @@ public class ImsManager {
         }
     }
 
+    public void onSmsReady() throws ImsException{
+        try {
+            mImsServiceProxy.onSmsReady();
+        } catch (RemoteException e) {
+            throw new ImsException("onSmsReady()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
     public void addRegistrationCallback(ImsRegistrationImplBase.Callback callback) {
         // TODO: implement (coming in ag/3472519)
     }
