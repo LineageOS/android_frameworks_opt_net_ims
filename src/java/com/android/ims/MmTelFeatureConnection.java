@@ -1,0 +1,623 @@
+/*
+ * Copyright (C) 2017 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
+ */
+
+package com.android.ims;
+
+import android.annotation.Nullable;
+import android.content.Context;
+import android.net.Uri;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.RemoteException;
+import android.telephony.Rlog;
+import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsCallProfile;
+import android.telephony.ims.ImsReasonInfo;
+import android.telephony.ims.aidl.IImsConfig;
+import android.telephony.ims.aidl.IImsMmTelFeature;
+import android.telephony.ims.aidl.IImsRegistration;
+import android.telephony.ims.aidl.IImsRegistrationCallback;
+import android.telephony.ims.aidl.IImsSmsListener;
+import android.telephony.ims.feature.CapabilityChangeRequest;
+import android.telephony.ims.feature.ImsFeature;
+import android.telephony.ims.feature.MmTelFeature;
+import android.telephony.ims.stub.ImsRegistrationImplBase;
+import android.telephony.ims.stub.ImsSmsImplBase;
+import android.util.Log;
+
+import com.android.ims.internal.IImsCallSession;
+import com.android.ims.internal.IImsEcbm;
+import com.android.ims.internal.IImsMultiEndpoint;
+import com.android.ims.internal.IImsServiceFeatureCallback;
+import com.android.ims.internal.IImsUt;
+
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * A container of the IImsServiceController binder, which implements all of the ImsFeatures that
+ * the platform currently supports: MMTel and RCS.
+ * @hide
+ */
+
+public class MmTelFeatureConnection {
+
+    protected static final String TAG = "MmTelFeatureConnection";
+    protected final int mSlotId;
+    protected IBinder mBinder;
+    private Context mContext;
+
+    // Start by assuming the proxy is available for usage.
+    private volatile boolean mIsAvailable = true;
+    // ImsFeature Status from the ImsService. Cached.
+    private Integer mFeatureStateCached = null;
+    private IFeatureUpdate mStatusCallback;
+    private final Object mLock = new Object();
+
+    private MmTelFeature.Listener mMmTelFeatureListener;
+
+    private abstract class CallbackAdapterManager<T> {
+        private static final String TAG = "CallbackAdapterManager";
+
+        protected final Set<T> mLocalCallbacks = new HashSet<>();
+        private boolean mHasConnected = false;
+
+        public void addCallback(T localCallback) throws RemoteException {
+            // We only one one binding to the ImsService per process.
+            // Store any more locally.
+            synchronized (mLock) {
+                if(!mHasConnected) {
+                    // throws a RemoteException if a connection can not be established.
+                    if(createConnection()) {
+                        mHasConnected = true;
+                    } else {
+                        throw new RemoteException("Can not create connection!");
+                    }
+                }
+                Log.i(TAG, "Local callback added: " + localCallback);
+                mLocalCallbacks.add(localCallback);
+            }
+        }
+
+        public void removeCallback(T localCallback) {
+            // We only maintain one binding to the ImsService per process.
+            synchronized (mLock) {
+                Log.i(TAG, "Local callback removed: " + localCallback);
+                mLocalCallbacks.remove(localCallback);
+            // If we have removed all local callbacks, remove callback to ImsService.
+                if(mHasConnected) {
+                    if (mLocalCallbacks.isEmpty()) {
+                        removeConnection();
+                        mHasConnected = false;
+                    }
+                }
+            }
+        }
+
+        public void close() {
+            synchronized (mLock) {
+                if (mHasConnected) {
+                    removeConnection();
+                    // Still mark the connection as disconnected, even if this fails.
+                    mHasConnected = false;
+                }
+                Log.i(TAG, "Closing connection and clearing callbacks");
+                mLocalCallbacks.clear();
+            }
+        }
+
+        abstract boolean createConnection() throws RemoteException;
+
+        abstract void removeConnection();
+    }
+    private ImsRegistrationCallbackAdapter mRegistrationCallbackManager
+            = new ImsRegistrationCallbackAdapter();
+    private class ImsRegistrationCallbackAdapter
+            extends CallbackAdapterManager<ImsRegistrationImplBase.Callback> {
+        private final RegistrationCallbackAdapter mRegistrationCallbackAdapter
+                = new RegistrationCallbackAdapter();
+
+        private class RegistrationCallbackAdapter extends IImsRegistrationCallback.Stub {
+
+            @Override
+            public void onRegistered(int imsRadioTech) {
+                Log.i(TAG, "onRegistered ::");
+
+                synchronized (mLock) {
+                    mLocalCallbacks.forEach(l -> l.onRegistered(imsRadioTech));
+                }
+            }
+
+            @Override
+            public void onRegistering(int imsRadioTech) {
+                Log.i(TAG, "onRegistering ::");
+
+                synchronized (mLock) {
+                    mLocalCallbacks.forEach(l -> l.onRegistering(imsRadioTech));
+                }
+            }
+
+            @Override
+            public void onDeregistered(ImsReasonInfo imsReasonInfo) {
+                Log.i(TAG, "onDeregistered ::");
+
+                synchronized (mLock) {
+                    mLocalCallbacks.forEach(l -> l.onDeregistered(imsReasonInfo));
+                }
+            }
+
+            @Override
+            public void onTechnologyChangeFailed(int targetRadioTech, ImsReasonInfo imsReasonInfo) {
+                Log.i(TAG, "onTechnologyChangeFailed :: targetAccessTech=" + targetRadioTech +
+                        ", imsReasonInfo=" + imsReasonInfo);
+
+                synchronized (mLock) {
+                    mLocalCallbacks.forEach(l -> l.onTechnologyChangeFailed(targetRadioTech,
+                            imsReasonInfo));
+                }
+            }
+
+            @Override
+            public void onSubscriberAssociatedUriChanged(Uri[] uris) {
+                Log.i(TAG, "onSubscriberAssociatedUriChanged");
+                synchronized (mLock) {
+                    mLocalCallbacks.forEach(l -> l.onSubscriberAssociatedUriChanged(uris));
+                }
+            }
+        }
+
+        @Override
+        boolean createConnection() throws RemoteException {
+            IImsRegistration imsRegistration = getRegistration();
+            if (imsRegistration != null) {
+                getRegistration().addRegistrationCallback(mRegistrationCallbackAdapter);
+                return true;
+            } else {
+                Log.e(TAG, "ImsRegistration is null");
+                return false;
+            }
+        }
+
+        @Override
+        void removeConnection() {
+            IImsRegistration imsRegistration = getRegistration();
+            if (imsRegistration != null) {
+                try {
+                    getRegistration().addRegistrationCallback(mRegistrationCallbackAdapter);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "removeConnection: couldn't remove registration callback");
+                }
+            } else {
+                Log.e(TAG, "ImsRegistration is null");
+            }
+        }
+    }
+
+    private final CapabilityCallbackManager mCapabilityCallbackManager
+            = new CapabilityCallbackManager();
+    private class CapabilityCallbackManager
+            extends CallbackAdapterManager<ImsFeature.CapabilityCallback> {
+        private final CapabilityCallbackAdapter mCallbackAdapter = new CapabilityCallbackAdapter();
+
+        private class CapabilityCallbackAdapter extends ImsFeature.CapabilityCallback {
+            // Called when the Capabilities Status on this connection have changed.
+            @Override
+            public void onCapabilitiesStatusChanged(ImsFeature.Capabilities config) {
+                synchronized (mLock) {
+                    mLocalCallbacks.forEach(
+                            callback -> callback.onCapabilitiesStatusChanged(config));
+                }
+            }
+        }
+
+        @Override
+        boolean createConnection() throws RemoteException {
+            IImsMmTelFeature binder = getServiceInterface(mBinder);
+            if (binder != null) {
+                binder.addCapabilityCallback(mCallbackAdapter);
+                return true;
+            } else {
+                Log.w(TAG, "create: Couldn't get IImsMmTelFeature binder");
+                return false;
+            }
+        }
+
+        @Override
+        void removeConnection() {
+            IImsMmTelFeature binder = getServiceInterface(mBinder);
+            if (binder != null) {
+                try {
+                    binder.removeCapabilityCallback(mCallbackAdapter);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "remove: IImsMmTelFeature binder is dead");
+                }
+            } else {
+                Log.w(TAG, "remove: Couldn't get IImsMmTelFeature binder");
+            }
+        }
+    }
+
+
+    public static MmTelFeatureConnection create(Context context , int slotId) {
+        MmTelFeatureConnection serviceProxy = new MmTelFeatureConnection(context, slotId);
+
+        TelephonyManager tm  = getTelephonyManager(context);
+        if (tm == null) {
+            Rlog.w(TAG, "create: TelephonyManager is null!");
+            // Binder can be unset in this case because it will be torn down/recreated as part of
+            // a retry mechanism until the serviceProxy binder is set successfully.
+            return serviceProxy;
+        }
+
+        IImsMmTelFeature binder = tm.getImsMmTelFeatureAndListen(slotId,
+                serviceProxy.getListener());
+        if (binder != null) {
+            serviceProxy.setBinder(binder.asBinder());
+            // Trigger the cache to be updated for feature status.
+            serviceProxy.getFeatureState();
+        } else {
+            Rlog.w(TAG, "create: binder is null! Slot Id: " + slotId);
+        }
+        return serviceProxy;
+    }
+
+    public static TelephonyManager getTelephonyManager(Context context) {
+        return (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+    }
+
+    public interface IFeatureUpdate {
+        /**
+         * Called when the ImsFeature has changed its state. Use
+         * {@link ImsFeature#getFeatureState()} to get the new state.
+         */
+        void notifyStateChanged();
+
+        /**
+         * Called when the ImsFeature has become unavailable due to the binder switching or app
+         * crashing. A new ImsServiceProxy should be requested for that feature.
+         */
+        void notifyUnavailable();
+    }
+
+    private final IImsServiceFeatureCallback mListenerBinder =
+            new IImsServiceFeatureCallback.Stub() {
+
+        @Override
+        public void imsFeatureCreated(int slotId, int feature) throws RemoteException {
+            // The feature has been re-enabled. This may happen when the service crashes.
+            synchronized (mLock) {
+                if (!mIsAvailable && mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
+                    Log.i(TAG, "Feature enabled on slotId: " + slotId + " for feature: " +
+                            feature);
+                    mIsAvailable = true;
+                }
+            }
+        }
+
+        @Override
+        public void imsFeatureRemoved(int slotId, int feature) throws RemoteException {
+            synchronized (mLock) {
+                if (mIsAvailable && mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
+                    Log.i(TAG, "Feature disabled on slotId: " + slotId + " for feature: " +
+                            feature);
+                    mIsAvailable = false;
+                    if (mStatusCallback != null) {
+                        mStatusCallback.notifyUnavailable();
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void imsStatusChanged(int slotId, int feature, int status) throws RemoteException {
+            synchronized (mLock) {
+                Log.i(TAG, "imsStatusChanged: slot: " + slotId + " feature: " + feature +
+                        " status: " + status);
+                if (mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
+                    mFeatureStateCached = status;
+                    if (mStatusCallback != null) {
+                        mStatusCallback.notifyStateChanged();
+                    }
+                }
+            }
+        }
+    };
+
+    public MmTelFeatureConnection(Context context, int slotId) {
+        mSlotId = slotId;
+        mContext = context;
+    }
+
+    private @Nullable IImsRegistration getRegistration() {
+        TelephonyManager tm = getTelephonyManager(mContext);
+        return tm != null ? tm.getImsRegistration(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
+    }
+
+    private IImsConfig getConfig() {
+        TelephonyManager tm = getTelephonyManager(mContext);
+        return tm != null ? tm.getImsConfig(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
+    }
+
+    public IImsServiceFeatureCallback getListener() {
+        return mListenerBinder;
+    }
+
+    public void setBinder(IBinder binder) {
+        mBinder = binder;
+    }
+
+    /**
+     * Opens the connection to the {@link MmTelFeature} and establishes a listener back to the
+     * framework. Calling this method multiple times will reset the listener attached to the
+     * {@link MmTelFeature}.
+     * @param listener A {@link MmTelFeature.Listener} that will be used by the {@link MmTelFeature}
+     * to notify the framework of updates.
+     */
+    public void openConnection(MmTelFeature.Listener listener) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            mMmTelFeatureListener = listener;
+            getServiceInterface(mBinder).setListener(mMmTelFeatureListener);
+        }
+    }
+
+    public void closeConnection() {
+        mRegistrationCallbackManager.close();
+        mCapabilityCallbackManager.close();
+        try {
+            getServiceInterface(mBinder).setListener(null);
+        } catch (RemoteException e) {
+            Log.w(TAG, "closeConnection: couldn't remove listener!");
+        }
+    }
+
+    public void addRegistrationCallback(ImsRegistrationImplBase.Callback callback)
+            throws RemoteException {
+        mRegistrationCallbackManager.addCallback(callback);
+    }
+
+    public void removeRegistrationCallback(ImsRegistrationImplBase.Callback callback)
+            throws RemoteException {
+        mRegistrationCallbackManager.removeCallback(callback);
+    }
+
+    public void addCapabilityCallback(ImsFeature.CapabilityCallback callback)
+            throws RemoteException {
+        mCapabilityCallbackManager.addCallback(callback);
+    }
+
+    public void removeCapabilityCallback(ImsFeature.CapabilityCallback callback)
+            throws RemoteException {
+        mCapabilityCallbackManager.removeCallback(callback);
+    }
+
+    public void changeEnabledCapabilities(CapabilityChangeRequest request,
+            ImsFeature.CapabilityCallback callback) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).changeCapabilitiesConfiguration(request, callback);
+        }
+    }
+
+    public void queryEnabledCapabilities(int capability, int radioTech,
+            ImsFeature.CapabilityCallback callback) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).queryCapabilityConfiguration(capability, radioTech,
+                    callback);
+        }
+    }
+
+    public MmTelFeature.MmTelCapabilities queryCapabilityStatus() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return new MmTelFeature.MmTelCapabilities(
+                    getServiceInterface(mBinder).queryCapabilityStatus());
+        }
+    }
+
+    public ImsCallProfile createCallProfile(int callServiceType, int callType)
+            throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).createCallProfile(callServiceType, callType);
+        }
+    }
+
+    public IImsCallSession createCallSession(ImsCallProfile profile)
+            throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).createCallSession(profile);
+        }
+    }
+
+    public IImsUt getUtInterface() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).getUtInterface();
+        }
+    }
+
+    public IImsConfig getConfigInterface() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getConfig();
+        }
+    }
+
+    public @ImsRegistrationImplBase.ImsRegistrationTech int getRegistrationTech()
+    throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            IImsRegistration registration = getRegistration();
+            if (registration != null) {
+                return registration.getRegistrationTechnology();
+            } else {
+                return ImsRegistrationImplBase.REGISTRATION_TECH_NONE;
+            }
+        }
+    }
+
+    public IImsEcbm getEcbmInterface() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).getEcbmInterface();
+        }
+    }
+
+    public void setUiTTYMode(int uiTtyMode, Message onComplete)
+            throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).setUiTtyMode(uiTtyMode, onComplete);
+        }
+    }
+
+    public IImsMultiEndpoint getMultiEndpointInterface() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).getMultiEndpointInterface();
+        }
+    }
+
+    public void sendSms(int token, int messageRef, String format, String smsc, boolean isRetry,
+            byte[] pdu) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).sendSms(token, messageRef, format, smsc, isRetry,
+                    pdu);
+        }
+    }
+
+    public void acknowledgeSms(int token, int messageRef,
+            @ImsSmsImplBase.SendStatusResult int result) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).acknowledgeSms(token, messageRef, result);
+        }
+    }
+
+    public void acknowledgeSmsReport(int token, int messageRef,
+            @ImsSmsImplBase.StatusReportResult int result) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).acknowledgeSmsReport(token, messageRef, result);
+        }
+    }
+
+    public String getSmsFormat() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).getSmsFormat();
+        }
+    }
+
+    public void onSmsReady() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).onSmsReady();
+        }
+    }
+
+    public void setSmsListener(IImsSmsListener listener) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).setSmsListener(listener);
+        }
+    }
+
+    /**
+     * @return an integer describing the current Feature Status, defined in
+     * {@link ImsFeature.ImsState}.
+     */
+    public int getFeatureState() {
+        synchronized (mLock) {
+            if (isBinderAlive() && mFeatureStateCached != null) {
+                Log.i(TAG, "getFeatureState - returning cached: " + mFeatureStateCached);
+                return mFeatureStateCached;
+            }
+        }
+        // Don't synchronize on Binder call.
+        Integer status = retrieveFeatureState();
+        synchronized (mLock) {
+            if (status == null) {
+                return ImsFeature.STATE_UNAVAILABLE;
+            }
+            // Cache only non-null value for feature status.
+            mFeatureStateCached = status;
+        }
+        Log.i(TAG, "getFeatureState - returning " + status);
+        return status;
+    }
+
+    /**
+     * Internal method used to retrieve the feature status from the corresponding ImsService.
+     */
+    private Integer retrieveFeatureState() {
+        if (mBinder != null) {
+            try {
+                return getServiceInterface(mBinder).getFeatureState();
+            } catch (RemoteException e) {
+                // Status check failed, don't update cache
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param c Callback that will fire when the feature status has changed.
+     */
+    public void setStatusCallback(IFeatureUpdate c) {
+        mStatusCallback = c;
+    }
+
+    /**
+     * @return Returns true if the ImsService is ready to take commands, false otherwise. If this
+     * method returns false, it doesn't mean that the Binder connection is not available (use
+     * {@link #isBinderReady()} to check that), but that the ImsService is not accepting commands
+     * at this time.
+     *
+     * For example, for DSDS devices, only one slot can be {@link ImsFeature#STATE_READY} to take
+     * commands at a time, so the other slot must stay at {@link ImsFeature#STATE_UNAVAILABLE}.
+     */
+    public boolean isBinderReady() {
+        return isBinderAlive() && getFeatureState() == ImsFeature.STATE_READY;
+    }
+
+    /**
+     * @return false if the binder connection is no longer alive.
+     */
+    public boolean isBinderAlive() {
+        return mIsAvailable && mBinder != null && mBinder.isBinderAlive();
+    }
+
+    protected void checkServiceIsReady() throws RemoteException {
+        if (!isBinderReady()) {
+            throw new RemoteException("ImsServiceProxy is not ready to accept commands.");
+        }
+    }
+
+    private IImsMmTelFeature getServiceInterface(IBinder b) {
+        return IImsMmTelFeature.Stub.asInterface(b);
+    }
+
+    protected void checkBinderConnection() throws RemoteException {
+        if (!isBinderAlive()) {
+            throw new RemoteException("ImsServiceProxy is not available for that feature.");
+        }
+    }
+}
