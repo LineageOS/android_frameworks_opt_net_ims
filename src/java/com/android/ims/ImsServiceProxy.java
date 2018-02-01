@@ -25,6 +25,8 @@ import android.os.RemoteException;
 import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.feature.ImsFeature;
+import android.telephony.SmsMessage;
+import android.telephony.ims.internal.SmsImplBase;
 import android.util.Log;
 
 import com.android.ims.internal.IImsCallSession;
@@ -36,6 +38,7 @@ import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsRegistration;
 import com.android.ims.internal.IImsRegistrationListener;
 import com.android.ims.internal.IImsServiceFeatureCallback;
+import com.android.ims.internal.IImsSmsListener;
 import com.android.ims.internal.IImsUt;
 
 /**
@@ -334,6 +337,45 @@ public class ImsServiceProxy {
      */
     public void setStatusCallback(IFeatureUpdate c) {
         mStatusCallback = c;
+    }
+
+    public void sendSms(int token, int messageRef, String format, String smsc, boolean isRetry,
+            byte[] pdu) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).sendSms(token, messageRef, format, smsc, isRetry,
+                    pdu);
+        }
+    }
+
+    public void acknowledgeSms(int token, int messageRef,
+            @SmsImplBase.SendStatusResult int result) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).acknowledgeSms(token, messageRef, result);
+        }
+    }
+
+    public void acknowledgeSmsReport(int token, int messageRef,
+            @SmsImplBase.StatusReportResult int result) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).acknowledgeSmsReport(token, messageRef, result);
+        }
+    }
+
+    public String getSmsFormat() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).getSmsFormat();
+        }
+    }
+
+    public void setSmsListener(IImsSmsListener listener) throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).setSmsListener(listener);
+        }
     }
 
     /**
