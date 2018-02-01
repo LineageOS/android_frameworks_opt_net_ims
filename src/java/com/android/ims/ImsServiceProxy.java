@@ -371,6 +371,13 @@ public class ImsServiceProxy {
         }
     }
 
+    public void onSmsReady() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).onSmsReady();
+        }
+    }
+
     public void setSmsListener(IImsSmsListener listener) throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
