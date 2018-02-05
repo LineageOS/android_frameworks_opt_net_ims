@@ -31,24 +31,24 @@ import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
-import android.telephony.ims.internal.feature.ImsFeature;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.telephony.Rlog;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsCallProfile;
+import android.telephony.ims.ImsReasonInfo;
 import android.telephony.ims.aidl.IImsConfig;
 import android.telephony.ims.aidl.IImsSmsListener;
 import android.telephony.ims.feature.CapabilityChangeRequest;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.ims.feature.MmTelFeature;
-import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.util.Log;
 
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsUt;
-import com.android.ims.internal.ImsCallSession;
+import android.telephony.ims.ImsCallSession;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.ExponentialBackoff;
 
@@ -2101,19 +2101,11 @@ public class ImsManager {
 
     public void onSmsReady() throws ImsException{
         try {
-            mImsServiceProxy.onSmsReady();
+            mMmTelFeatureConnection.onSmsReady();
         } catch (RemoteException e) {
             throw new ImsException("onSmsReady()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
-    }
-
-    public void addRegistrationCallback(ImsRegistrationImplBase.Callback callback) {
-        // TODO: implement (coming in ag/3472519)
-    }
-
-    public void addCapabilitiesCallback(ImsFeature.CapabilityCallback callback) {
-        // TODO: implement (coming in ag/3472519)
     }
 
     /**

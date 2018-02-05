@@ -17,6 +17,7 @@
 package com.android.ims;
 
 import android.net.Uri;
+import android.telephony.ims.ImsReasonInfo;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.ims.feature.MmTelFeature;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
