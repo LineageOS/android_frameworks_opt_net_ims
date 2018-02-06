@@ -24,13 +24,13 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.aidl.IImsCallSessionListener;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.SmsMessage;
 import android.telephony.ims.internal.stub.SmsImplBase;
 import android.util.Log;
 
 import com.android.ims.internal.IImsCallSession;
-import com.android.ims.internal.IImsCallSessionListener;
 import com.android.ims.internal.IImsConfig;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsMMTelFeature;
@@ -228,11 +228,11 @@ public class ImsServiceProxy {
         }
     }
 
-    public IImsCallSession createCallSession(int sessionId, ImsCallProfile profile,
-            IImsCallSessionListener listener) throws RemoteException {
+    public IImsCallSession createCallSession(int sessionId, ImsCallProfile profile)
+            throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            return getServiceInterface(mBinder).createCallSession(sessionId, profile, listener);
+            return getServiceInterface(mBinder).createCallSession(sessionId, profile);
         }
     }
 
