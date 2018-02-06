@@ -17,8 +17,7 @@
 package com.android.ims;
 
 import android.support.test.runner.AndroidJUnit4;
-
-import com.android.ims.internal.IImsConfig;
+import android.telephony.ims.aidl.IImsConfig;
 
 import org.junit.After;
 import org.junit.Before;
@@ -59,6 +58,6 @@ public class ImsConfigTest extends ImsTestBase {
 
         mTestImsConfig.getProvisionedValue(testItem);
 
-        verify(mMockImsConfigInterface).getProvisionedValue(eq(testItem));
+        verify(mMockImsConfigInterface).getConfigInt(eq(testItem));
     }
 }

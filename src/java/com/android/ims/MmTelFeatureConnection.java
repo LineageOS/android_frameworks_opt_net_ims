@@ -24,6 +24,8 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsCallProfile;
+import android.telephony.ims.ImsReasonInfo;
 import android.telephony.ims.aidl.IImsConfig;
 import android.telephony.ims.aidl.IImsMmTelFeature;
 import android.telephony.ims.aidl.IImsRegistration;
@@ -521,6 +523,13 @@ public class MmTelFeatureConnection {
         synchronized (mLock) {
             checkServiceIsReady();
             return getServiceInterface(mBinder).getSmsFormat();
+        }
+    }
+
+    public void onSmsReady() throws RemoteException {
+        synchronized (mLock) {
+            checkServiceIsReady();
+            getServiceInterface(mBinder).onSmsReady();
         }
     }
 
