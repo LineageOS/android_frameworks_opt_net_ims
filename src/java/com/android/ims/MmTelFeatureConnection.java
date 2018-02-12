@@ -351,6 +351,11 @@ public class MmTelFeatureConnection {
         return tm != null ? tm.getImsConfig(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
     }
 
+    public boolean isEmergencyMmTelAvailable() {
+        TelephonyManager tm = getTelephonyManager(mContext);
+        return tm != null ? tm.isEmergencyMmTelAvailable(mSlotId) : false;
+    }
+
     public IImsServiceFeatureCallback getListener() {
         return mListenerBinder;
     }
@@ -537,6 +542,19 @@ public class MmTelFeatureConnection {
         synchronized (mLock) {
             checkServiceIsReady();
             getServiceInterface(mBinder).setSmsListener(listener);
+        }
+    }
+
+    public @MmTelFeature.ProcessCallResult int shouldProcessCall(boolean isEmergency,
+            String[] numbers) throws RemoteException {
+        if (isEmergency && !isEmergencyMmTelAvailable()) {
+            // Don't query the ImsService if emergency calling is not available on the ImsService.
+            Log.i(TAG, "MmTel does not support emergency over IMS, fallback to CS.");
+            return MmTelFeature.PROCESS_CALL_CSFB;
+        }
+        synchronized (mLock) {
+            checkServiceIsReady();
+            return getServiceInterface(mBinder).shouldProcessCall(numbers);
         }
     }
 
