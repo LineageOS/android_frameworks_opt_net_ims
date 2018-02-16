@@ -1635,6 +1635,28 @@ public class ImsManager {
         }
     }
 
+    public void setRttEnabled(boolean enabled) {
+        try {
+            setAdvanced4GMode(enabled || isEnhanced4gLteModeSettingEnabledByUser());
+            final int value = enabled ? ImsConfig.FeatureValueConstants.ON :
+                    ImsConfig.FeatureValueConstants.OFF;
+            Thread thread = new Thread(() -> {
+                try {
+                    Log.i(ImsManager.class.getSimpleName(), "Setting RTT enabled to " + enabled);
+                    getConfigInterface().setProvisionedValue(
+                            ImsConfig.ConfigConstants.RTT_SETTING_ENABLED, value);
+                } catch (ImsException e) {
+                    Log.e(ImsManager.class.getSimpleName(), "Unable to set RTT enabled to "
+                            + enabled + ": " + e);
+                }
+            });
+            thread.start();
+        } catch (ImsException e) {
+            Log.e(ImsManager.class.getSimpleName(), "Unable to set RTT enabled to " + enabled
+                    + ": " + e);
+        }
+    }
+
     /**
      * Set the TTY mode. This is the actual tty mode (varies depending on peripheral status)
      */
