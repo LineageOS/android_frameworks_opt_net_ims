@@ -605,6 +605,12 @@ public class ImsCall implements ICall {
     private int mOverrideReason = ImsReasonInfo.CODE_UNSPECIFIED;
 
     /**
+     * When true, if this call is incoming, it will be answered with an
+     * {@link ImsStreamMediaProfile} that has RTT enabled.
+     */
+    private boolean mAnswerWithRtt = false;
+
+    /**
      * Create an IMS call object.
      *
      * @param context the context for accessing system services
@@ -1134,6 +1140,11 @@ public class ImsCall implements ICall {
      */
     public void accept(int callType, ImsStreamMediaProfile profile) throws ImsException {
         logi("accept :: callType=" + callType + ", profile=" + profile);
+
+        if (mAnswerWithRtt) {
+            profile.mRttMode = ImsStreamMediaProfile.RTT_MODE_FULL;
+            logi("accept :: changing media profile RTT mode to full");
+        }
 
         synchronized(mLockObj) {
             if (mSession == null) {
@@ -1679,6 +1690,10 @@ public class ImsCall implements ICall {
             }
             mSession.sendRttModifyResponse(status);
         }
+    }
+
+    public void setAnswerWithRtt() {
+        mAnswerWithRtt = true;
     }
 
     private void clear(ImsReasonInfo lastReasonInfo) {
