@@ -2204,11 +2204,33 @@ public class ImsManager {
         }
     }
 
-    public void onSmsReady() throws ImsException{
+    public void onSmsReady() throws ImsException {
         try {
             mMmTelFeatureConnection.onSmsReady();
         } catch (RemoteException e) {
             throw new ImsException("onSmsReady()", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
+     * Determines whether or not a call with the specified numbers should be placed over IMS or over
+     * CSFB.
+     * @param isEmergency is at least one call an emergency number.
+     * @param numbers A {@link String} array containing the numbers in the call being placed. Can
+     *         be multiple numbers in the case of dialing out a conference.
+     * @return The result of the query, one of the following values:
+     *         - {@link MmTelFeature#PROCESS_CALL_IMS}
+     *         - {@link MmTelFeature#PROCESS_CALL_CSFB}
+     * @throws ImsException if the ImsService is not available. In this case, we should fall back
+     * to CSFB anyway.
+     */
+    public @MmTelFeature.ProcessCallResult int shouldProcessCall(boolean isEmergency,
+            String[] numbers) throws ImsException {
+        try {
+            return mMmTelFeatureConnection.shouldProcessCall(isEmergency, numbers);
+        } catch (RemoteException e) {
+            throw new ImsException("shouldProcessCall()", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
     }
