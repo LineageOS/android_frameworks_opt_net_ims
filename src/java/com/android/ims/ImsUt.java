@@ -68,9 +68,9 @@ public class ImsUt implements ImsUtInterface {
     private static final boolean DBG = true;
 
     // For synchronization of private variables
-    private Object mLockObj = new Object();
-    private final IImsUt miUt;
-    private HashMap<Integer, Message> mPendingCmds =
+    protected Object mLockObj = new Object();
+    protected final IImsUt miUt;
+    protected HashMap<Integer, Message> mPendingCmds =
             new HashMap<Integer, Message>();
 
     public ImsUt(IImsUt iUt) {
@@ -538,7 +538,7 @@ public class ImsUt implements ImsUtInterface {
         }
     }
 
-    private void sendFailureReport(Message result, ImsReasonInfo error) {
+    protected void sendFailureReport(Message result, ImsReasonInfo error) {
         if (result == null || error == null) {
             return;
         }

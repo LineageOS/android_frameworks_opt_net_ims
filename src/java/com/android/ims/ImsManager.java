@@ -2680,6 +2680,36 @@ public class ImsManager {
         SystemProperties.set(VT_PROVISIONED_PROP, provisioned ? TRUE : FALSE);
     }
 
+    public ImsConfigListener getImsConfigListener() {
+        return this.mImsConfigListener;
+    }
+
+    public ImsServiceProxyCompat getImsServiceProxy() {
+        return this.mImsServiceProxy;
+    }
+
+    public void createImsServiceProxy(ImsServiceProxyCompat imsServiceProxyCompat) {
+        this.mImsServiceProxy = imsServiceProxyCompat;
+    }
+
+/*
+    public Set<INotifyStatusChanged> getStatusCallbacks() {
+        return this.mStatusCallbacks;
+    }
+*/
+
+    public ImsServiceDeathRecipient getImsServiceDeathRecipient() {
+        return this.mDeathRecipient;
+    }
+
+    public boolean getConfigUpdated() {
+        return this.mConfigUpdated;
+    }
+
+    public void setConfigUpdated(boolean isconfigupdated) {
+        this.mConfigUpdated = isconfigupdated;
+    }
+
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("ImsManager:");
         pw.println("  mPhoneId = " + mPhoneId);
