@@ -237,6 +237,7 @@ public class ImsManager {
                                 }
                             }
                         } catch (ImsException e) {
+                            loge("notifyStateChanged(): ", e);
                             // Could not get the ImsService, retry!
                             notifyNotReady();
                             retryGetImsService();
