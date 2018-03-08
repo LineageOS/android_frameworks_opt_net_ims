@@ -196,7 +196,7 @@ public class MmTelFeatureConnection {
             IImsRegistration imsRegistration = getRegistration();
             if (imsRegistration != null) {
                 try {
-                    getRegistration().addRegistrationCallback(mRegistrationCallbackAdapter);
+                    getRegistration().removeRegistrationCallback(mRegistrationCallbackAdapter);
                 } catch (RemoteException e) {
                     Log.w(TAG, "removeConnection: couldn't remove registration callback");
                 }
