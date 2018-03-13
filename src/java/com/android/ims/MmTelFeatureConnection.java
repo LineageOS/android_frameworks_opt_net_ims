@@ -60,12 +60,13 @@ public class MmTelFeatureConnection {
     protected IBinder mBinder;
     private Context mContext;
 
-    // Start by assuming the proxy is available for usage.
-    private volatile boolean mIsAvailable = true;
+    private volatile boolean mIsAvailable = false;
     // ImsFeature Status from the ImsService. Cached.
     private Integer mFeatureStateCached = null;
     private IFeatureUpdate mStatusCallback;
     private final Object mLock = new Object();
+    // Updated by IImsServiceFeatureCallback when FEATURE_EMERGENCY_MMTEL is sent.
+    private boolean mSupportsEmergencyCalling = false;
 
     private MmTelFeature.Listener mMmTelFeatureListener;
 
@@ -297,25 +298,51 @@ public class MmTelFeatureConnection {
 
         @Override
         public void imsFeatureCreated(int slotId, int feature) throws RemoteException {
-            // The feature has been re-enabled. This may happen when the service crashes.
+            // The feature has been enabled. This happens when the feature is first created and may
+            // happen when the feature is re-enabled.
             synchronized (mLock) {
-                if (!mIsAvailable && mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
-                    Log.i(TAG, "Feature enabled on slotId: " + slotId + " for feature: " +
-                            feature);
-                    mIsAvailable = true;
+                if(mSlotId != slotId) {
+                    return;
                 }
+                switch (feature) {
+                    case ImsFeature.FEATURE_MMTEL: {
+                        if (!mIsAvailable) {
+                            Log.i(TAG, "MmTel enabled on slotId: " + slotId);
+                            mIsAvailable = true;
+                        }
+                        break;
+                    }
+                    case ImsFeature.FEATURE_EMERGENCY_MMTEL: {
+                        mSupportsEmergencyCalling = true;
+                        Log.i(TAG, "Emergency calling enabled on slotId: " + slotId);
+                        break;
+                    }
+                }
+
             }
         }
 
         @Override
         public void imsFeatureRemoved(int slotId, int feature) throws RemoteException {
             synchronized (mLock) {
-                if (mIsAvailable && mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
-                    Log.i(TAG, "Feature disabled on slotId: " + slotId + " for feature: " +
-                            feature);
-                    mIsAvailable = false;
-                    if (mStatusCallback != null) {
-                        mStatusCallback.notifyUnavailable();
+                if(mSlotId != slotId) {
+                    return;
+                }
+                switch (feature) {
+                    case ImsFeature.FEATURE_MMTEL: {
+                        if (mIsAvailable) {
+                            Log.i(TAG, "MmTel disabled on slotId: " + slotId);
+                            mIsAvailable = false;
+                            if (mStatusCallback != null) {
+                                mStatusCallback.notifyUnavailable();
+                            }
+                        }
+                        break;
+                    }
+                    case ImsFeature.FEATURE_EMERGENCY_MMTEL : {
+                        mSupportsEmergencyCalling = false;
+                        Log.i(TAG, "Emergency calling disabled on slotId: " + slotId);
+                        break;
                     }
                 }
             }
@@ -352,8 +379,7 @@ public class MmTelFeatureConnection {
     }
 
     public boolean isEmergencyMmTelAvailable() {
-        TelephonyManager tm = getTelephonyManager(mContext);
-        return tm != null ? tm.isEmergencyMmTelAvailable(mSlotId) : false;
+        return mSupportsEmergencyCalling;
     }
 
     public IImsServiceFeatureCallback getListener() {
@@ -565,7 +591,6 @@ public class MmTelFeatureConnection {
     public int getFeatureState() {
         synchronized (mLock) {
             if (isBinderAlive() && mFeatureStateCached != null) {
-                Log.i(TAG, "getFeatureState - returning cached: " + mFeatureStateCached);
                 return mFeatureStateCached;
             }
         }
