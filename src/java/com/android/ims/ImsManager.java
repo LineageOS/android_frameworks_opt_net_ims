@@ -1570,13 +1570,33 @@ public class ImsManager {
             throw new NullPointerException("registration callback can't be null");
         }
 
-        checkAndThrowExceptionIfServiceUnavailable();
         try {
             mMmTelFeatureConnection.addRegistrationCallback(callback);
             log("Registration Callback registered.");
             // Only record if there isn't a RemoteException.
         } catch (RemoteException e) {
             throw new ImsException("addRegistrationCallback(IRIB)", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
+     * Removes a previously added registration callback that was added via
+     * {@link #addRegistrationCallback(ImsRegistrationImplBase.Callback)} .
+     * @param callback A {@link ImsRegistrationImplBase.Callback} that was previously added.
+     * @throws ImsException when the ImsService connection is not available.
+     */
+    public void removeRegistrationListener(ImsRegistrationImplBase.Callback callback)
+        throws ImsException {
+        if (callback == null) {
+            throw new NullPointerException("registration callback can't be null");
+        }
+
+        try {
+            mMmTelFeatureConnection.removeRegistrationCallback(callback);
+            log("Registration callback removed.");
+        } catch (RemoteException e) {
+            throw new ImsException("removeRegistrationCallback(IRIB)", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
     }
