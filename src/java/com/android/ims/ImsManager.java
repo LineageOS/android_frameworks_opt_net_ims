@@ -339,10 +339,19 @@ public class ImsManager {
         private void notifyReady() throws ImsException {
             ImsManager manager;
             synchronized (mLock) {
-                mRetryCount = 0;
                 manager = mImsManager;
             }
-            mListener.connectionReady(manager);
+            try {
+                mListener.connectionReady(manager);
+            }
+            catch (ImsException e) {
+                Log.w(TAG, "Connector: notifyReady exception: " + e.getMessage());
+                throw e;
+            }
+            // Only reset retry count if connectionReady does not generate an ImsException/
+            synchronized (mLock) {
+                mRetryCount = 0;
+            }
         }
 
         private void notifyNotReady() {
@@ -1421,10 +1430,18 @@ public class ImsManager {
     }
 
     /*
-     * Returns a flag indicating whether the IMS service is available. If it is not available,
-     * it will try to connect before reporting failure.
+     * Returns a flag indicating whether the IMS service is available. If it is not available or
+     * busy, it will try to connect before reporting failure.
      */
     public boolean isServiceAvailable() {
+        // If we are busy resolving dynamic IMS bindings, we are not available yet.
+        TelephonyManager tm = (TelephonyManager)
+                mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        if (tm.isResolvingImsBinding()) {
+            Log.d(TAG, "isServiceAvailable: resolving IMS binding, returning false");
+            return false;
+        }
+
         connectIfServiceIsAvailable();
         // mImsServiceProxy will always create an ImsServiceProxy.
         return mMmTelFeatureConnection.isBinderAlive();
@@ -1556,13 +1573,33 @@ public class ImsManager {
             throw new NullPointerException("registration callback can't be null");
         }
 
-        checkAndThrowExceptionIfServiceUnavailable();
         try {
             mMmTelFeatureConnection.addRegistrationCallback(callback);
             log("Registration Callback registered.");
             // Only record if there isn't a RemoteException.
         } catch (RemoteException e) {
             throw new ImsException("addRegistrationCallback(IRIB)", e,
+                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        }
+    }
+
+    /**
+     * Removes a previously added registration callback that was added via
+     * {@link #addRegistrationCallback(ImsRegistrationImplBase.Callback)} .
+     * @param callback A {@link ImsRegistrationImplBase.Callback} that was previously added.
+     * @throws ImsException when the ImsService connection is not available.
+     */
+    public void removeRegistrationListener(ImsRegistrationImplBase.Callback callback)
+        throws ImsException {
+        if (callback == null) {
+            throw new NullPointerException("registration callback can't be null");
+        }
+
+        try {
+            mMmTelFeatureConnection.removeRegistrationCallback(callback);
+            log("Registration callback removed.");
+        } catch (RemoteException e) {
+            throw new ImsException("removeRegistrationCallback(IRIB)", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
     }
