@@ -771,7 +771,7 @@ public class ImsManager {
             if (enabled) {
                 log("setVtSetting(b) : turnOnIms");
                 turnOnIms();
-            } else if (isVolteEnabledByPlatform()
+            } else if (isTurnOffImsAllowedByPlatform()
                     && (!isVolteEnabledByPlatform()
                     || !isEnhanced4gLteModeSettingEnabledByUser())) {
                 log("setVtSetting(b) : imsServiceAllowTurnOff -> turnOffIms");
