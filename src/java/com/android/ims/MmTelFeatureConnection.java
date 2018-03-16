@@ -484,22 +484,16 @@ public class MmTelFeatureConnection {
     }
 
     public IImsConfig getConfigInterface() throws RemoteException {
-        synchronized (mLock) {
-            checkServiceIsReady();
-            return getConfig();
-        }
+        return getConfig();
     }
 
     public @ImsRegistrationImplBase.ImsRegistrationTech int getRegistrationTech()
-    throws RemoteException {
-        synchronized (mLock) {
-            checkServiceIsReady();
-            IImsRegistration registration = getRegistration();
-            if (registration != null) {
+            throws RemoteException {
+        IImsRegistration registration = getRegistration();
+        if (registration != null) {
                 return registration.getRegistrationTechnology();
-            } else {
-                return ImsRegistrationImplBase.REGISTRATION_TECH_NONE;
-            }
+        } else {
+            return ImsRegistrationImplBase.REGISTRATION_TECH_NONE;
         }
     }
 
