@@ -68,7 +68,10 @@ public class MmTelFeatureConnection {
     // Updated by IImsServiceFeatureCallback when FEATURE_EMERGENCY_MMTEL is sent.
     private boolean mSupportsEmergencyCalling = false;
 
-    private MmTelFeature.Listener mMmTelFeatureListener;
+    // Cache the Registration and Config interfaces as long as the MmTel feature is connected. If
+    // it becomes disconnected, invalidate.
+    private IImsRegistration mRegistrationBinder;
+    private IImsConfig mConfigBinder;
 
     private abstract class CallbackAdapterManager<T> {
         private static final String TAG = "CallbackAdapterManager";
@@ -333,6 +336,7 @@ public class MmTelFeatureConnection {
                         if (mIsAvailable) {
                             Log.i(TAG, "MmTel disabled on slotId: " + slotId);
                             mIsAvailable = false;
+                            mmTelFeatureRemoved();
                             if (mStatusCallback != null) {
                                 mStatusCallback.notifyUnavailable();
                             }
@@ -368,14 +372,53 @@ public class MmTelFeatureConnection {
         mContext = context;
     }
 
+    // Called when the MmTelFeatureConnection has received an unavailable notification.
+    private void mmTelFeatureRemoved() {
+        synchronized (mLock) {
+            // invalidate caches.
+            mRegistrationBinder = null;
+            mConfigBinder = null;
+        }
+    }
+
     private @Nullable IImsRegistration getRegistration() {
+        synchronized (mLock) {
+            // null if cache is invalid;
+            if (mRegistrationBinder != null) {
+                return mRegistrationBinder;
+            }
+        }
         TelephonyManager tm = getTelephonyManager(mContext);
-        return tm != null ? tm.getImsRegistration(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
+        // We don't want to synchronize on a binder call to another process.
+        IImsRegistration regBinder = tm != null
+                ? tm.getImsRegistration(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
+        synchronized (mLock) {
+            // mRegistrationBinder may have changed while we tried to get the registration
+            // interface.
+            if (mRegistrationBinder == null) {
+                mRegistrationBinder = regBinder;
+            }
+        }
+        return mRegistrationBinder;
     }
 
     private IImsConfig getConfig() {
+        synchronized (mLock) {
+            // null if cache is invalid;
+            if (mConfigBinder != null) {
+                return mConfigBinder;
+            }
+        }
         TelephonyManager tm = getTelephonyManager(mContext);
-        return tm != null ? tm.getImsConfig(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
+        IImsConfig configBinder = tm != null
+                ? tm.getImsConfig(mSlotId, ImsFeature.FEATURE_MMTEL) : null;
+        synchronized (mLock) {
+            // mConfigBinder may have changed while we tried to get the config interface.
+            if (mConfigBinder == null) {
+                mConfigBinder = configBinder;
+            }
+        }
+        return mConfigBinder;
     }
 
     public boolean isEmergencyMmTelAvailable() {
@@ -400,8 +443,7 @@ public class MmTelFeatureConnection {
     public void openConnection(MmTelFeature.Listener listener) throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
-            mMmTelFeatureListener = listener;
-            getServiceInterface(mBinder).setListener(mMmTelFeatureListener);
+            getServiceInterface(mBinder).setListener(listener);
         }
     }
 
