@@ -2354,7 +2354,7 @@ public class ImsManager {
     }
 
     private boolean isDataEnabled() {
-        return new TelephonyManager(mContext, getSubId()).isMobileDataEnabled();
+        return new TelephonyManager(mContext, getSubId()).isDataCapable();
     }
 
     private boolean isVolteProvisioned() {
