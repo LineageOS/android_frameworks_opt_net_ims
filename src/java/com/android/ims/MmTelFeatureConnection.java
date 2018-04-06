@@ -451,7 +451,11 @@ public class MmTelFeatureConnection {
         mRegistrationCallbackManager.close();
         mCapabilityCallbackManager.close();
         try {
-            getServiceInterface(mBinder).setListener(null);
+            synchronized (mLock) {
+                if (isBinderAlive()) {
+                    getServiceInterface(mBinder).setListener(null);
+                }
+            }
         } catch (RemoteException e) {
             Log.w(TAG, "closeConnection: couldn't remove listener!");
         }
