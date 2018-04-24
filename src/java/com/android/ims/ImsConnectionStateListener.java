@@ -102,7 +102,7 @@ public class ImsConnectionStateListener extends ImsRegistrationImplBase.Callback
                 }
                 if (c.isCapable(MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VIDEO)) {
                     enabledCapabilities[ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_WIFI] =
-                            ImsConfig.FeatureConstants.FEATURE_TYPE_VOICE_OVER_WIFI;
+                            ImsConfig.FeatureConstants.FEATURE_TYPE_VIDEO_OVER_WIFI;
                 }
                 if (c.isCapable(MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_UT)) {
                     enabledCapabilities[ImsConfig.FeatureConstants.FEATURE_TYPE_UT_OVER_WIFI] =
