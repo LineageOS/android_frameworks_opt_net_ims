@@ -18,6 +18,7 @@ package com.android.ims;
 
 import android.support.test.runner.AndroidJUnit4;
 import android.telephony.ims.aidl.IImsConfig;
+import android.test.suitebuilder.annotation.SmallTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -42,7 +43,7 @@ public class ImsConfigTest extends ImsTestBase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        mTestImsConfig = new ImsConfig(mMockImsConfigInterface, mContext);
+        mTestImsConfig = new ImsConfig(mMockImsConfigInterface);
     }
 
     @After
@@ -53,10 +54,11 @@ public class ImsConfigTest extends ImsTestBase {
     }
 
     @Test
+    @SmallTest
     public void testImsConfigGetProvisionedValue() throws Exception {
         int testItem = 0;
 
-        mTestImsConfig.getProvisionedValue(testItem);
+        mTestImsConfig.getConfigInt(testItem);
 
         verify(mMockImsConfigInterface).getConfigInt(eq(testItem));
     }
