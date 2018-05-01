@@ -25,7 +25,9 @@ LOCAL_CERTIFICATE := platform
 
 LOCAL_MODULE_TAGS := tests
 
-LOCAL_JAVA_LIBRARIES := ims-common android.test.runner
+LOCAL_JAVA_LIBRARIES := ims-common \
+        android.test.runner \
+        android.test.base
 
 LOCAL_STATIC_JAVA_LIBRARIES := \
         android-support-test \
