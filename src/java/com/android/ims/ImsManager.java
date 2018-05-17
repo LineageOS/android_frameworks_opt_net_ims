@@ -959,17 +959,6 @@ public class ImsManager {
     }
 
     /**
-     * Changes the WFC mode to its default value for Carriers with non-editable WFC settings.
-     */
-    private void updateDefaultWfcMode() {
-        if (DBG) log("updateDefaultWfcMode");
-        if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_WFC_MODE_BOOL)) {
-            setWfcMode(getIntCarrierConfig(
-                    CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT));
-        }
-    }
-
-    /**
      * Returns the user configuration of WFC preference setting
      *
      * @param roaming {@code false} for home network setting, {@code true} for roaming  setting
@@ -993,32 +982,50 @@ public class ImsManager {
      * @param roaming {@code false} for home network setting, {@code true} for roaming  setting
      */
     public int getWfcMode(boolean roaming) {
-        int setting = 0;
+        int setting;
         if (!roaming) {
-            setting = SubscriptionManager.getIntegerSubscriptionProperty(
-                    getSubId(), SubscriptionManager.WFC_IMS_MODE,
-                    SUB_PROPERTY_NOT_INITIALIZED, mContext);
-
-            // SUB_PROPERTY_NOT_INITIALIZED indicates it's never set in sub db.
-            if (setting == SUB_PROPERTY_NOT_INITIALIZED) {
+            // The WFC mode is not editable, return the default setting in the CarrierConfig, not
+            // the user set value.
+            if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_WFC_MODE_BOOL)) {
                 setting = getIntCarrierConfig(
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT);
+
+            } else {
+                setting = getSettingFromSubscriptionManager(SubscriptionManager.WFC_IMS_MODE,
                         CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT);
             }
             if (DBG) log("getWfcMode - setting=" + setting);
         } else {
-            setting = SubscriptionManager.getIntegerSubscriptionProperty(
-                    getSubId(), SubscriptionManager.WFC_IMS_ROAMING_MODE,
-                    SUB_PROPERTY_NOT_INITIALIZED, mContext);
-
-            // SUB_PROPERTY_NOT_INITIALIZED indicates it's never set in sub db.
-            if (setting == SUB_PROPERTY_NOT_INITIALIZED) {
+            // The WFC roaming mode is not editable, return the default setting in the
+            // CarrierConfig, not the user set value.
+            if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_WFC_MODE_BOOL)) {
                 setting = getIntCarrierConfig(
                         CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT);
-            }
 
+            } else {
+                setting = getSettingFromSubscriptionManager(
+                        SubscriptionManager.WFC_IMS_ROAMING_MODE,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT);
+            }
             if (DBG) log("getWfcMode (roaming) - setting=" + setting);
         }
         return setting;
+    }
+
+    /**
+     * Returns the SubscriptionManager setting for the subSetting string. If it is not set, default
+     * to the default CarrierConfig value for defaultConfigKey.
+     */
+    private int getSettingFromSubscriptionManager(String subSetting, String defaultConfigKey) {
+        int result;
+        result = SubscriptionManager.getIntegerSubscriptionProperty(getSubId(), subSetting,
+                SUB_PROPERTY_NOT_INITIALIZED, mContext);
+
+        // SUB_PROPERTY_NOT_INITIALIZED indicates it's never set in sub db.
+        if (result == SUB_PROPERTY_NOT_INITIALIZED) {
+            result = getIntCarrierConfig(defaultConfigKey);
+        }
+        return result;
     }
 
     /**
@@ -1068,26 +1075,6 @@ public class ImsManager {
             subId = subIds[0];
         }
         return subId;
-    }
-
-    private static void setWfcModeInternal(Context context, int wfcMode) {
-        final ImsManager imsManager = ImsManager.getInstance(context,
-                SubscriptionManager.getDefaultVoicePhoneId());
-        if (imsManager != null) {
-            final int value = wfcMode;
-            Thread thread = new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        imsManager.getConfigInterface().setConfig(
-                                ImsConfig.ConfigConstants.VOICE_OVER_WIFI_MODE,
-                                value);
-                    } catch (ImsException e) {
-                        // do nothing
-                    }
-                }
-            });
-            thread.start();
-        }
     }
 
     private void setWfcModeInternal(int wfcMode) {
@@ -1385,7 +1372,6 @@ public class ImsManager {
         boolean isNetworkRoaming = tm.isNetworkRoaming();
         boolean available = isWfcEnabledByPlatform();
         boolean enabled = isWfcEnabledByUser();
-        updateDefaultWfcMode();
         int mode = getWfcMode(isNetworkRoaming);
         boolean roaming = isWfcRoamingEnabledByUser();
         boolean isFeatureOn = available && enabled;
@@ -1402,7 +1388,7 @@ public class ImsManager {
             mode = ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED;
             roaming = false;
         }
-        setWfcModeInternal(mContext, mode);
+        setWfcModeInternal(mode);
         setWfcRoamingSettingInternal(roaming);
 
         return isFeatureOn;
