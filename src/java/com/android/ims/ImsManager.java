@@ -872,7 +872,9 @@ public class ImsManager {
         SubscriptionManager.setSubscriptionProperty(getSubId(),
                 SubscriptionManager.WFC_IMS_ENABLED, booleanToPropertyString(enabled));
 
-        setWfcNonPersistent(enabled, getWfcMode());
+        TelephonyManager tm = (TelephonyManager)
+                mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        setWfcNonPersistent(enabled, getWfcMode(tm.isNetworkRoaming(getSubId())));
     }
 
     /**
