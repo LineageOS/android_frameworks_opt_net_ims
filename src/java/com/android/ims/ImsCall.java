@@ -1674,6 +1674,15 @@ public class ImsCall implements ICall {
     }
 
     /**
+     * Checks if the call is RTT call.
+     *
+     * @return true if the call is RTT call
+     */
+    public boolean isRttCall() {
+        return mCallProfile.mMediaProfile.isRttCall();
+    }
+
+    /**
      * Sends a user-requested RTT upgrade request.
      * @param rttOn true if the request is to turn on RTT, false to turn off.
      */
