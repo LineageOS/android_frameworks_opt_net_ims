@@ -1451,14 +1451,6 @@ public class ImsManager {
      * busy, it will try to connect before reporting failure.
      */
     public boolean isServiceAvailable() {
-        // If we are busy resolving dynamic IMS bindings, we are not available yet.
-        TelephonyManager tm = (TelephonyManager)
-                mContext.getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm.isResolvingImsBinding()) {
-            Log.d(TAG, "isServiceAvailable: resolving IMS binding, returning false");
-            return false;
-        }
-
         connectIfServiceIsAvailable();
         // mImsServiceProxy will always create an ImsServiceProxy.
         return mMmTelFeatureConnection.isBinderAlive();
