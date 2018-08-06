@@ -434,9 +434,12 @@ public class ImsManager {
 
     /**
      * Returns the user configuration of Enhanced 4G LTE Mode setting for slot. If the option is
-     * not editable ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false),
-     * this method will return default value specified by
+     * not editable ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false), or
+     * the setting is not initialized, this method will return default value specified by
      * {@link CarrierConfigManager#KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL}.
+     *
+     * Note that even if the setting was set, it may no longer be editable. If this is the case we
+     * return the default value.
      */
     public boolean isEnhanced4gLteModeSettingEnabledByUser() {
         int setting = SubscriptionManager.getIntegerSubscriptionProperty(
@@ -735,7 +738,8 @@ public class ImsManager {
                 SUB_PROPERTY_NOT_INITIALIZED, mContext);
 
         // If it's never set, by default we return true.
-        return (setting == SUB_PROPERTY_NOT_INITIALIZED || setting == 1);
+        return (setting == SUB_PROPERTY_NOT_INITIALIZED
+                || setting == ImsConfig.FeatureValueConstants.ON);
     }
 
     /**
@@ -845,7 +849,7 @@ public class ImsManager {
             return getBooleanCarrierConfig(
                     CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ENABLED_BOOL);
         } else {
-            return setting == 1;
+            return setting == ImsConfig.FeatureValueConstants.ON;
         }
     }
 
@@ -1110,7 +1114,7 @@ public class ImsManager {
             return getBooleanCarrierConfig(
                             CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_ENABLED_BOOL);
         } else {
-            return (setting == 1);
+            return setting == ImsConfig.FeatureValueConstants.ON;
         }
     }
 
@@ -2304,7 +2308,9 @@ public class ImsManager {
     public void factoryReset() {
         // Set VoLTE to default
         SubscriptionManager.setSubscriptionProperty(getSubId(),
-                SubscriptionManager.ENHANCED_4G_MODE_ENABLED, booleanToPropertyString(true));
+                SubscriptionManager.ENHANCED_4G_MODE_ENABLED,
+                booleanToPropertyString(getBooleanCarrierConfig(
+                        CarrierConfigManager.KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL)));
 
         // Set VoWiFi to default
         SubscriptionManager.setSubscriptionProperty(getSubId(),
