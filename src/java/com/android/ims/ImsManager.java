@@ -435,7 +435,8 @@ public class ImsManager {
 
     /**
      * Returns the user configuration of Enhanced 4G LTE Mode setting for slot. If the option is
-     * not editable ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false), or
+     * not editable ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false),
+     * hidden ({@link CarrierConfigManager#KEY_HIDE_ENHANCED_4G_LTE_BOOL} is true), or
      * the setting is not initialized, this method will return default value specified by
      * {@link CarrierConfigManager#KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL}.
      *
@@ -449,8 +450,10 @@ public class ImsManager {
         boolean onByDefault = getBooleanCarrierConfig(
                 CarrierConfigManager.KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL);
 
-        // If Enhanced 4G LTE Mode is uneditable or not initialized, we use the default value
+        // If Enhanced 4G LTE Mode is uneditable, hidden or not initialized, we use the default
+        // value
         if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL)
+                || getBooleanCarrierConfig(CarrierConfigManager.KEY_HIDE_ENHANCED_4G_LTE_BOOL)
                 || setting == SUB_PROPERTY_NOT_INITIALIZED) {
             return onByDefault;
         } else {
@@ -475,15 +478,16 @@ public class ImsManager {
 
     /**
      * Change persistent Enhanced 4G LTE Mode setting. If the option is not editable
-     * ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false), this method will
-     * set the setting to the default value specified by
+     * ({@link CarrierConfigManager#KEY_EDITABLE_ENHANCED_4G_LTE_BOOL} is false)
+     * or hidden ({@link CarrierConfigManager#KEY_HIDE_ENHANCED_4G_LTE_BOOL} is true),
+     * this method will set the setting to the default value specified by
      * {@link CarrierConfigManager#KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL}.
-     *
      */
     public void setEnhanced4gLteModeSetting(boolean enabled) {
         int subId = getSubId();
-        // If editable=false, we must keep default advanced 4G mode.
-        if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL)) {
+        // If editable=false or hidden=true, we must keep default advanced 4G mode.
+        if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL) ||
+                getBooleanCarrierConfig(CarrierConfigManager.KEY_HIDE_ENHANCED_4G_LTE_BOOL)) {
             enabled = getBooleanCarrierConfig(
                     CarrierConfigManager.KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL);
         }
