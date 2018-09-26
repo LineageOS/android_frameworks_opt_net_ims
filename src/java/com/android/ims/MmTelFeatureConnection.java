@@ -20,28 +20,42 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.telephony.Rlog;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
+import android.telephony.ims.aidl.IImsCapabilityCallback;
 import android.telephony.ims.aidl.IImsConfig;
 import android.telephony.ims.aidl.IImsMmTelFeature;
 import android.telephony.ims.aidl.IImsRegistration;
+import android.telephony.ims.aidl.IImsRegistrationCallback;
 import android.telephony.ims.aidl.IImsSmsListener;
 import android.telephony.ims.feature.CapabilityChangeRequest;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.ims.feature.MmTelFeature;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.telephony.ims.stub.ImsSmsImplBase;
+import android.util.ArraySet;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.android.ims.internal.IImsCallSession;
 import com.android.ims.internal.IImsEcbm;
 import com.android.ims.internal.IImsMultiEndpoint;
 import com.android.ims.internal.IImsServiceFeatureCallback;
 import com.android.ims.internal.IImsUt;
+import com.android.internal.annotations.VisibleForTesting;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A container of the IImsServiceController binder, which implements all of the ImsFeatures that
@@ -50,40 +64,71 @@ import com.android.ims.internal.IImsUt;
  */
 
 public class MmTelFeatureConnection {
-
     protected static final String TAG = "MmTelFeatureConnection";
-    protected final int mSlotId;
-    protected IBinder mBinder;
-    private Context mContext;
 
-    private volatile boolean mIsAvailable = false;
-    // ImsFeature Status from the ImsService. Cached.
-    private Integer mFeatureStateCached = null;
-    private IFeatureUpdate mStatusCallback;
-    private final Object mLock = new Object();
-    // Updated by IImsServiceFeatureCallback when FEATURE_EMERGENCY_MMTEL is sent.
-    private boolean mSupportsEmergencyCalling = false;
-
-    // Cache the Registration and Config interfaces as long as the MmTel feature is connected. If
-    // it becomes disconnected, invalidate.
-    private IImsRegistration mRegistrationBinder;
-    private IImsConfig mConfigBinder;
-
-    private IBinder.DeathRecipient mDeathRecipient = () -> {
-            Log.w(TAG, "DeathRecipient triggered, binder died.");
-            onRemovedOrDied();
-    };
-
-    private abstract class CallbackAdapterManager<T extends IInterface> {
+    // Manages callbacks to the associated MmTelFeature in mMmTelFeatureConnection.
+    @VisibleForTesting
+    public static abstract class CallbackAdapterManager<T extends IInterface> {
         private static final String TAG = "CallbackAdapterManager";
 
-        protected final RemoteCallbackList<T> mRemoteCallbacks =
-                new RemoteCallbackList<>();
+        private final Context mContext;
+        private final Object mLock;
+        // Map of sub id -> List<callbacks> for sub id linked callbacks.
+        private final SparseArray<Set<T>> mCallbackSubscriptionMap = new SparseArray<>();
+        // List of all active callbacks to ImsService
+        private final RemoteCallbackList<T> mRemoteCallbacks = new RemoteCallbackList<>();
+        @VisibleForTesting
+        public SubscriptionManager.OnSubscriptionsChangedListener mSubChangedListener;
 
-        public void addCallback(T localCallback) throws RemoteException {
+        public CallbackAdapterManager(Context context, Object lock) {
+            mContext = context;
+            mLock = lock;
+            if (Looper.myLooper() == null) {
+                Looper.prepare();
+            }
+            // Must be created after Looper.prepare() is called, or else we will get an exception.
+            mSubChangedListener = new SubscriptionManager.OnSubscriptionsChangedListener() {
+                @Override
+                public void onSubscriptionsChanged() {
+                    SubscriptionManager manager = mContext.getSystemService(
+                            SubscriptionManager.class);
+                    if (manager == null) {
+                        Log.w(TAG, "onSubscriptionsChanged: could not find SubscriptionManager.");
+                        return;
+                    }
+                    List<SubscriptionInfo> subInfos = manager.getActiveSubscriptionInfoList();
+                    if (subInfos == null) {
+                        subInfos = Collections.emptyList();
+                    }
+                    Set<Integer> newSubIds = subInfos.stream()
+                            .map(SubscriptionInfo::getSubscriptionId)
+                            .collect(Collectors.toSet());
+                    synchronized (mLock) {
+                        Set<Integer> storedSubIds = new ArraySet<>(mCallbackSubscriptionMap.size());
+                        for (int keyIndex = 0; keyIndex < mCallbackSubscriptionMap.size();
+                                keyIndex++) {
+                            storedSubIds.add(mCallbackSubscriptionMap.keyAt(keyIndex));
+                        }
+                        // Get the set of sub ids that are in storedSubIds that are not in newSubIds.
+                        // This is the set of sub ids that need to be removed.
+                        storedSubIds.removeAll(newSubIds);
+                        for (Integer subId : storedSubIds) {
+                            removeCallbacksForSubscription(subId);
+                        }
+                    }
+                }
+            };
+
+        }
+
+        // Add a callback to the MmTelFeature associated with this manager (independent of the)
+        // current subscription.
+        public final void addCallback(T localCallback) throws RemoteException {
             synchronized (mLock) {
-                // throws a RemoteException if a connection can not be established.
-                if (!createConnection(localCallback)) {
+                // Skip registering to callback subscription map here, because we are registering
+                // for the slot, independent of subscription (deprecated behavior).
+                if (!registerCallback(localCallback)) {
+                    // throws a RemoteException if a connection can not be established.
                     throw new RemoteException("Can not create connection!");
                 }
                 Log.i(TAG, "Local callback added: " + localCallback);
@@ -91,37 +136,163 @@ public class MmTelFeatureConnection {
             }
         }
 
-        public void removeCallback(T localCallback) {
-            Log.i(TAG, "Local callback removed: " + localCallback);
+        // Add a callback to be associated with a subscription. If that subscription is removed,
+        // remove the callback and notify the callback that the subscription has been removed.
+        public final void addCallbackForSubscription(T localCallback, int subId)
+                throws RemoteException {
+            if (!SubscriptionManager.isValidSubscriptionId(subId)) {
+                return;
+            }
             synchronized (mLock) {
-                removeConnection(localCallback);
-                mRemoteCallbacks.unregister(localCallback);
+                addCallback(localCallback);
+                linkCallbackToSubscription(localCallback, subId);
             }
         }
 
+        // Removes a callback associated with the MmTelFeature.
+        public final void removeCallback(T localCallback) {
+            Log.i(TAG, "Local callback removed: " + localCallback);
+            synchronized (mLock) {
+                if (mRemoteCallbacks.unregister(localCallback)) {
+                    // Will only occur if we have record of this callback in mRemoteCallbacks.
+                    unregisterCallback(localCallback);
+                }
+            }
+        }
+
+        // Remove an existing callback that has been linked to a subscription.
+        public final void removeCallbackForSubscription(T localCallback, int subId) {
+            if (!SubscriptionManager.isValidSubscriptionId(subId)) {
+                return;
+            }
+            synchronized (mLock) {
+                removeCallback(localCallback);
+                unlinkCallbackFromSubscription(localCallback, subId);
+            }
+        }
+
+        // Links a callback to be tracked by a subscription. If it goes away, emove.
+        private void linkCallbackToSubscription(T callback, int subId) {
+            synchronized (mLock) {
+                if (mCallbackSubscriptionMap.size() == 0) {
+                    // we are about to add the first entry to the map, register for subscriptions
+                    //changed listener.
+                    registerForSubscriptionsChanged();
+                }
+                Set<T> callbacksPerSub = mCallbackSubscriptionMap.get(subId);
+                if (callbacksPerSub == null) {
+                    // the callback list has not been created yet for this subscription.
+                    callbacksPerSub = new ArraySet<>();
+                    mCallbackSubscriptionMap.put(subId, callbacksPerSub);
+                }
+                callbacksPerSub.add(callback);
+            }
+        }
+
+        // Unlink the callback from the associated subscription.
+        private void unlinkCallbackFromSubscription(T callback, int subId) {
+            synchronized (mLock) {
+                Set<T> callbacksPerSub = mCallbackSubscriptionMap.get(subId);
+                if (callbacksPerSub != null) {
+                    callbacksPerSub.remove(callback);
+                    if (callbacksPerSub.isEmpty()) {
+                        mCallbackSubscriptionMap.remove(subId);
+                    }
+                }
+                if (mCallbackSubscriptionMap.size() == 0) {
+                    unregisterForSubscriptionsChanged();
+                }
+            }
+        }
+
+        // Removes all of the callbacks that have been registered to the subscription specified.
+        // This happens when Telephony sends an indication that the subscriptions have changed.
+        private void removeCallbacksForSubscription(int subId) {
+            if (!SubscriptionManager.isValidSubscriptionId(subId)) {
+                return;
+            }
+            synchronized (mLock) {
+                Set<T> callbacksPerSub = mCallbackSubscriptionMap.get(subId);
+                if (callbacksPerSub == null) {
+                    // no callbacks registered for this subscription.
+                    return;
+                }
+                // clear all registered callbacks in the subscription map for this subscription.
+                mCallbackSubscriptionMap.remove(subId);
+                for (T callback : callbacksPerSub) {
+                    removeCallback(callback);
+                }
+                // If there are no more callbacks being tracked, remove subscriptions changed
+                // listener.
+                if (mCallbackSubscriptionMap.size() == 0) {
+                    unregisterForSubscriptionsChanged();
+                }
+            }
+        }
+
+        // Clear the Subscription -> Callback map because the ImsService connection is no longer
+        // current.
+        private void clearCallbacksForAllSubscriptions() {
+            synchronized (mLock) {
+                List<Integer> keys = new ArrayList<>();
+                for (int keyIndex = 0; keyIndex < mCallbackSubscriptionMap.size(); keyIndex++) {
+                    keys.add(mCallbackSubscriptionMap.keyAt(keyIndex));
+                }
+                keys.forEach(this::removeCallbacksForSubscription);
+            }
+        }
+
+        private void registerForSubscriptionsChanged() {
+            SubscriptionManager manager = mContext.getSystemService(SubscriptionManager.class);
+            if (manager != null) {
+                manager.addOnSubscriptionsChangedListener(mSubChangedListener);
+            } else {
+                Log.w(TAG, "registerForSubscriptionsChanged: could not find SubscriptionManager.");
+            }
+        }
+
+        private void unregisterForSubscriptionsChanged() {
+            SubscriptionManager manager = mContext.getSystemService(SubscriptionManager.class);
+            if (manager != null) {
+            manager.removeOnSubscriptionsChangedListener(mSubChangedListener);
+            } else {
+                Log.w(TAG, "unregisterForSubscriptionsChanged: could not find"
+                        + " SubscriptionManager.");
+            }
+        }
+
+        // The ImsService these callbacks are registered to has become unavailable or crashed, or
+        // the ImsResolver has switched to a new ImsService. In these cases, clean up all existing
+        // callbacks.
         public void close() {
             synchronized (mLock) {
                 final int lastCallbackIndex = mRemoteCallbacks.getRegisteredCallbackCount() - 1;
                 for(int ii = lastCallbackIndex; ii >= 0; ii --) {
                     T callbackItem = mRemoteCallbacks.getRegisteredCallbackItem(ii);
-                    removeConnection(callbackItem);
+                    unregisterCallback(callbackItem);
                     mRemoteCallbacks.unregister(callbackItem);
                 }
+                clearCallbacksForAllSubscriptions();
                 Log.i(TAG, "Closing connection and clearing callbacks");
             }
         }
 
-        abstract boolean createConnection(T localCallback) throws RemoteException;
+        // A callback has been registered. Register that callback with the MmTelFeature.
+        public abstract boolean registerCallback(T localCallback) throws RemoteException;
 
-        abstract void removeConnection(T localCallback);
+        // A callback has been removed, unregister that callback with the MmTelFeature.
+        public abstract void unregisterCallback(T localCallback);
     }
-    private ImsRegistrationCallbackAdapter mRegistrationCallbackManager
-            = new ImsRegistrationCallbackAdapter();
-    private class ImsRegistrationCallbackAdapter
-            extends CallbackAdapterManager<ImsRegistrationImplBase.Callback> {
+
+    private class ImsRegistrationCallbackAdapter extends
+            CallbackAdapterManager<IImsRegistrationCallback> {
+
+        public ImsRegistrationCallbackAdapter(Context context, Object lock) {
+            super(context, lock);
+        }
 
         @Override
-        boolean createConnection(ImsRegistrationImplBase.Callback localCallback)
+        public boolean registerCallback(IImsRegistrationCallback localCallback)
                 throws RemoteException {
             IImsRegistration imsRegistration = getRegistration();
             if (imsRegistration != null) {
@@ -134,13 +305,13 @@ public class MmTelFeatureConnection {
         }
 
         @Override
-        void removeConnection(ImsRegistrationImplBase.Callback localCallback) {
+        public void unregisterCallback(IImsRegistrationCallback localCallback) {
             IImsRegistration imsRegistration = getRegistration();
             if (imsRegistration != null) {
                 try {
                     getRegistration().removeRegistrationCallback(localCallback);
                 } catch (RemoteException e) {
-                    Log.w(TAG, "removeConnection: couldn't remove registration callback");
+                    Log.w(TAG, "unregisterCallback: couldn't remove registration callback");
                 }
             } else {
                 Log.e(TAG, "ImsRegistration is null");
@@ -148,13 +319,15 @@ public class MmTelFeatureConnection {
         }
     }
 
-    private final CapabilityCallbackManager mCapabilityCallbackManager
-            = new CapabilityCallbackManager();
-    private class CapabilityCallbackManager
-            extends CallbackAdapterManager<ImsFeature.CapabilityCallback> {
+    private class CapabilityCallbackManager extends CallbackAdapterManager<IImsCapabilityCallback> {
+
+        public CapabilityCallbackManager(Context context, Object lock) {
+            super(context, lock);
+        }
 
         @Override
-        boolean createConnection(ImsFeature.CapabilityCallback localCallback) throws RemoteException {
+        public boolean registerCallback(IImsCapabilityCallback localCallback)
+                throws RemoteException {
             IImsMmTelFeature binder;
             synchronized (mLock) {
                 checkServiceIsReady();
@@ -170,7 +343,7 @@ public class MmTelFeatureConnection {
         }
 
         @Override
-        void removeConnection(ImsFeature.CapabilityCallback localCallback) {
+        public void unregisterCallback(IImsCapabilityCallback localCallback) {
             IImsMmTelFeature binder = null;
             synchronized (mLock) {
                 try {
@@ -192,6 +365,31 @@ public class MmTelFeatureConnection {
             }
         }
     }
+
+    protected final int mSlotId;
+    protected IBinder mBinder;
+    private Context mContext;
+
+    private volatile boolean mIsAvailable = false;
+    // ImsFeature Status from the ImsService. Cached.
+    private Integer mFeatureStateCached = null;
+    private IFeatureUpdate mStatusCallback;
+    private final Object mLock = new Object();
+    // Updated by IImsServiceFeatureCallback when FEATURE_EMERGENCY_MMTEL is sent.
+    private boolean mSupportsEmergencyCalling = false;
+
+    // Cache the Registration and Config interfaces as long as the MmTel feature is connected. If
+    // it becomes disconnected, invalidate.
+    private IImsRegistration mRegistrationBinder;
+    private IImsConfig mConfigBinder;
+
+    private IBinder.DeathRecipient mDeathRecipient = () -> {
+        Log.w(TAG, "DeathRecipient triggered, binder died.");
+        onRemovedOrDied();
+    };
+
+    private final ImsRegistrationCallbackAdapter mRegistrationCallbackManager;
+    private final CapabilityCallbackManager mCapabilityCallbackManager;
 
 
     public static MmTelFeatureConnection create(Context context , int slotId) {
@@ -303,6 +501,8 @@ public class MmTelFeatureConnection {
     public MmTelFeatureConnection(Context context, int slotId) {
         mSlotId = slotId;
         mContext = context;
+        mRegistrationCallbackManager = new ImsRegistrationCallbackAdapter(context, mLock);
+        mCapabilityCallbackManager = new CapabilityCallbackManager(context, mLock);
     }
 
     /**
@@ -416,28 +616,46 @@ public class MmTelFeatureConnection {
         }
     }
 
-    public void addRegistrationCallback(ImsRegistrationImplBase.Callback callback)
+    public void addRegistrationCallback(IImsRegistrationCallback callback)
             throws RemoteException {
         mRegistrationCallbackManager.addCallback(callback);
     }
 
-    public void removeRegistrationCallback(ImsRegistrationImplBase.Callback callback)
+    public void addRegistrationCallbackForSubscription(IImsRegistrationCallback callback, int subId)
             throws RemoteException {
+        mRegistrationCallbackManager.addCallbackForSubscription(callback , subId);
+    }
+
+    public void removeRegistrationCallback(IImsRegistrationCallback callback) {
         mRegistrationCallbackManager.removeCallback(callback);
     }
 
-    public void addCapabilityCallback(ImsFeature.CapabilityCallback callback)
+    public void removeRegistrationCallbackForSubscription(IImsRegistrationCallback callback,
+            int subId) {
+        mRegistrationCallbackManager.removeCallbackForSubscription(callback, subId);
+    }
+
+    public void addCapabilityCallback(IImsCapabilityCallback callback)
             throws RemoteException {
         mCapabilityCallbackManager.addCallback(callback);
     }
 
-    public void removeCapabilityCallback(ImsFeature.CapabilityCallback callback)
-            throws RemoteException {
+    public void addCapabilityCallbackForSubscription(IImsCapabilityCallback callback,
+            int subId) throws RemoteException {
+        mCapabilityCallbackManager.addCallbackForSubscription(callback, subId);
+    }
+
+    public void removeCapabilityCallback(IImsCapabilityCallback callback) {
         mCapabilityCallbackManager.removeCallback(callback);
     }
 
+    public void removeCapabilityCallbackForSubscription(IImsCapabilityCallback callback,
+            int subId) {
+        mCapabilityCallbackManager.removeCallbackForSubscription(callback , subId);
+    }
+
     public void changeEnabledCapabilities(CapabilityChangeRequest request,
-            ImsFeature.CapabilityCallback callback) throws RemoteException {
+            IImsCapabilityCallback callback) throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
             getServiceInterface(mBinder).changeCapabilitiesConfiguration(request, callback);
@@ -445,7 +663,7 @@ public class MmTelFeatureConnection {
     }
 
     public void queryEnabledCapabilities(int capability, int radioTech,
-            ImsFeature.CapabilityCallback callback) throws RemoteException {
+            IImsCapabilityCallback callback) throws RemoteException {
         synchronized (mLock) {
             checkServiceIsReady();
             getServiceInterface(mBinder).queryCapabilityConfiguration(capability, radioTech,
