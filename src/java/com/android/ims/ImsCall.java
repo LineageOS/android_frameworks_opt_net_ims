@@ -1648,16 +1648,20 @@ public class ImsCall implements ICall {
 
     /**
      * Sends a user-requested RTT upgrade request.
+     * @param rttOn true if the request is to turn on RTT, false to turn off.
      */
-    public void sendRttModifyRequest() {
+    public void sendRttModifyRequest(boolean rttOn) {
         logi("sendRttModifyRequest");
 
         synchronized(mLockObj) {
             if (mSession == null) {
                 loge("sendRttModifyRequest::no session");
             }
-            if (mCallProfile.mMediaProfile.isRttCall()) {
-                logi("sendRttModifyRequest::Already RTT call, ignoring.");
+            if (rttOn && mCallProfile.mMediaProfile.isRttCall()) {
+                logi("sendRttModifyRequest::Already RTT call, ignoring request to turn on.");
+                return;
+            } else if (!rttOn && !mCallProfile.mMediaProfile.isRttCall()) {
+                logi("sendRttModifyRequest::Not RTT call, ignoring request to turn off.");
                 return;
             }
             // Make a copy of the current ImsCallProfile and modify it to enable RTT
@@ -1665,7 +1669,9 @@ public class ImsCall implements ICall {
             mCallProfile.writeToParcel(p, 0);
             p.setDataPosition(0);
             ImsCallProfile requestedProfile = new ImsCallProfile(p);
-            requestedProfile.mMediaProfile.setRttMode(ImsStreamMediaProfile.RTT_MODE_FULL);
+            requestedProfile.mMediaProfile.setRttMode(rttOn
+                    ? ImsStreamMediaProfile.RTT_MODE_FULL
+                    : ImsStreamMediaProfile.RTT_MODE_DISABLED);
 
             mSession.sendRttModifyRequest(requestedProfile);
         }
