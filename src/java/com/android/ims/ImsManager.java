@@ -2429,7 +2429,7 @@ public class ImsManager {
      * @return {@code true} if valid, {@code false} otherwise.
      */
     private boolean isSubIdValid(int subId) {
-        return subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID &&
+        return SubscriptionManager.isValidSubscriptionId(subId) &&
                 subId != SubscriptionManager.DEFAULT_SUBSCRIPTION_ID;
     }
 }
