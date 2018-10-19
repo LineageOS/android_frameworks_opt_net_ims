@@ -28,6 +28,7 @@ import android.os.Parcel;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.provider.Settings;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
@@ -1322,6 +1323,7 @@ public class ImsManager {
                 boolean isImsUsed = updateVolteFeatureValue();
                 isImsUsed |= updateWfcFeatureAndProvisionedValues();
                 isImsUsed |= updateVideoCallFeatureValue();
+                isImsUsed |= updateRttConfigValue();
 
                 if (isImsUsed || !isTurnOffImsAllowedByPlatform()) {
                     // Turn on IMS if it is used.
@@ -1869,22 +1871,42 @@ public class ImsManager {
         }
     }
 
+    public boolean updateRttConfigValue() {
+        boolean isCarrierSupported =
+                getBooleanCarrierConfig(CarrierConfigManager.KEY_RTT_SUPPORTED_BOOL);
+        boolean isRttEnabled = Settings.Secure.getInt(mContext.getContentResolver(),
+                Settings.Secure.RTT_CALLING_MODE, 0) != 0;
+        Log.i(ImsManager.class.getSimpleName(), "update RTT value " + isRttEnabled);
+        if (isCarrierSupported == true) {
+            setRttConfig(isRttEnabled);
+        }
+        return isCarrierSupported && isRttEnabled;
+    }
+
+    private void setRttConfig(boolean enabled) {
+        final int value = enabled ? ImsConfig.FeatureValueConstants.ON :
+                ImsConfig.FeatureValueConstants.OFF;
+        Thread thread = new Thread(() -> {
+            try {
+                Log.i(ImsManager.class.getSimpleName(), "Setting RTT enabled to " + enabled);
+                getConfigInterface().setProvisionedValue(
+                        ImsConfig.ConfigConstants.RTT_SETTING_ENABLED, value);
+            } catch (ImsException e) {
+                Log.e(ImsManager.class.getSimpleName(), "Unable to set RTT value enabled to "
+                        + enabled + ": " + e);
+            }
+        });
+        thread.start();
+    }
+
     public void setRttEnabled(boolean enabled) {
         try {
-            setAdvanced4GMode(enabled || isEnhanced4gLteModeSettingEnabledByUser());
-            final int value = enabled ? ImsConfig.FeatureValueConstants.ON :
-                    ImsConfig.FeatureValueConstants.OFF;
-            Thread thread = new Thread(() -> {
-                try {
-                    Log.i(ImsManager.class.getSimpleName(), "Setting RTT enabled to " + enabled);
-                    getConfigInterface().setProvisionedValue(
-                            ImsConfig.ConfigConstants.RTT_SETTING_ENABLED, value);
-                } catch (ImsException e) {
-                    Log.e(ImsManager.class.getSimpleName(), "Unable to set RTT enabled to "
-                            + enabled + ": " + e);
-                }
-            });
-            thread.start();
+            if (enabled) {
+                setEnhanced4gLteModeSetting(enabled);
+            } else {
+                setAdvanced4GMode(enabled || isEnhanced4gLteModeSettingEnabledByUser());
+            }
+            setRttConfig(enabled);
         } catch (ImsException e) {
             Log.e(ImsManager.class.getSimpleName(), "Unable to set RTT enabled to " + enabled
                     + ": " + e);
