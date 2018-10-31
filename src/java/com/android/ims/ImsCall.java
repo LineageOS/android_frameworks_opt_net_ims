@@ -1230,8 +1230,8 @@ public class ImsCall implements ICall {
         }
     }
 
-    public void terminate(int reason, int overrideReason) throws ImsException {
-        logi("terminate :: reason=" + reason + " ; overrideReadon=" + overrideReason);
+    public void terminate(int reason, int overrideReason) {
+        logi("terminate :: reason=" + reason + " ; overrideReason=" + overrideReason);
         mOverrideReason = overrideReason;
         terminate(reason);
     }
@@ -1240,9 +1240,8 @@ public class ImsCall implements ICall {
      * Terminates an IMS call (e.g. user initiated).
      *
      * @param reason reason code to terminate a call
-     * @throws ImsException if the IMS service fails to terminate the call
      */
-    public void terminate(int reason) throws ImsException {
+    public void terminate(int reason) {
         logi("terminate :: reason=" + reason);
 
         synchronized(mLockObj) {
