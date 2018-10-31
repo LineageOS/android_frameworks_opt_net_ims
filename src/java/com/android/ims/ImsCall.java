@@ -1792,7 +1792,6 @@ public class ImsCall implements ICall {
         if (mediaProfile.mVideoQuality != ImsStreamMediaProfile.VIDEO_QUALITY_NONE) {
             mediaProfile.mVideoDirection = ImsStreamMediaProfile.DIRECTION_SEND;
         }
-        mediaProfile.mRttMode = mCallProfile.mMediaProfile.mRttMode;
 
         return mediaProfile;
     }
@@ -1811,7 +1810,6 @@ public class ImsCall implements ICall {
         if (mediaProfile.mVideoQuality != ImsStreamMediaProfile.VIDEO_QUALITY_NONE) {
             mediaProfile.mVideoDirection = ImsStreamMediaProfile.DIRECTION_SEND_RECEIVE;
         }
-        mediaProfile.mRttMode = mCallProfile.mMediaProfile.mRttMode;
 
         return mediaProfile;
     }
