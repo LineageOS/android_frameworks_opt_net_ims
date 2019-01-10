@@ -32,7 +32,10 @@ import android.provider.Settings;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
 import android.telephony.ims.ImsMmTelManager;
+import android.telephony.ims.ImsService;
+import android.telephony.ims.ProvisioningManager;
 import android.telephony.ims.aidl.IImsCapabilityCallback;
+import android.telephony.ims.aidl.IImsConfigCallback;
 import android.telephony.ims.aidl.IImsRegistrationCallback;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.telephony.Rlog;
@@ -1602,7 +1605,7 @@ public class ImsManager {
             mMmTelFeatureConnection.addRegistrationCallback(callback.getBinder());
             log("Registration Callback registered.");
             // Only record if there isn't a RemoteException.
-        } catch (RemoteException e) {
+        } catch (IllegalStateException e) {
             throw new ImsException("addRegistrationCallback(IRIB)", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
@@ -1634,7 +1637,7 @@ public class ImsManager {
     public void addRegistrationCallbackForSubscription(IImsRegistrationCallback callback, int subId)
             throws RemoteException {
         if (callback == null) {
-            throw new NullPointerException("registration callback can't be null");
+            throw new IllegalArgumentException("registration callback can't be null");
         }
         mMmTelFeatureConnection.addRegistrationCallbackForSubscription(callback, subId);
         log("Registration Callback registered.");
@@ -1648,7 +1651,7 @@ public class ImsManager {
     public void removeRegistrationCallbackForSubscription(IImsRegistrationCallback callback,
             int subId) {
         if (callback == null) {
-            throw new NullPointerException("registration callback can't be null");
+            throw new IllegalArgumentException("registration callback can't be null");
         }
 
         mMmTelFeatureConnection.removeRegistrationCallbackForSubscription(callback, subId);
@@ -1673,7 +1676,7 @@ public class ImsManager {
             mMmTelFeatureConnection.addCapabilityCallback(callback.getBinder());
             log("Capability Callback registered.");
             // Only record if there isn't a RemoteException.
-        } catch (RemoteException e) {
+        } catch (IllegalStateException e) {
             throw new ImsException("addCapabilitiesCallback(IF)", e,
                     ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
         }
@@ -1704,7 +1707,7 @@ public class ImsManager {
     public void addCapabilitiesCallbackForSubscription(IImsCapabilityCallback callback, int subId)
             throws RemoteException {
         if (callback == null) {
-            throw new NullPointerException("registration callback can't be null");
+            throw new IllegalArgumentException("registration callback can't be null");
         }
 
         mMmTelFeatureConnection.addCapabilityCallbackForSubscription(callback, subId);
@@ -1718,7 +1721,7 @@ public class ImsManager {
     public void removeCapabilitiesCallbackForSubscription(IImsCapabilityCallback callback,
             int subId) {
         if (callback == null) {
-            throw new NullPointerException("capabilities callback can't be null");
+            throw new IllegalArgumentException("capabilities callback can't be null");
         }
 
         mMmTelFeatureConnection.removeCapabilityCallbackForSubscription(callback, subId);
@@ -1742,6 +1745,37 @@ public class ImsManager {
         mMmTelFeatureConnection.removeRegistrationCallback(listener.getBinder());
         log("Registration Callback/Listener registered.");
         // Only record if there isn't a RemoteException.
+    }
+
+    /**
+     * Adds a callback that gets called when Provisioning has changed for a specified subscription.
+     * @param callback A {@link ProvisioningManager.Callback} that will notify the caller when
+     *                 provisioning has changed.
+     * @param subId The subscription that is associated with the callback.
+     * @throws IllegalStateException when the {@link ImsService} connection is not available.
+     * @throws IllegalArgumentException when the {@link IImsConfigCallback} argument is null.
+     */
+    public void addProvisioningCallbackForSubscription(IImsConfigCallback callback, int subId) {
+        if (callback == null) {
+            throw new IllegalArgumentException("provisioning callback can't be null");
+        }
+
+        mMmTelFeatureConnection.addProvisioningCallbackForSubscription(callback, subId);
+        log("Capability Callback registered for subscription.");
+    }
+
+    /**
+     * Removes a previously registered {@link ProvisioningManager.Callback} that was associated with
+     * a specific subscription.
+     * @throws IllegalStateException when the {@link ImsService} connection is not available.
+     * @throws IllegalArgumentException when the {@link IImsConfigCallback} argument is null.
+     */
+    public void removeProvisioningCallbackForSubscription(IImsConfigCallback callback, int subId) {
+        if (callback == null) {
+            throw new IllegalArgumentException("provisioning callback can't be null");
+        }
+
+        mMmTelFeatureConnection.removeProvisioningCallbackForSubscription(callback, subId);
     }
 
     public @ImsRegistrationImplBase.ImsRegistrationTech int getRegistrationTech() {
@@ -1912,17 +1946,12 @@ public class ImsManager {
     public ImsConfig getConfigInterface() throws ImsException {
         checkAndThrowExceptionIfServiceUnavailable();
 
-        try {
-            IImsConfig config = mMmTelFeatureConnection.getConfigInterface();
-            if (config == null) {
-                throw new ImsException("getConfigInterface()",
-                        ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
-            }
-            return new ImsConfig(config);
-        } catch (RemoteException e) {
-            throw new ImsException("getConfigInterface()", e,
-                    ImsReasonInfo.CODE_LOCAL_IMS_SERVICE_DOWN);
+        IImsConfig config = mMmTelFeatureConnection.getConfigInterface();
+        if (config == null) {
+            throw new ImsException("getConfigInterface()",
+                    ImsReasonInfo.CODE_LOCAL_SERVICE_UNAVAILABLE);
         }
+        return new ImsConfig(config);
     }
 
     public void changeMmTelCapability(
