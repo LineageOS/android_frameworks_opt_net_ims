@@ -475,6 +475,15 @@ public class ImsCall implements ICall {
          */
         public void onMultipartyStateChanged(ImsCall imsCall, boolean isMultiParty) {
         }
+
+        /**
+         * Called when rtt call audio indicator has changed.
+         *
+         * @param imsCall ImsCall object
+         * @param profile updated ImsStreamMediaProfile profile.
+         */
+        public void onRttAudioIndicatorChanged(ImsCall imsCall, ImsStreamMediaProfile profile) {
+        }
     }
 
     // List of update operation for IMS call control
@@ -3173,7 +3182,24 @@ public class ImsCall implements ICall {
                 try {
                     listener.onRttMessageReceived(ImsCall.this, rttMessage);
                 } catch (Throwable t) {
-                    loge("callSessionRttModifyResponseReceived:: ", t);
+                    loge("callSessionRttMessageReceived:: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionRttAudioIndicatorChanged(ImsStreamMediaProfile profile) {
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onRttAudioIndicatorChanged(ImsCall.this, profile);
+                } catch (Throwable t) {
+                    loge("callSessionRttAudioIndicatorChanged:: ", t);
                 }
             }
         }
