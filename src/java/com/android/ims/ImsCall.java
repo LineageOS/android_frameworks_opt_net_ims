@@ -35,6 +35,7 @@ import android.telephony.Rlog;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import android.telephony.CallQuality;
 import android.telephony.ServiceState;
 import android.telephony.ims.ImsCallProfile;
 import android.telephony.ims.ImsConferenceState;
@@ -483,6 +484,15 @@ public class ImsCall implements ICall {
          * @param profile updated ImsStreamMediaProfile profile.
          */
         public void onRttAudioIndicatorChanged(ImsCall imsCall, ImsStreamMediaProfile profile) {
+        }
+
+        /**
+         * Called when the call quality has changed.
+         *
+         * @param imsCall ImsCall object
+         * @param callQuality the updated CallQuality
+         */
+        public void onCallQualityChanged(ImsCall imsCall, CallQuality callQuality) {
         }
     }
 
@@ -3200,6 +3210,23 @@ public class ImsCall implements ICall {
                     listener.onRttAudioIndicatorChanged(ImsCall.this, profile);
                 } catch (Throwable t) {
                     loge("callSessionRttAudioIndicatorChanged:: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callQualityChanged(CallQuality callQuality) {
+            ImsCall.Listener listener;
+
+            synchronized (ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallQualityChanged(ImsCall.this, callQuality);
+                } catch (Throwable t) {
+                    loge("callQualityChanged:: ", t);
                 }
             }
         }
