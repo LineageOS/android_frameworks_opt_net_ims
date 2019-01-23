@@ -16,6 +16,7 @@
 
 package com.android.ims;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.os.Handler;
@@ -297,7 +298,7 @@ public class MmTelFeatureConnection {
             IImsRegistration imsRegistration = getRegistration();
             if (imsRegistration != null) {
                 try {
-                    getRegistration().addRegistrationCallback(localCallback);
+                    imsRegistration.addRegistrationCallback(localCallback);
                 } catch (RemoteException e) {
                     throw new IllegalStateException("ImsRegistrationCallbackAdapter: MmTelFeature"
                             + " binder is dead.");
@@ -314,7 +315,7 @@ public class MmTelFeatureConnection {
             IImsRegistration imsRegistration = getRegistration();
             if (imsRegistration != null) {
                 try {
-                    getRegistration().removeRegistrationCallback(localCallback);
+                    imsRegistration.removeRegistrationCallback(localCallback);
                 } catch (RemoteException e) {
                     Log.w(TAG, "ImsRegistrationCallbackAdapter - unregisterCallback: couldn't"
                             + " remove registration callback");
@@ -429,6 +430,7 @@ public class MmTelFeatureConnection {
     private final Object mLock = new Object();
     // Updated by IImsServiceFeatureCallback when FEATURE_EMERGENCY_MMTEL is sent.
     private boolean mSupportsEmergencyCalling = false;
+    private static boolean sImsSupportedOnDevice = true;
 
     // Cache the Registration and Config interfaces as long as the MmTel feature is connected. If
     // it becomes disconnected, invalidate.
@@ -451,8 +453,13 @@ public class MmTelFeatureConnection {
     private final CapabilityCallbackManager mCapabilityCallbackManager;
     private final ProvisioningCallbackManager mProvisioningCallbackManager;
 
-    public static MmTelFeatureConnection create(Context context , int slotId) {
+    public static @NonNull MmTelFeatureConnection create(Context context , int slotId) {
         MmTelFeatureConnection serviceProxy = new MmTelFeatureConnection(context, slotId);
+        if (!ImsManager.isImsSupportedOnDevice(context)) {
+            // Return empty service proxy in the case that IMS is not supported.
+            sImsSupportedOnDevice = false;
+            return serviceProxy;
+        }
 
         TelephonyManager tm  = getTelephonyManager(context);
         if (tm == null) {
@@ -946,7 +953,10 @@ public class MmTelFeatureConnection {
         return mIsAvailable && mBinder != null && mBinder.isBinderAlive();
     }
 
-    protected void checkServiceIsReady() throws RemoteException {
+    private void checkServiceIsReady() throws RemoteException {
+        if (!sImsSupportedOnDevice) {
+            throw new RemoteException("IMS is not supported on this device.");
+        }
         if (!isBinderReady()) {
             throw new RemoteException("ImsServiceProxy is not ready to accept commands.");
         }
@@ -954,11 +964,5 @@ public class MmTelFeatureConnection {
 
     private IImsMmTelFeature getServiceInterface(IBinder b) {
         return IImsMmTelFeature.Stub.asInterface(b);
-    }
-
-    protected void checkBinderConnection() throws RemoteException {
-        if (!isBinderAlive()) {
-            throw new RemoteException("ImsServiceProxy is not available for that feature.");
-        }
     }
 }
