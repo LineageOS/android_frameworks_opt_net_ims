@@ -918,6 +918,17 @@ public class ImsManager {
     }
 
     /**
+     * @deprecated Does not take into account roaming state of the network, use
+     * {@link #setWfcNonPersistent(boolean, int, boolean)}.
+     */
+    public void setWfcNonPersistent(boolean enabled, int wfcMode) {
+        TelephonyManager tm = (TelephonyManager)
+                mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        boolean isRoaming = tm.isNetworkRoaming(getSubId());
+        setWfcNonPersistent(enabled, wfcMode, isRoaming);
+    }
+
+    /**
      * Non-persistently change WFC enabled setting and WFC mode for slot
      *
      * @param wfcMode The WFC preference if WFC is enabled
@@ -994,11 +1005,9 @@ public class ImsManager {
 
     /**
      * Change persistent WFC preference setting for slot when not roaming.
-     * @deprecated Use {@link #setWfcMode(int, int) instead}.
+     * @deprecated Use {@link #setWfcMode(int, boolean)} instead.
      */
     public void setWfcMode(int wfcMode) {
-        TelephonyManager tm = (TelephonyManager)
-                mContext.getSystemService(Context.TELEPHONY_SERVICE);
         setWfcMode(wfcMode, false /*isRoaming*/);
     }
 
