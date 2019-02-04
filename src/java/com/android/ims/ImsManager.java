@@ -371,6 +371,16 @@ public class ImsManager {
         }
     }
 
+
+    @VisibleForTesting
+    public interface ExecutorFactory {
+        void executeRunnable(Runnable runnable);
+    }
+
+    // Replaced with single-threaded executor for testing.
+    @VisibleForTesting
+    public ExecutorFactory mExecutorFactory = runnable -> new Thread(runnable).start();
+
     private static HashMap<Integer, ImsManager> sImsManagerInstances =
             new HashMap<Integer, ImsManager>();
 
@@ -1143,7 +1153,7 @@ public class ImsManager {
 
     private void setWfcModeInternal(int wfcMode) {
         final int value = wfcMode;
-        Thread thread = new Thread(() -> {
+        mExecutorFactory.executeRunnable(() -> {
             try {
                 getConfigInterface().setConfig(
                         ProvisioningManager.KEY_VOICE_OVER_WIFI_MODE_OVERRIDE, value);
@@ -1151,7 +1161,6 @@ public class ImsManager {
                 // do nothing
             }
         });
-        thread.start();
     }
 
     /**
@@ -1213,7 +1222,7 @@ public class ImsManager {
         final int value = enabled
                 ? ProvisioningManager.PROVISIONING_VALUE_ENABLED
                 : ProvisioningManager.PROVISIONING_VALUE_DISABLED;
-        Thread thread = new Thread(() -> {
+        mExecutorFactory.executeRunnable(() -> {
             try {
                 getConfigInterface().setConfig(
                         ProvisioningManager.KEY_VOICE_OVER_WIFI_ROAMING_ENABLED_OVERRIDE, value);
@@ -1221,7 +1230,6 @@ public class ImsManager {
                 // do nothing
             }
         });
-        thread.start();
     }
 
     /**
@@ -2107,7 +2115,7 @@ public class ImsManager {
     private void setRttConfig(boolean enabled) {
         final int value = enabled ? ProvisioningManager.PROVISIONING_VALUE_ENABLED :
                 ProvisioningManager.PROVISIONING_VALUE_DISABLED;
-        Thread thread = new Thread(() -> {
+        mExecutorFactory.executeRunnable(() -> {
             try {
                 Log.i(ImsManager.class.getSimpleName(), "Setting RTT enabled to " + enabled);
                 getConfigInterface().setProvisionedValue(
@@ -2117,7 +2125,6 @@ public class ImsManager {
                         + enabled + ": " + e);
             }
         });
-        thread.start();
     }
 
     public boolean queryMmTelCapability(
