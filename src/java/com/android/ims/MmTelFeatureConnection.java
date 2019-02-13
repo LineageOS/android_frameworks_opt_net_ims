@@ -97,7 +97,7 @@ public class MmTelFeatureConnection {
                         Log.w(TAG, "onSubscriptionsChanged: could not find SubscriptionManager.");
                         return;
                     }
-                    List<SubscriptionInfo> subInfos = manager.getActiveSubscriptionInfoList();
+                    List<SubscriptionInfo> subInfos = manager.getActiveSubscriptionInfoList(false);
                     if (subInfos == null) {
                         subInfos = Collections.emptyList();
                     }
