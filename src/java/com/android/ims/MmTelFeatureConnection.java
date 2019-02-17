@@ -97,7 +97,7 @@ public class MmTelFeatureConnection {
                         Log.w(TAG, "onSubscriptionsChanged: could not find SubscriptionManager.");
                         return;
                     }
-                    List<SubscriptionInfo> subInfos = manager.getActiveSubscriptionInfoList();
+                    List<SubscriptionInfo> subInfos = manager.getActiveSubscriptionInfoList(false);
                     if (subInfos == null) {
                         subInfos = Collections.emptyList();
                     }
@@ -431,8 +431,15 @@ public class MmTelFeatureConnection {
     private IImsRegistration mRegistrationBinder;
     private IImsConfig mConfigBinder;
 
-    private IBinder.DeathRecipient mDeathRecipient = () -> {
+    private final IBinder.DeathRecipient mDeathRecipient = () -> {
         Log.w(TAG, "DeathRecipient triggered, binder died.");
+        if (mContext != null && Looper.getMainLooper() != null) {
+            // Move this signal to the main thread, notifying ImsManager of the Binder
+            // death on another thread may lead to deadlocks.
+            mContext.getMainExecutor().execute(this::onRemovedOrDied);
+            return;
+        }
+        // No choice - execute on the current Binder thread.
         onRemovedOrDied();
     };
 
