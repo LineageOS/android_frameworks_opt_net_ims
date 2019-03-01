@@ -45,7 +45,7 @@ public class ImsConnectionStateListener extends ImsMmTelManager.RegistrationCall
     }
 
     @Override
-    public final void onDeregistered(ImsReasonInfo info) {
+    public final void onUnregistered(ImsReasonInfo info) {
         onImsDisconnected(info);
     }
 
