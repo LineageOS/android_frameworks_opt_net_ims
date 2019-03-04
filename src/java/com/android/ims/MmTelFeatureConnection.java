@@ -18,6 +18,8 @@ package com.android.ims;
 
 import android.annotation.Nullable;
 import android.content.Context;
+import android.os.Handler;
+import android.os.HandlerExecutor;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Looper;
@@ -56,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
@@ -417,6 +420,7 @@ public class MmTelFeatureConnection {
     protected final int mSlotId;
     protected IBinder mBinder;
     private Context mContext;
+    private Executor mExecutor;
 
     private volatile boolean mIsAvailable = false;
     // ImsFeature Status from the ImsService. Cached.
@@ -492,70 +496,85 @@ public class MmTelFeatureConnection {
             new IImsServiceFeatureCallback.Stub() {
 
         @Override
-        public void imsFeatureCreated(int slotId, int feature) throws RemoteException {
-            // The feature has been enabled. This happens when the feature is first created and may
-            // happen when the feature is re-enabled.
-            synchronized (mLock) {
-                if(mSlotId != slotId) {
-                    return;
-                }
-                switch (feature) {
-                    case ImsFeature.FEATURE_MMTEL: {
-                        if (!mIsAvailable) {
-                            Log.i(TAG, "MmTel enabled on slotId: " + slotId);
-                            mIsAvailable = true;
+        public void imsFeatureCreated(int slotId, int feature) {
+                mExecutor.execute(() -> {
+                // The feature has been enabled. This happens when the feature is first created and
+                // may happen when the feature is re-enabled.
+                synchronized (mLock) {
+                    if(mSlotId != slotId) {
+                        return;
+                    }
+                    switch (feature) {
+                        case ImsFeature.FEATURE_MMTEL: {
+                            if (!mIsAvailable) {
+                                Log.i(TAG, "MmTel enabled on slotId: " + slotId);
+                                mIsAvailable = true;
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case ImsFeature.FEATURE_EMERGENCY_MMTEL: {
-                        mSupportsEmergencyCalling = true;
-                        Log.i(TAG, "Emergency calling enabled on slotId: " + slotId);
-                        break;
+                        case ImsFeature.FEATURE_EMERGENCY_MMTEL: {
+                            mSupportsEmergencyCalling = true;
+                            Log.i(TAG, "Emergency calling enabled on slotId: " + slotId);
+                            break;
+                        }
                     }
                 }
-
-            }
+            });
         }
 
         @Override
-        public void imsFeatureRemoved(int slotId, int feature) throws RemoteException {
-            synchronized (mLock) {
-                if(mSlotId != slotId) {
-                    return;
-                }
-                switch (feature) {
-                    case ImsFeature.FEATURE_MMTEL: {
-                        Log.i(TAG, "MmTel removed on slotId: " + slotId);
-                        onRemovedOrDied();
-                        break;
+        public void imsFeatureRemoved(int slotId, int feature) {
+            mExecutor.execute(() -> {
+                synchronized (mLock) {
+                    if (mSlotId != slotId) {
+                        return;
                     }
-                    case ImsFeature.FEATURE_EMERGENCY_MMTEL : {
-                        mSupportsEmergencyCalling = false;
-                        Log.i(TAG, "Emergency calling disabled on slotId: " + slotId);
-                        break;
+                    switch (feature) {
+                        case ImsFeature.FEATURE_MMTEL: {
+                            Log.i(TAG, "MmTel removed on slotId: " + slotId);
+                            onRemovedOrDied();
+                            break;
+                        }
+                        case ImsFeature.FEATURE_EMERGENCY_MMTEL: {
+                            mSupportsEmergencyCalling = false;
+                            Log.i(TAG, "Emergency calling disabled on slotId: " + slotId);
+                            break;
+                        }
                     }
                 }
-            }
+            });
         }
 
         @Override
-        public void imsStatusChanged(int slotId, int feature, int status) throws RemoteException {
-            synchronized (mLock) {
-                Log.i(TAG, "imsStatusChanged: slot: " + slotId + " feature: " + feature +
-                        " status: " + status);
-                if (mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
-                    mFeatureStateCached = status;
-                    if (mStatusCallback != null) {
-                        mStatusCallback.notifyStateChanged();
+        public void imsStatusChanged(int slotId, int feature, int status) {
+            mExecutor.execute(() -> {
+                synchronized (mLock) {
+                    Log.i(TAG, "imsStatusChanged: slot: " + slotId + " feature: " + feature +
+                            " status: " + status);
+                    if (mSlotId == slotId && feature == ImsFeature.FEATURE_MMTEL) {
+                        mFeatureStateCached = status;
+                        if (mStatusCallback != null) {
+                            mStatusCallback.notifyStateChanged();
+                        }
                     }
                 }
-            }
+            });
         }
     };
 
     public MmTelFeatureConnection(Context context, int slotId) {
         mSlotId = slotId;
         mContext = context;
+        // Callbacks should be scheduled on the main thread.
+        if (context.getMainLooper() != null) {
+            mExecutor = context.getMainExecutor();
+        } else {
+            // Fallback to the current thread.
+            if (Looper.myLooper() == null) {
+                Looper.prepare();
+            }
+            mExecutor = new HandlerExecutor(new Handler(Looper.myLooper()));
+        }
         mRegistrationCallbackManager = new ImsRegistrationCallbackAdapter(context, mLock);
         mCapabilityCallbackManager = new CapabilityCallbackManager(context, mLock);
         mProvisioningCallbackManager = new ProvisioningCallbackManager(context, mLock);
