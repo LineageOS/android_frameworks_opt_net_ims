@@ -332,15 +332,18 @@ public class ImsManager {
 
         private void retryGetImsService() {
             synchronized (mLock) {
-                // remove callback so we do not receive updates from old ImsServiceProxy when
-                // switching between ImsServices.
-                mImsManager.removeNotifyStatusChangedCallback(mNotifyStatusChangedCallback);
-                //Leave mImsManager as null, then CallStateException will be thrown when dialing
-                mImsManager = null;
+                if (mImsManager != null) {
+                    // remove callback so we do not receive updates from old ImsServiceProxy when
+                    // switching between ImsServices.
+                    mImsManager.removeNotifyStatusChangedCallback(mNotifyStatusChangedCallback);
+                    //Leave mImsManager as null, then CallStateException will be thrown when dialing
+                    mImsManager = null;
+                }
+
+                // Exponential backoff during retry, limited to 32 seconds.
+                removeCallbacks(mGetServiceRunnable);
+                postDelayed(mGetServiceRunnable, mRetryTimeout.get());
             }
-            // Exponential backoff during retry, limited to 32 seconds.
-            removeCallbacks(mGetServiceRunnable);
-            postDelayed(mGetServiceRunnable, mRetryTimeout.get());
         }
 
         private void getImsService() throws ImsException {
