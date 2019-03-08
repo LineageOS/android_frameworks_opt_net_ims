@@ -1084,13 +1084,18 @@ public class ImsManager {
             }
             if (DBG) log("getWfcMode - setting=" + setting);
         } else {
-            // The WFC roaming mode is set in the Settings UI to be the same as the WFC mode if the
-            // roaming mode is set to not "editable" (see
-            // CarrierConfigManager.KEY_EDITABLE_WFC_ROAMING_MODE_BOOL for explanation), so can't
-            // override those settings here by setting the WFC roaming mode to default, like above.
-            setting = getSettingFromSubscriptionManager(
-                    SubscriptionManager.WFC_IMS_ROAMING_MODE,
-                    CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT);
+            if (getBooleanCarrierConfig(
+                    CarrierConfigManager.KEY_USE_WFC_HOME_NETWORK_MODE_IN_ROAMING_NETWORK_BOOL)) {
+                setting = getWfcMode(false);
+            } else if (!getBooleanCarrierConfig(
+                    CarrierConfigManager.KEY_EDITABLE_WFC_ROAMING_MODE_BOOL)) {
+                setting = getIntCarrierConfig(
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT);
+            } else {
+                setting = getSettingFromSubscriptionManager(
+                        SubscriptionManager.WFC_IMS_ROAMING_MODE,
+                        CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT);
+            }
             if (DBG) log("getWfcMode (roaming) - setting=" + setting);
         }
         return setting;
