@@ -19,6 +19,7 @@ package com.android.ims;
 import android.annotation.Nullable;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerExecutor;
@@ -308,8 +309,14 @@ public class ImsManager {
          * Start the creation of a connection to the underlying ImsService implementation. When the
          * service is connected, {@link Listener#connectionReady(ImsManager)} will be called with
          * an active ImsManager instance.
+         *
+         * If this device does not support an ImsStack (i.e. doesn't support
+         * {@link PackageManager#FEATURE_TELEPHONY_IMS} feature), this method will do nothing.
          */
         public void connect() {
+            if (!ImsManager.isImsSupportedOnDevice(mContext)) {
+                return;
+            }
             mRetryCount = 0;
             // Send a message to connect to the Ims Service and open a connection through
             // getImsService().
@@ -446,6 +453,10 @@ public class ImsManager {
 
             return mgr;
         }
+    }
+
+    public static boolean isImsSupportedOnDevice(Context context) {
+        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY_IMS);
     }
 
     /**
@@ -2369,6 +2380,10 @@ public class ImsManager {
      */
     private void checkAndThrowExceptionIfServiceUnavailable()
             throws ImsException {
+        if (!isImsSupportedOnDevice(mContext)) {
+            throw new ImsException("IMS not supported on device.",
+                    ImsReasonInfo.CODE_LOCAL_IMS_NOT_SUPPORTED_ON_DEVICE);
+        }
         if (mMmTelFeatureConnection == null || !mMmTelFeatureConnection.isBinderAlive()) {
             createImsService();
 
@@ -2758,6 +2773,7 @@ public class ImsManager {
 
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("ImsManager:");
+        pw.println("  device supports IMS = " + isImsSupportedOnDevice(mContext));
         pw.println("  mPhoneId = " + mPhoneId);
         pw.println("  mConfigUpdated = " + mConfigUpdated);
         pw.println("  mImsServiceProxy = " + mMmTelFeatureConnection);
