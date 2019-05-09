@@ -960,29 +960,18 @@ public class ImsManager {
         TelephonyManager tm = (TelephonyManager)
                 mContext.getSystemService(Context.TELEPHONY_SERVICE);
         boolean isRoaming = tm.isNetworkRoaming(subId);
-        setWfcNonPersistent(enabled, getWfcMode(isRoaming), isRoaming);
-    }
-
-    /**
-     * @deprecated Does not take into account roaming state of the network, use
-     * {@link #setWfcNonPersistent(boolean, int, boolean)}.
-     */
-    public void setWfcNonPersistent(boolean enabled, int wfcMode) {
-        TelephonyManager tm = (TelephonyManager)
-                mContext.getSystemService(Context.TELEPHONY_SERVICE);
-        boolean isRoaming = tm.isNetworkRoaming(getSubId());
-        setWfcNonPersistent(enabled, wfcMode, isRoaming);
+        setWfcNonPersistent(enabled, getWfcMode(isRoaming));
     }
 
     /**
      * Non-persistently change WFC enabled setting and WFC mode for slot
      *
+     * @param enabled If true, WFC and WFC while roaming will be enabled for the associated
+     *                subscription, if supported by the carrier. If false, WFC will be disabled for
+     *                the associated subscription.
      * @param wfcMode The WFC preference if WFC is enabled
-     * @param isNetworkRoaming Whether or not the network is currently roaming. If true, the roaming
-     *     enabled setting set by the user will be delivered to the ImsService. If false, roaming
-     *     over WFC config will be disabled.
      */
-    public void setWfcNonPersistent(boolean enabled, int wfcMode, boolean isNetworkRoaming) {
+    public void setWfcNonPersistent(boolean enabled, int wfcMode) {
         // Force IMS to register over LTE when turning off WFC
         int imsWfcModeFeatureValue =
                 enabled ? wfcMode : ImsMmTelManager.WIFI_MODE_CELLULAR_PREFERRED;
@@ -993,10 +982,9 @@ public class ImsManager {
 
             // Set the mode and roaming enabled settings before turning on IMS
             setWfcModeInternal(imsWfcModeFeatureValue);
-            // If isNetworkRoaming or enabled is false, shortcut to false because of the ImsService
+            // If enabled is false, shortcut to false because of the ImsService
             // implementation for WFC roaming, otherwise use the correct user's setting.
-            setWfcRoamingSettingInternal(enabled && isNetworkRoaming
-                    && isWfcRoamingEnabledByUser());
+            setWfcRoamingSettingInternal(enabled && isWfcRoamingEnabledByUser());
 
             if (enabled) {
                 log("setWfcSetting() : turnOnIms");
@@ -1174,12 +1162,6 @@ public class ImsManager {
         // call setWfcModeInternal when roaming == telephony roaming status. Otherwise, ignore.
         if (roaming == tm.isNetworkRoaming(getSubId())) {
             setWfcModeInternal(wfcMode);
-            // if roaming is false, shortcut and just set the setting to false. If WFC is not
-            // enabled at all by the user, then just shortcut to false as well, because the current
-            // ImsService implementation expects the roaming setting to be alsofalse if WFC is
-            // false. Otherwise, use the user's setting.
-            setWfcRoamingSettingInternal(roaming && isWfcEnabledByUser()
-                    && isWfcRoamingEnabledByUser());
         }
     }
 
