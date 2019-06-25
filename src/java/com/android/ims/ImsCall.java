@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.Parcel;
+import android.telecom.Call;
 import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
 import android.telephony.Rlog;
@@ -1873,7 +1874,7 @@ public class ImsCall implements ICall {
 
             if (connectionState != Connection.STATE_DISCONNECTED) {
                 ConferenceParticipant conferenceParticipant = new ConferenceParticipant(handle,
-                        displayName, endpointUri, connectionState);
+                        displayName, endpointUri, connectionState, Call.Details.DIRECTION_UNKNOWN);
                 mConferenceParticipants.add(conferenceParticipant);
             }
         }
